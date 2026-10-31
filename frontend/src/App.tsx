@@ -47,9 +47,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-emerald-100 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-              <span className="font-bold text-xl">H</span>
-            </div>
+            <img src="/logo saja.png" alt="Hifzhly Logo" className="w-10 h-10 object-contain drop-shadow-xs" />
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-lg tracking-tight text-slate-900">Hifzhly</span>
@@ -293,10 +291,14 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 mt-auto">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <p>© 2026 Tim FIFA - Universitas Sultan Ageng Tirtayasa. Hackathon Project.</p>
-          <p>Murojaah Al-Qur'an Berbasis AI & Spaced Repetition</p>
+      <footer className="border-t border-slate-200 bg-white py-6 mt-auto">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+          <div className="flex items-center space-x-2">
+            <img src="/hafizhly_panjang.png" alt="Hifzhly" className="h-6 w-auto object-contain" />
+            <span className="text-slate-400">|</span>
+            <span>Platform Murojaah Al-Qur'an Berbasis AI & Spaced Repetition</span>
+          </div>
+          <p>© 2026 Tim FIFA - Universitas Sultan Ageng Tirtayasa.</p>
         </div>
       </footer>
     </div>

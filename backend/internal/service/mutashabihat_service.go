@@ -99,3 +99,4 @@ func (s *mutashabihatServiceImpl) loadCuratedData() {
 		},
 	}
 }
+
