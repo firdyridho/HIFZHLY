@@ -34,7 +34,7 @@ interface PrayerSchedule {
   minutes: number;
 }
 
-const PRAYER_TIMES: PrayerSchedule[] = [
+const DEFAULT_PRAYER_TIMES: PrayerSchedule[] = [
   { name: 'Shubuh', time: '04:10', icon: CloudMoon, hours: 4, minutes: 10 },
   { name: 'Dzuhur', time: '11:39', icon: Sun, hours: 11, minutes: 39 },
   { name: 'Ashar', time: '14:56', icon: CloudSun, hours: 14, minutes: 56 },
@@ -48,6 +48,42 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showDzikirModal, setShowDzikirModal] = useState(false);
+  const [prayerTimes, setPrayerTimes] = useState<PrayerSchedule[]>(DEFAULT_PRAYER_TIMES);
+  const [cityName, setCityName] = useState('Serang, Banten');
+  const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
+
+  // Load Real Prayer Times and Doa from Backend API
+  useEffect(() => {
+    fetch('/api/v1/prayer-times')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.city) setCityName(data.city);
+        if (data.schedules && Array.isArray(data.schedules)) {
+          const iconMap: Record<string, typeof Sun> = {
+            Shubuh: CloudMoon,
+            Dzuhur: Sun,
+            Ashar: CloudSun,
+            Maghrib: Moon,
+            Isya: Sparkles,
+          };
+          const mapped = data.schedules.map((s: any) => ({
+            ...s,
+            icon: iconMap[s.name] || Sun,
+          }));
+          setPrayerTimes(mapped);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/v1/doa')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.doa && Array.isArray(data.doa)) {
+          setDoaList(data.doa);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load user profile
   useEffect(() => {
@@ -94,20 +130,20 @@ export default function DashboardPage() {
   const currentMinutesSinceMidnight =
     currentTime.getHours() * 60 + currentTime.getMinutes();
 
-  let nextPrayer = PRAYER_TIMES[0];
+  let nextPrayer = prayerTimes[0] || DEFAULT_PRAYER_TIMES[0];
   let diffMinutes = 0;
 
-  for (let i = 0; i < PRAYER_TIMES.length; i++) {
-    const pMinutes = PRAYER_TIMES[i].hours * 60 + PRAYER_TIMES[i].minutes;
+  for (let i = 0; i < prayerTimes.length; i++) {
+    const pMinutes = prayerTimes[i].hours * 60 + prayerTimes[i].minutes;
     if (pMinutes > currentMinutesSinceMidnight) {
-      nextPrayer = PRAYER_TIMES[i];
+      nextPrayer = prayerTimes[i];
       diffMinutes = pMinutes - currentMinutesSinceMidnight;
       break;
     }
-    if (i === PRAYER_TIMES.length - 1) {
+    if (i === prayerTimes.length - 1) {
       // Past Isya, next is Shubuh tomorrow
-      nextPrayer = PRAYER_TIMES[0];
-      diffMinutes = 24 * 60 - currentMinutesSinceMidnight + PRAYER_TIMES[0].hours * 60 + PRAYER_TIMES[0].minutes;
+      nextPrayer = prayerTimes[0];
+      diffMinutes = 24 * 60 - currentMinutesSinceMidnight + prayerTimes[0].hours * 60 + prayerTimes[0].minutes;
     }
   }
 
@@ -141,7 +177,7 @@ export default function DashboardPage() {
             </p>
             <div className="flex items-center space-x-1 text-[11px] text-emerald-200/80 mt-1">
               <MapPin className="w-3 h-3 text-emerald-300 shrink-0" />
-              <span>Serang, Indonesia</span>
+              <span>{cityName}</span>
             </div>
           </div>
 
@@ -178,7 +214,7 @@ export default function DashboardPage() {
 
         {/* Prayer Times Row (5 Waktu Sholat) */}
         <div className="relative z-10 grid grid-cols-5 gap-1.5 sm:gap-3 pt-3 border-t border-emerald-500/40 text-center">
-          {PRAYER_TIMES.map((prayer) => {
+          {prayerTimes.map((prayer) => {
             const isNext = prayer.name === nextPrayer.name;
             const IconComponent = prayer.icon;
             return (
@@ -554,9 +590,42 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-4 text-xs text-slate-700">
+              {doaList.length > 0 ? (
+                doaList.map((d, dIdx) => (
+                  <div
+                    key={d.id || dIdx}
+                    className={`p-4 rounded-2xl border space-y-2 ${
+                      dIdx % 2 === 0
+                        ? 'bg-amber-50/70 border-amber-200/70'
+                        : 'bg-emerald-50/70 border-emerald-200/70'
+                    }`}
+                  >
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider block ${
+                        dIdx % 2 === 0 ? 'text-amber-800' : 'text-emerald-800'
+                      }`}
+                    >
+                      {d.title}
+                    </span>
+                    <p className="font-quran text-2xl text-right leading-loose text-slate-900" dir="rtl">
+                      {d.arabic}
+                    </p>
+                    <p className="text-xs font-semibold text-slate-800">{d.latin}</p>
+                    <p className="text-slate-600 italic">"{d.translation}"</p>
+                    {d.fadhilah && (
+                      <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
+                        {d.fadhilah}
+                      </p>
+                    )}
+
+
+                  </div>
+                ))
+              ) : (
+                <>
               <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-2">
                 <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-                  Doa Memohon Kemudahan Menghafal
+                  Doa Menghafal &amp; Murojaah Al-Qur'an (Sunnah)
                 </span>
                 <p className="font-quran text-2xl text-right leading-loose text-slate-900">
                   اللَّهُمَّ ارْحَمْنِي بِتَرْكِ الْمَعَاصِي أَبَدًا مَا أَبْقَيْتَنِي
@@ -577,6 +646,8 @@ export default function DashboardPage() {
                   "Ya Allah, jadikanlah Al-Qur'an bagi kami sebagai imam, cahaya, petunjuk, dan rahmat..."
                 </p>
               </div>
+                </>
+              )}
             </div>
 
             <button

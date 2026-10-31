@@ -50,7 +50,13 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'santri' | 'tajwid'>('santri');
 
   // Santri state
-  const [santriList] = useState<SantriOverview[]>([
+  const [metrics, setMetrics] = useState({
+    totalSantri: 128,
+    totalSessionsToday: 47,
+    needReviewCount: 8,
+    averageAccuracyScore: 88.4,
+  });
+  const [santriList, setSantriList] = useState<SantriOverview[]>([
     {
       id: '1',
       fullName: 'Ahmad Al-Hafizh',
@@ -133,9 +139,32 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const fetchSantriMonitoring = async () => {
+    try {
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      const res = await fetch('/api/v1/admin/santri', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.santri && Array.isArray(data.santri) && data.santri.length > 0) {
+          setSantriList(data.santri);
+          setMetrics({
+            totalSantri: data.totalSantri || data.santri.length,
+            totalSessionsToday: data.totalSessionsToday || 0,
+            needReviewCount: data.needReviewCount || 0,
+            averageAccuracyScore: data.averageAccuracyScore || 85.0,
+          });
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     fetchModules();
+    fetchSantriMonitoring();
   }, []);
+
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -423,7 +452,7 @@ export default function AdminDashboardPage() {
                   </span>
                   <Users className="w-5 h-5 text-emerald-400" />
                 </div>
-                <div className="text-2xl font-bold text-slate-100">128 Santri</div>
+                <div className="text-2xl font-bold text-slate-100">{metrics.totalSantri} Santri</div>
                 <div className="text-xs text-slate-400 mt-1">92% aktif dalam 24 jam terakhir</div>
               </div>
 
@@ -434,7 +463,7 @@ export default function AdminDashboardPage() {
                   </span>
                   <BookOpen className="w-5 h-5 text-teal-400" />
                 </div>
-                <div className="text-2xl font-bold text-slate-100">47 Sesi</div>
+                <div className="text-2xl font-bold text-slate-100">{metrics.totalSessionsToday} Sesi</div>
                 <div className="text-xs text-emerald-400 mt-1">Murojaah mandiri via Audio SRS</div>
               </div>
 
@@ -445,7 +474,7 @@ export default function AdminDashboardPage() {
                   </span>
                   <Flame className="w-5 h-5 text-amber-400" />
                 </div>
-                <div className="text-2xl font-bold text-amber-400">8 Santri</div>
+                <div className="text-2xl font-bold text-amber-400">{metrics.needReviewCount} Santri</div>
                 <div className="text-xs text-slate-400 mt-1">Skor tajwid di bawah ambang 70%</div>
               </div>
 
@@ -456,7 +485,7 @@ export default function AdminDashboardPage() {
                   </span>
                   <Award className="w-5 h-5 text-purple-400" />
                 </div>
-                <div className="text-2xl font-bold text-slate-100">88.4%</div>
+                <div className="text-2xl font-bold text-slate-100">{metrics.averageAccuracyScore.toFixed(1)}%</div>
                 <div className="text-xs text-emerald-400 mt-1">+3.2% dari pekan lalu</div>
               </div>
             </div>

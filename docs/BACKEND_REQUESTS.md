@@ -44,7 +44,20 @@
 
 ## Daftar Permintaan Aktif (Active Inbox)
 
-*Saat ini belum ada permintaan aktif baru dari Frontend. Seluruh spesifikasi awal telah terdokumentasi lengkap pada [`API.md`](./API.md).*
+* [ ] **REQ-BE-03: Endpoint Jadwal Sholat Riil Dinamis (GET /api/v1/prayer-times)**
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Kebutuhan UI**: Dashboard Hifzhly menampilkan 5 waktu sholat harian (Shubuh, Dzuhur, Ashar, Maghrib, Isya) dan countdown waktu sholat berikutnya secara akurat.
+  * **Status**: Segera Dikerjakan Backend
+
+* [ ] **REQ-BE-04: Endpoint Kumpulan Doa & Dzikir Murojaah (GET /api/v1/doa)**
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Kebutuhan UI**: Modal Doa Murojaah menampilkan doa-doa sebelum/sesudah hafalan lengkap dengan teks Arab, latin, terjemahan, dan keutamaan.
+  * **Status**: Segera Dikerjakan Backend
+
+* [ ] **REQ-BE-05: Endpoint Mutabaah Summary & Heatmap (GET /api/v1/mutabaah/summary & heatmap)**
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Kebutuhan UI**: Halaman Mutabaah memerlukan data riil capaian harian, streak, dan retensi hafalan 37 surah dari database.
+  * **Status**: Segera Dikerjakan Backend
 
 ---
 

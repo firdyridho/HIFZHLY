@@ -46,6 +46,9 @@ func main() {
 	murojaahService := service.NewMurojaahService(quranService, geminiService, murojaahRepo)
 	tajwidRepo := repository.NewTajwidRepository(pgPool)
 	tajwidService := service.NewTajwidService(tajwidRepo, geminiService)
+	prayerService := service.NewPrayerTimesService(redisClient)
+	doaService := service.NewDoaService()
+	mutabaahRepo := repository.NewMutabaahRepository(pgPool)
 
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
@@ -53,6 +56,7 @@ func main() {
 	quranHandler := handler.NewQuranHandler(quranService)
 	murojaahHandler := handler.NewMurojaahHandler(murojaahService)
 	tajwidHandler := handler.NewTajwidHandler(tajwidService)
+	enrichmentHandler := handler.NewEnrichmentHandler(prayerService, doaService, mutabaahRepo)
 
 	r := chi.NewRouter()
 
@@ -119,6 +123,17 @@ func main() {
 
 		// Spaced Repetition (SRS Due Today from PostgreSQL)
 		r.Get("/srs/today", murojaahHandler.GetDueToday)
+
+		// Prayer Times (Jadwal Sholat Astronomis Kemenag RI) & Kumpulan Doa
+		r.Get("/prayer-times", enrichmentHandler.GetPrayerTimes)
+		r.Get("/doa", enrichmentHandler.GetAllDoa)
+
+		// Mutabaah & Retention Analytics
+		r.Get("/mutabaah/summary", enrichmentHandler.GetMutabaahSummary)
+		r.Get("/mutabaah/heatmap/{surahNumber}", enrichmentHandler.GetSurahHeatmap)
+
+		// Admin Santri Monitoring
+		r.Get("/admin/santri", enrichmentHandler.GetAdminSantri)
 
 		// Tajwid Modules & Quizzes
 		r.Get("/tajwid/modules", tajwidHandler.GetModules)

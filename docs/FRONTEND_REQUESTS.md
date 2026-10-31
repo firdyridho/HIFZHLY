@@ -44,7 +44,18 @@
 
 ## Daftar Permintaan Aktif (Active Inbox)
 
-*Tidak ada permintaan aktif yang tertunda saat ini. Seluruh permintaan telah diselesaikan.*
+* [ ] **REQ-FE-03: STOP Penggunaan Data Dummy & Migrasi ke Endpoint Riil Backend**
+  * **Tanggal Diminta**: 2026-10-31 (Jam: 18:15)
+  * **Diminta Oleh**: Ketua Tim / Backend Team (Firdy)
+  * **Instruksi Tegas**:
+    1. **Dilarang keras menggunakan data dummy / hardcoded array statis di Frontend** (seperti `PRAYER_TIMES` hardcoded di `DashboardPage.tsx`, teks doa hardcoded di modal, atau santri list hardcoded).
+    2. Jika Frontend membutuhkan data baru apapun, **WAJIB meminta endpoint ke Backend melalui `docs/BACKEND_REQUESTS.md`**, bukan berinisiatif membuat data palsu/dummy sendiri.
+    3. Backend saat ini sedang menyiapkan endpoint riil untuk segera dikonsumsi Frontend:
+       * `GET /api/v1/prayer-times`: Jadwal sholat riil 5 waktu berbasis kota pengguna.
+       * `GET /api/v1/doa`: Kumpulan doa & dzikir murojaah Al-Qur'an resmi.
+       * `GET /api/v1/mutabaah/summary`: Ringkasan streak & statistik riil dari database.
+       * `GET /api/v1/mutabaah/heatmap/{surah}`: Status retensi ayat riil dari database SRS.
+  * **Status**: Menunggu Frontend Menghubungkan Endpoint Riil
 
 ---
 
