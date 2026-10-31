@@ -23,7 +23,6 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -71,7 +70,7 @@ export default function RegisterPage() {
           username: username.trim(),
           email: email.trim(),
           password: password,
-          role: role,
+          role: 'user',
           dailyTargetAyahs: 10, // Target harian diatur di bagian Dashboard Target
         }),
       });
@@ -126,37 +125,6 @@ export default function RegisterPage() {
 
         {/* Direct Form without outer card container */}
         <form onSubmit={handleRegister} className="space-y-4 pt-1">
-          {/* Tipe Akun Selection */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">
-              Tipe Akun
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200/60 rounded-2xl text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setRole('user')}
-                className={`py-2 rounded-xl transition-all cursor-pointer ${
-                  role === 'user'
-                    ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Santri / Penghafal
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`py-2 rounded-xl transition-all cursor-pointer ${
-                  role === 'admin'
-                    ? 'bg-white text-teal-800 shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Admin / Ustaz
-              </button>
-            </div>
-          </div>
-
           {/* Nama Lengkap */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">

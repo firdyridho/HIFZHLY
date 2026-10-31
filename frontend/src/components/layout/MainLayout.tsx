@@ -3,13 +3,13 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import {
   BookOpen,
   Mic,
-  Award,
   BarChart3,
   Home,
   LogOut,
   Flame,
   Target,
   UserCheck,
+  GraduationCap,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -151,9 +151,9 @@ export default function MainLayout() {
       </header>
 
       {/* Main Content Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
-        {/* Navigation Tabs Bar with Active State */}
-        <nav className="grid grid-cols-4 gap-1 p-1 bg-slate-200/70 rounded-2xl mb-6 text-xs sm:text-sm font-medium">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
+        {/* Desktop Navigation Tabs Bar with Active State */}
+        <nav className="hidden md:grid grid-cols-5 gap-1.5 p-1.5 bg-slate-200/70 rounded-2xl mb-6 text-xs sm:text-sm font-medium">
           <NavLink
             to="/app"
             end
@@ -165,9 +165,22 @@ export default function MainLayout() {
               }`
             }
           >
+            <Home className="w-4 h-4 text-emerald-700" />
+            <span>Beranda</span>
+          </NavLink>
+
+          <NavLink
+            to="/app/murojaah"
+            className={({ isActive }) =>
+              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
+                isActive
+                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`
+            }
+          >
             <Mic className="w-4 h-4 text-emerald-700" />
-            <span className="hidden sm:inline">Smart Murojaah</span>
-            <span className="sm:hidden">Murojaah</span>
+            <span>Smart Murojaah</span>
           </NavLink>
 
           <NavLink
@@ -181,8 +194,7 @@ export default function MainLayout() {
             }
           >
             <BookOpen className="w-4 h-4 text-emerald-700" />
-            <span className="hidden sm:inline">Mushaf Digital</span>
-            <span className="sm:hidden">Mushaf</span>
+            <span>Mushaf Digital</span>
           </NavLink>
 
           <NavLink
@@ -195,9 +207,8 @@ export default function MainLayout() {
               }`
             }
           >
-            <Award className="w-4 h-4 text-emerald-700" />
-            <span className="hidden sm:inline">Tajwid Academy</span>
-            <span className="sm:hidden">Tajwid</span>
+            <GraduationCap className="w-4 h-4 text-emerald-700" />
+            <span>Tajwid Academy</span>
           </NavLink>
 
           <NavLink
@@ -211,14 +222,83 @@ export default function MainLayout() {
             }
           >
             <BarChart3 className="w-4 h-4 text-emerald-700" />
-            <span className="hidden sm:inline">Mutabaah</span>
-            <span className="sm:hidden">Grafik</span>
+            <span>Mutabaah</span>
           </NavLink>
         </nav>
 
         {/* Dynamic Nested Page Content */}
         <Outlet />
       </main>
+
+      {/* Mobile Bottom Navigation Bar (Matches the User's Design Image) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
+        <div className="max-w-md mx-auto grid grid-cols-5 items-center justify-items-center">
+          {/* 1. Qur'an */}
+          <NavLink
+            to="/app/mushaf"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 transition-all ${
+                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`
+            }
+          >
+            <BookOpen className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Qur'an</span>
+          </NavLink>
+
+          {/* 2. Mutabaah */}
+          <NavLink
+            to="/app/mutabaah"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 transition-all ${
+                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`
+            }
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
+          </NavLink>
+
+          {/* 3. Beranda (Center Elevated Green Floating Action Button) */}
+          <NavLink
+            to="/app"
+            end
+            className={({ isActive }) =>
+              `-mt-7 flex flex-col items-center group cursor-pointer ${
+                isActive ? 'text-emerald-700 font-black' : 'text-slate-600'
+              }`
+            }
+          >
+            <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 border-3 border-white group-active:scale-95 transition-all">
+              <Home className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-bold mt-0.5">Beranda</span>
+          </NavLink>
+
+          {/* 4. Tajwid */}
+          <NavLink
+            to="/app/tajwid"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 transition-all ${
+                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`
+            }
+          >
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Tajwid</span>
+          </NavLink>
+
+          {/* 5. Keluar */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex flex-col items-center justify-center py-1 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Keluar</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Academic & Islamic Footer */}
       <footer className="border-t border-slate-200/90 bg-white py-6 mt-auto">
