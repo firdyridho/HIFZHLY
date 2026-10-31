@@ -13,29 +13,33 @@
 
 ### Tahap 1: Setup Proyek, Desain Antarmuka & Wireframing (Jam 00:00 – 02:00)
 - [x] Menyepakati kontrak interface, tipe audio, dan konvensi `camelCase` di [`API_CONTRACT_AGREEMENT.md`](./API_CONTRACT_AGREEMENT.md).
-- [ ] Inisialisasi proyek React 19 + Vite (`pnpm create vite frontend --template react-ts`).
-- [ ] Konfigurasi Tailwind CSS v4, konfigurasi palet warna Hifzhly (Islamic Emerald Green `#0F766E` / `#059669`, background tenang `#F8FAFC`, aksen ayat `#1E293B`).
-- [ ] Pembuatan Wireframe / Mockup 4 layar utama:
-  - [ ] Layar Beranda (Target hari ini, SRS due ayahs, streak mutabaah).
-  - [ ] Layar Smart Murojaah (Mushaf interaktif, tombol rekam suara, live waveform, word highlighting).
-  - [ ] Layar Tajwid Academy (Daftar materi, embed player YouTube, form kuis).
-  - [ ] Layar Review Pembahasan Kuis (Rekap skor, kartu soal interaktif, penjelasan kaidah tajwid).
+- [x] Inisialisasi proyek React 19 + Vite + TypeScript (`frontend/package.json`).
+- [x] Konfigurasi Tailwind CSS v4, konfigurasi palet warna Hifzhly (Islamic Emerald Green `#0F766E` / `#059669`, background tenang `#F8FAFC`, font *Amiri Quran* & *Plus Jakarta Sans*).
+- [x] Pemasangan Branding Resmi Hifzhly: Favicon (`icon_favicon.png`), Navbar Logo (`logo saja.png`), dan Footer Banner (`hafizhly_panjang.png`).
+- [x] Konfigurasi SPA Anti-404 Vercel ([`vercel.json`](../frontend/vercel.json)) dan Nginx ([`nginx.conf`](../frontend/nginx.conf)).
 
-### Tahap 2: Layanan UI Inti, Mushaf & Web Audio Recorder (Jam 02:00 – 10:00)
-- [ ] Setup Routing (React Router v7): `/`, `/login`, `/register`, `/murojaah`, `/tajwid`, `/tajwid/:slug`, `/mutabaah`.
-- [ ] Halaman Autentikasi: Form Login & Register dengan validasi input ramah pengguna.
-- [ ] Komponen Mushaf Al-Qur'an:
-  - [ ] Fetch data surah dari API backend `/api/v1/quran/surahs`.
-  - [ ] Rendering tipografi huruf Arab berukuran besar dan lega (font *LPMQ Isep Misbah* / *Amiri Quran*).
+### Tahap 2: Layanan UI Inti, Mushaf & Routing Modular (Jam 02:00 – 10:00)
+- [x] Setup Modular Routing (`react-router-dom` v7) di [`src/routes/index.tsx`](../frontend/src/routes/index.tsx):
+  - [x] Rute Beranda Murojaah (`/`)
+  - [x] Rute Mushaf Al-Qur'an (`/mushaf`)
+  - [x] Rute Tajwid Academy (`/tajwid`)
+  - [x] Rute Mutabaah Analytics (`/mutabaah`)
+  - [x] Halaman 404 Kustom Islami ([`NotFoundPage.tsx`](../frontend/src/pages/NotFoundPage.tsx))
+- [x] Komponen Tata Letak Terpusat ([`MainLayout.tsx`](../frontend/src/components/layout/MainLayout.tsx)) dengan `NavLink` Active Tab Highlighting.
+- [ ] Halaman Autentikasi: Form Login & Register dengan validasi input ramah pengguna (sesuai `REQ-FE-02`).
+- [x] Komponen Mushaf Al-Qur'an:
+  - [x] Fetch data surah Juz 'Amma dari API backend `/api/v1/quran/surahs`.
+  - [x] Rendering tipografi huruf Arab berukuran besar dan lega (font *Amiri Quran*).
+  - [x] Integrasi Badge Peringatan Ayat Mutasyabihat (Tarteel QUL Standard) pada Surah An-Naba' (sesuai `REQ-FE-03`).
   - [ ] Pemutar audio qari resmi per ayat (audio element dengan progress bar interaktif).
 - [ ] Modul Perekaman Suara (Web Audio API Recorder):
   - [ ] Mengambil izin mikrofon peramban pengguna (`navigator.mediaDevices.getUserMedia`).
   - [ ] Konversi audio ke sample rate **16 kHz Mono WAV/PCM**.
   - [ ] Visualizer animasi gelombang suara (*waveform canvas/bars*) saat pengguna melafalkan ayat.
-- [ ] Layar Pembelajaran Tajwid:
+- [ ] Layar Pembelajaran Tajwid & Kuis:
+  - [x] Fetch data modul dari `/api/v1/tajwid/modules`.
   - [ ] Integrasi video YouTube embed player (`react-youtube` / responsive iframe).
-  - [ ] Renderer konten artikel ringkasan materi tajwid berformat markdown.
-  - [ ] Komponen form pengerjaan kuis pilihan ganda.
+  - [ ] Layar Review Pembahasan Kuis dengan Accordion penjelasan kaidah tajwid (sesuai `REQ-FE-01`).
 
 ### Tahap 3: Visualisasi Hasil AI Voice & Layar Review Pembahasan (Jam 10:00 – 17:00)
 - [ ] Integrasi Endpoint Evaluasi Suara `/api/v1/murojaah/evaluate`:
@@ -70,5 +74,10 @@
 
 ## 2. Riwayat Tugas Selesai (Completed Log)
 
-* [x] **2026-10-31**: Penandatanganan kontrak kerja antarmuka API, penetapan struktur warna UI, dan pembagian tugas tahap 1 di [`API_CONTRACT_AGREEMENT.md`](./API_CONTRACT_AGREEMENT.md).
+* [x] **2026-10-31 (01:00)**: Penandatanganan kontrak kerja antarmuka API, penetapan struktur warna UI, dan pembagian tugas tahap 1 di [`API_CONTRACT_AGREEMENT.md`](./API_CONTRACT_AGREEMENT.md).
+* [x] **2026-10-31 (02:00)**: Inisialisasi boilerplate React 19 + TypeScript + Tailwind CSS v4, konfigurasi font Arab Amiri Quran.
+* [x] **2026-10-31 (02:45)**: Pemasangan konfigurasi SPA rewrite di `vercel.json` dan `nginx.conf` untuk eliminasi resiko error 404 saat deployment.
+* [x] **2026-10-31 (03:30)**: Pemasangan aset branding resmi Hifzhly (`icon_favicon.png`, `logo saja.png`, dan `hafizhly_panjang.png`).
+* [x] **2026-10-31 (04:15)**: Implementasi arsitektur routing modular `react-router-dom` v7 di `src/routes/index.tsx`, `MainLayout.tsx`, dan pembuatan halaman 404 kustom islami di `src/pages/NotFoundPage.tsx`.
+* [x] **2026-10-31 (05:00)**: Pemisahan seluruh halaman view ke dalam folder terisolasi `src/pages/` (MurojaahPage, MushafPage, TajwidPage, MutabaahPage, NotFoundPage).
 

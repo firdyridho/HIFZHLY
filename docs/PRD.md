@@ -170,7 +170,7 @@ graph TD
 | **Database Utama** | PostgreSQL 16 | Penyimpanan relasional ACID untuk pengguna, riwayat murojaah, state SRS, dan kuis. |
 | **Cache & Queue** | Redis 7.2 | Caching teks ayat dari EQuran.id, session store, dan antrean pengolahan audio. |
 | **AI Inference Service**| Python 3.11, Whisper ASR | Layanan mikro terisolasi untuk eksekusi VAD, Whisper, dan Levenshtein diff. |
-| **External API** | EQuran.id API v2 | Sumber teks Al-Qur'an resmi Kemenag RI, terjemahan Indonesia, dan audio qari. |
+| **API Eksternal & Data Hub** | EQuran.id API v2 & Tarteel QUL (Quranic Universal Library) | EQuran.id menyediakan teks ayat resmi Kemenag RI, terjemahan Indonesia & audio qari. QUL menyediakan pemetaan ayat Mutasyabihat & word-level timestamps. |
 | **Orkestrasi** | Docker & Docker Compose | Penerapan seragam satu perintah untuk pengembangan lokal dan server demonstrasi. |
 
 ---

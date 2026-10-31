@@ -88,3 +88,4 @@ export default function MurojaahPage() {
     </div>
   );
 }
+
