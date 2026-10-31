@@ -323,3 +323,4 @@ func (r *murojaahRepository) getSurahName(num int) string {
 	}
 	return fmt.Sprintf("Surah %d", num)
 }
+

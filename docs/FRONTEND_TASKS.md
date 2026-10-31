@@ -70,6 +70,11 @@
   - [x] Grafik aktivitas mingguan konsistensi murojaah dari `/api/v1/mutabaah/summary`.
 - [x] Uji responsivitas pada layar smartphone (resolusi 360 px, 390 px iPhone, 412 px Android) memastikan tidak ada horizontal scrollbar.
 - [x] State caching di LocalStorage untuk preferensi font, profil user, dan token JWT.
+- [x] Real-time Live Recitation & Mushaf Hafalan Ghaib di `MurojaahPage.tsx` (Tarteel Style):
+  - [x] Web Speech API (`ar-SA`) continuous live voice recognition tanpa latensi.
+  - [x] Mushaf View dengan kata tersembunyi `------` (Mode Ghaib) yang terbuka seketika saat dilafalkan.
+  - [x] Status bar real-time `...Menunggu suara` & live spoken transcript.
+  - [x] Toggle Mode Bantuan Mata (Eye Button) & otomatisasi sinkronisasi ke PostgreSQL SRS.
 
 ### Tahap 5: Video Demo, Bahan Presentasi & Pitch Deck (Jam 21:00 – 24:00)
 - [ ] Perekaman video demo produk berdurasi 3 menit yang menonjolkan fitur unggulan:

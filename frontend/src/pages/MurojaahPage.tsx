@@ -2,326 +2,376 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Mic,
   Square,
-  RotateCcw,
   Volume2,
   Pause,
   Sparkles,
-  Loader2,
-  ArrowRight,
-  ShieldCheck,
-  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Layers
 } from 'lucide-react';
-import type { SrsDueItem, EvaluationResult } from '../types';
+import type { SrsDueItem } from '../types';
 
-interface ReciteAyah {
-  surahNumber: number;
-  surahName: string;
+interface AyahWord {
+  raw: string;       // Lafal asli berharakat lengkap (contoh: ذَٰلِكَ)
+  clean: string;     // Teks Arab tanpa harakat untuk pencocokan (contoh: ذلك)
+  dashed: string;    // Placeholder bergaris (contoh: --------)
+}
+
+interface MushafAyah {
   ayahNumber: number;
   textArabic: string;
   textLatin: string;
   translation: string;
   audioUrl: string;
+  words: AyahWord[];
 }
 
-const DEFAULT_AYAH: ReciteAyah = {
-  surahNumber: 78,
-  surahName: "An-Naba'",
-  ayahNumber: 1,
-  textArabic: 'عَمَّ يَتَسَآءَلُونَ',
-  textLatin: "'Amma yatasaa'aluun",
-  translation: 'Tentang apakah mereka saling bertanya-tanya?',
-  audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3',
-};
+// Helper normalisasi teks Arab untuk pencocokan real-time
+function normalizeArabic(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '') // hapus harakat & tanda waqaf
+    .replace(/[إأآٱ]/g, 'ا') // satukan alif
+    .replace(/ة/g, 'ه') // satukan ta marbuthah
+    .replace(/ى/g, 'ي') // satukan alif maqsura
+    .replace(/[^\u0621-\u064A\s]/g, '') // buang karakter non-arab
+    .trim();
+}
 
-const FALLBACK_DUE_ITEMS: SrsDueItem[] = [
+function parseAyahWords(textArabic: string): AyahWord[] {
+  const tokens = textArabic.trim().split(/\s+/);
+  return tokens.map((token) => {
+    const clean = normalizeArabic(token);
+    // Buat panjang garis putus-putus proporsional dengan panjang kata
+    const dashLen = Math.max(3, clean.length * 2);
+    const dashed = '-'.repeat(dashLen);
+    return {
+      raw: token,
+      clean,
+      dashed,
+    };
+  });
+}
+
+// Data awal Al-Baqarah (seperti di screenshot) & An-Naba'
+const DEFAULT_SURAHS: { number: number; name: string; page: number; juz: number; ayahs: MushafAyah[] }[] = [
   {
-    surahNumber: 78,
-    surahName: "An-Naba'",
-    ayahNumber: 1,
-    repetitionCount: 2,
-    intervalDays: 3,
-    lastScore: 90,
-    qualityRating: 4,
-    nextReviewAt: '2026-10-31',
+    number: 2,
+    name: 'Al-Baqarah',
+    page: 2,
+    juz: 1,
+    ayahs: [
+      {
+        ayahNumber: 1,
+        textArabic: 'الٓمٓ',
+        textLatin: 'Alif Laam Miim',
+        translation: 'Alif Lam Mim.',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002001.mp3',
+        words: parseAyahWords('الٓمٓ'),
+      },
+      {
+        ayahNumber: 2,
+        textArabic: 'ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ',
+        textLatin: "Dzaalikal-kitaabu laa rayba fiih, hudal lil-muttaqiin",
+        translation: 'Kitab (Al-Qur\'an) ini tidak ada keraguan padanya; petunjuk bagi mereka yang bertakwa,',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002002.mp3',
+        words: parseAyahWords('ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ'),
+      },
+      {
+        ayahNumber: 3,
+        textArabic: 'ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَـٰهُمْ يُنفِقُونَ',
+        textLatin: "Alladziina yu'minuuna bil-ghaybi wa yuqiimuunash-shalaata wa mimmaa razaqnaahum yunfiquun",
+        translation: '(yaitu) mereka yang beriman kepada yang gaib, melaksanakan salat, dan menginfakkan sebagian rezeki yang Kami berikan kepada mereka,',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002003.mp3',
+        words: parseAyahWords('ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَـٰهُمْ يُنفِقُونَ'),
+      },
+      {
+        ayahNumber: 4,
+        textArabic: 'وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْـَٔاخِرَةِ هُمْ يُوقِنُونَ',
+        textLatin: "Walladziina yu'minuuna bimaa unzila ilayka wa maa unzila min qablika wa bil-aakhirati hum yuuqinuun",
+        translation: 'dan mereka yang beriman kepada (Al-Qur\'an) yang diturunkan kepadamu dan (kitab-kitab) yang telah diturunkan sebelum engkau, serta mereka yakin akan adanya akhirat.',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002004.mp3',
+        words: parseAyahWords('وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْـَٔاخِرَةِ هُمْ يُوقِنُونَ'),
+      },
+      {
+        ayahNumber: 5,
+        textArabic: 'أُو۟لَـٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ',
+        textLatin: "Ulaa'ika 'alaa hudam mir rabbihim wa ulaa'ika humul-muflihuun",
+        translation: 'Merekalah yang mendapat petunjuk dari Tuhannya, dan mereka itulah orang-orang yang beruntung.',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002005.mp3',
+        words: parseAyahWords('أُو۟لَـٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ'),
+      },
+    ],
   },
   {
-    surahNumber: 78,
-    surahName: "An-Naba'",
-    ayahNumber: 2,
-    repetitionCount: 1,
-    intervalDays: 1,
-    lastScore: 82,
-    qualityRating: 3,
-    nextReviewAt: '2026-10-31',
-  },
-  {
-    surahNumber: 78,
-    surahName: "An-Naba'",
-    ayahNumber: 3,
-    repetitionCount: 3,
-    intervalDays: 7,
-    lastScore: 95,
-    qualityRating: 5,
-    nextReviewAt: '2026-10-31',
-  },
-  {
-    surahNumber: 79,
-    surahName: "An-Nazi'at",
-    ayahNumber: 1,
-    repetitionCount: 1,
-    intervalDays: 1,
-    lastScore: 78,
-    qualityRating: 3,
-    nextReviewAt: '2026-10-31',
+    number: 78,
+    name: "An-Naba'",
+    page: 582,
+    juz: 30,
+    ayahs: [
+      {
+        ayahNumber: 1,
+        textArabic: 'عَمَّ يَتَسَآءَلُونَ',
+        textLatin: "'Amma yatasaa'aluun",
+        translation: 'Tentang apakah mereka saling bertanya-tanya?',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3',
+        words: parseAyahWords('عَمَّ يَتَسَآءَلُونَ'),
+      },
+      {
+        ayahNumber: 2,
+        textArabic: 'عَنِ النَّبَإِ الْعَظِيمِ',
+        textLatin: "'Anin-naba'il-'azhiim",
+        translation: 'Tentang berita yang besar (hari berbangkit),',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078002.mp3',
+        words: parseAyahWords('عَنِ النَّبَإِ الْعَظِيمِ'),
+      },
+      {
+        ayahNumber: 3,
+        textArabic: 'الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ',
+        textLatin: 'Alladzii hum fiihi mukhtalifuun',
+        translation: 'yang dalam hal itu mereka berselisih.',
+        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078003.mp3',
+        words: parseAyahWords('الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ'),
+      },
+    ],
   },
 ];
 
 export default function MurojaahPage() {
-  const [dueAyahs, setDueAyahs] = useState<SrsDueItem[]>(FALLBACK_DUE_ITEMS);
-  const [activeAyah, setActiveAyah] = useState<ReciteAyah>(DEFAULT_AYAH);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedSurahIndex, setSelectedSurahIndex] = useState(0);
+  const currentSurah = DEFAULT_SURAHS[selectedSurahIndex];
 
-  // Audio recording state (Web Audio API)
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordDuration, setRecordDuration] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evalResult, setEvalResult] = useState<EvaluationResult | null>(null);
+  const [activeAyahIndex, setActiveAyahIndex] = useState(0);
+  const activeAyah = currentSurah.ayahs[activeAyahIndex] || currentSurah.ayahs[0];
+
+  // State Mode Ghaib (Tebak kata: kata tertutup '------' vs terbuka semua)
+  const [isBlindMode, setIsBlindMode] = useState(true);
+
+  // Kata yang sudah berhasil dibuka/dilafalkan benar pada ayat aktif
+  // Set of word indices yang sudah revealed pada activeAyah
+  const [revealedWordIndices, setRevealedWordIndices] = useState<Set<number>>(new Set());
+
+  // Real-time Voice Recognition State
+  const [isLiveListening, setIsLiveListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [liveStatusText, setLiveStatusText] = useState('...Menunggu suara');
+  const [isCompletedAyah, setIsCompletedAyah] = useState(false);
+  const [scoreNotification, setScoreNotification] = useState<string | null>(null);
+
+  // SRS due items from backend
+  const [dueAyahs, setDueAyahs] = useState<SrsDueItem[]>([]);
+  const [isLoadingSrs, setIsLoadingSrs] = useState(false);
 
   // Audio Qari player
   const [isPlayingQari, setIsPlayingQari] = useState(false);
   const qariAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Web Audio API refs
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Web Speech API recognition reference
+  const recognitionRef = useRef<any>(null);
 
-  // Fetch SRS Due Ayahs
-  useEffect(() => {
-    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-    fetch('/api/v1/srs/today', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch SRS items');
-        return res.json();
-      })
-      .then((data) => {
-        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+  // Fetch SRS due items from PostgreSQL
+  const fetchSrsQueue = async () => {
+    setIsLoadingSrs(true);
+    try {
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      const res = await fetch('/api/v1/srs/today', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items && Array.isArray(data.items)) {
           setDueAyahs(data.items);
         }
-      })
-      .catch((err) => {
-        console.warn('Using fallback SRS queue:', err);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Cleanup audio & timers on unmount
-  useEffect(() => {
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-      if (qariAudioRef.current) {
-        qariAudioRef.current.pause();
-      }
-    };
-  }, []);
-
-  // Start Web Audio API recording
-  const handleStartRecording = async () => {
-    try {
-      setEvalResult(null);
-      setAudioBlob(null);
-      setRecordDuration(0);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
-
-      // Setup Web Audio Analyser for live visualizer
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 16000,
-      });
-      audioContextRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      // Draw waveform
-      drawLiveWaveform();
-
-      // Setup MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      const chunks: BlobPart[] = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const recordedBlob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioBlob(recordedBlob);
-        stream.getTracks().forEach((track) => track.stop());
-        if (analyserRef.current && animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-
-      timerIntervalRef.current = setInterval(() => {
-        setRecordDuration((prev) => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
-      alert('Izin mikrofon diperlukan untuk merekam bacaan murojaah.');
-    }
-  };
-
-  // Draw real-time audio waveform canvas
-  const drawLiveWaveform = () => {
-    if (!canvasRef.current || !analyserRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const bufferLength = analyserRef.current.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const render = () => {
-      animationFrameRef.current = requestAnimationFrame(render);
-      analyserRef.current?.getByteFrequencyData(dataArray);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const barWidth = (canvas.width / bufferLength) * 2;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * canvas.height * 0.9;
-        ctx.fillStyle = '#059669'; // Emerald-600
-        ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
-        x += barWidth;
-      }
-    };
-
-    render();
-  };
-
-  // Stop recording
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    }
-  };
-
-  // Trigger evaluation
-  const handleEvaluateAudio = async () => {
-    setIsEvaluating(true);
-
-    try {
-      const formData = new FormData();
-      if (audioBlob) {
-        formData.append('audio', audioBlob, 'recitation.webm');
-      }
-      formData.append('sessionId', 'sess-uuid-001');
-      formData.append('surahNumber', String(activeAyah.surahNumber));
-      formData.append('ayahNumber', String(activeAyah.ayahNumber));
-
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const res = await fetch('/api/v1/murojaah/evaluate', {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data: EvaluationResult = await res.json();
-        setEvalResult(data);
-        fetch('/api/v1/srs/today', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d.items && Array.isArray(d.items) && d.items.length > 0) setDueAyahs(d.items);
-          })
-          .catch(() => {});
-      } else {
-        throw new Error('Fallback to local AI evaluator simulation');
       }
     } catch {
-      // High-fidelity Levenshtein fallback calculation
-      const words = activeAyah.textArabic.split(' ');
-      const simulatedDiff = words.map((w, i) => {
-        if (i === 1 && words.length > 2) {
-          return {
-            index: i,
-            word: w,
-            status: 'substituted' as const,
-            userSaid: w.slice(0, -1),
-            mistakeType: 'Harakat akhir / waqaf',
-          };
-        }
-        return {
-          index: i,
-          word: w,
-          status: 'correct' as const,
-          userSaid: w,
-        };
-      });
-
-      const score = simulatedDiff.filter((d) => d.status === 'correct').length / words.length >= 0.75 ? 92.5 : 78.0;
-
-      const mockResult: EvaluationResult = {
-        evaluationId: `eval-${Date.now()}`,
-        surahNumber: activeAyah.surahNumber,
-        ayahNumber: activeAyah.ayahNumber,
-        score,
-        transcribedText: activeAyah.textArabic,
-        referenceText: activeAyah.textArabic,
-        audioDurationMs: Math.max(2500, recordDuration * 1000),
-        substitutions: simulatedDiff.filter((d) => d.status === 'substituted').length,
-        deletions: 0,
-        insertions: 0,
-        wordDiff: simulatedDiff,
-        srsUpdate: {
-          qualityRating: score >= 90 ? 5 : 4,
-          repetitionCount: 3,
-          intervalDays: score >= 90 ? 7 : 3,
-          easeFactor: 2.6,
-          nextReviewAt: new Date(Date.now() + (score >= 90 ? 7 : 3) * 86400000)
-            .toISOString()
-            .split('T')[0],
-        },
-      };
-
-      setEvalResult(mockResult);
+      // ignore
     } finally {
-      setIsEvaluating(false);
+      setIsLoadingSrs(false);
     }
   };
 
-  // Toggle Qari Audio
+  useEffect(() => {
+    fetchSrsQueue();
+  }, []);
+
+  // Reset kata terbuka setiap ganti ayat
+  useEffect(() => {
+    setRevealedWordIndices(new Set());
+    setIsCompletedAyah(false);
+    setLiveTranscript('');
+    setLiveStatusText(isLiveListening ? '...Menunggu suara' : 'Tekan mikrofon untuk melafalkan');
+  }, [activeAyahIndex, selectedSurahIndex]);
+
+  // Sync selesai ayat ke backend SRS
+  const handleAyahCompleted = async (ayah: MushafAyah) => {
+    setIsCompletedAyah(true);
+    setScoreNotification(`Alhamdulillah! Ayat ${ayah.ayahNumber} Mutqin (Skor 100%)`);
+
+    try {
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      await fetch('/api/v1/murojaah/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          surahNumber: currentSurah.number,
+          ayahNumber: ayah.ayahNumber,
+          userText: ayah.textArabic,
+        }),
+      });
+      fetchSrsQueue();
+    } catch {
+      // background sync
+    }
+
+    // Pindah ke ayat berikutnya otomatis setelah 1.8 detik
+    setTimeout(() => {
+      setScoreNotification(null);
+      if (activeAyahIndex < currentSurah.ayahs.length - 1) {
+        setActiveAyahIndex((prev) => prev + 1);
+      }
+    }, 1800);
+  };
+
+  // Algoritma Pencocokan Real-time Kata Suara vs Ayat
+  const processSpokenArabic = (spokenText: string) => {
+    if (!spokenText || isCompletedAyah) return;
+
+    const normalizedSpoken = normalizeArabic(spokenText);
+    const spokenTokens = normalizedSpoken.split(/\s+/).filter(Boolean);
+
+    setRevealedWordIndices((prevSet) => {
+      const nextSet = new Set(prevSet);
+      let newlyFound = false;
+
+      // Cari kecocokan kata demi kata
+      activeAyah.words.forEach((targetWord, wordIdx) => {
+        if (nextSet.has(wordIdx)) return;
+
+        // Cek apakah ada token suara yang cocok dengan targetWord.clean
+        const isMatched = spokenTokens.some((token) => {
+          if (token === targetWord.clean) return true;
+          // toleransi imbuhan wawu atau alif lam
+          if (token.startsWith('و') && token.slice(1) === targetWord.clean) return true;
+          if (token.startsWith('ف') && token.slice(1) === targetWord.clean) return true;
+          if (targetWord.clean.startsWith(token) && token.length >= 3) return true;
+          return false;
+        });
+
+        if (isMatched) {
+          nextSet.add(wordIdx);
+          newlyFound = true;
+        }
+      });
+
+      // Cek apakah seluruh kata dalam ayat sudah terbuka
+      if (nextSet.size === activeAyah.words.length && !isCompletedAyah) {
+        handleAyahCompleted(activeAyah);
+      }
+
+      return newlyFound ? nextSet : prevSet;
+    });
+  };
+
+  // Inisialisasi & Pengaturan Real-time Web Speech Recognition
+  const startLiveListening = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Browser Anda belum mendukung Web Speech API real-time. Silakan gunakan Google Chrome, Microsoft Edge, atau Safari iOS terbaru.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'ar-SA'; // Dialek Bahasa Arab (Saudi Arabia)
+
+      recognition.onstart = () => {
+        setIsLiveListening(true);
+        setLiveStatusText('...Menunggu suara');
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimText = '';
+        let finalText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += transcript + ' ';
+          } else {
+            interimText += transcript;
+          }
+        }
+
+        const currentSpoken = (finalText + ' ' + interimText).trim();
+        if (currentSpoken) {
+          setLiveTranscript(currentSpoken);
+          setLiveStatusText(currentSpoken);
+          processSpokenArabic(currentSpoken);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech') {
+          setLiveStatusText('...Menunggu suara');
+        } else {
+          console.warn('Speech recognition status:', event.error);
+        }
+      };
+
+      recognition.onend = () => {
+        // Otomatis restart jika user masih dalam mode live listening
+        if (isLiveListening && !isCompletedAyah) {
+          try {
+            recognition.start();
+          } catch {
+            setIsLiveListening(false);
+          }
+        } else {
+          setIsLiveListening(false);
+          setLiveStatusText('Tekan mikrofon untuk melafalkan');
+        }
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.error('Error starting live speech recognition:', err);
+      setIsLiveListening(false);
+    }
+  };
+
+  const stopLiveListening = () => {
+    setIsLiveListening(false);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+    }
+    setLiveStatusText('Tekan mikrofon untuk melafalkan');
+  };
+
+  const handleToggleListening = () => {
+    if (isLiveListening) {
+      stopLiveListening();
+    } else {
+      startLiveListening();
+    }
+  };
+
+  // Play audio qari resmi
   const handleToggleQari = () => {
     if (isPlayingQari) {
       if (qariAudioRef.current) qariAudioRef.current.pause();
@@ -338,338 +388,291 @@ export default function MurojaahPage() {
     audio.onerror = () => setIsPlayingQari(false);
   };
 
-  // Change active ayah from SRS queue
-  const handleSelectDueItem = (item: SrsDueItem) => {
-    setActiveAyah({
-      surahNumber: item.surahNumber,
-      surahName: item.surahName,
-      ayahNumber: item.ayahNumber,
-      textArabic: item.ayahNumber === 1 ? 'عَمَّ يَتَسَآءَلُونَ' : item.ayahNumber === 2 ? 'عَنِ النَّبَإِ الْعَظِيمِ' : 'الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ',
-      textLatin: item.ayahNumber === 1 ? "'Amma yatasaa'aluun" : item.ayahNumber === 2 ? "'Anin-naba'il-'azhiim" : "Alladzii hum fiihi mukhtalifuun",
-      translation: item.ayahNumber === 1 ? 'Tentang apakah mereka saling bertanya-tanya?' : item.ayahNumber === 2 ? 'Tentang berita yang besar (hari berbangkit),' : 'yang dalam hal itu mereka berselisih.',
-      audioUrl: `https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/07800${item.ayahNumber}.mp3`,
+  // Simulasi jika testing tanpa mic
+  const handleSimulateWordReveal = () => {
+    setRevealedWordIndices((prev) => {
+      const next = new Set(prev);
+      for (let i = 0; i < activeAyah.words.length; i++) {
+        if (!next.has(i)) {
+          next.add(i);
+          setLiveStatusText(`Mendengarkan: "${activeAyah.words[i].raw}"`);
+          if (next.size === activeAyah.words.length) {
+            handleAyahCompleted(activeAyah);
+          }
+          break;
+        }
+      }
+      return next;
     });
-    setEvalResult(null);
-    setAudioBlob(null);
-    setRecordDuration(0);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16 text-emerald-700 space-x-2">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm font-semibold">Memuat antrean Smart Murojaah SRS...</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* 1. SRS Due Queue Banner */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white shadow-xl shadow-emerald-950/15 relative overflow-hidden border border-emerald-800">
-        <div className="relative z-10 space-y-2">
-          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Spaced Repetition System (SRS) • Kurva Lupa Kognitif</span>
+    <div className="max-w-3xl mx-auto space-y-6 pb-28 font-sans">
+      {/* Toast Notifikasi Keberhasilan Ayat */}
+      {scoreNotification && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-400 text-sm font-semibold animate-in zoom-in-95">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+          <span>{scoreNotification}</span>
+        </div>
+      )}
+
+      {/* Surah & SRS Queue Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Layers className="w-4 h-4 text-emerald-700" />
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Pilih Surah:
+          </span>
+          <select
+            value={selectedSurahIndex}
+            onChange={(e) => {
+              setSelectedSurahIndex(Number(e.target.value));
+              setActiveAyahIndex(0);
+            }}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+          >
+            {DEFAULT_SURAHS.map((s, idx) => (
+              <option key={s.number} value={idx}>
+                {s.number}. {s.name} (Halaman {s.page})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* SRS Due Badge */}
+        {dueAyahs.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg w-full sm:w-auto justify-center sm:justify-end">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>
+              <strong>{dueAyahs.length} Ayat</strong> terjadwal di SRS hari ini {isLoadingSrs ? '...' : ''}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Mushaf Page Container (Layout persis seperti aplikasi referensi) */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+        {/* Mushaf Top Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <button
+            onClick={() => {
+              if (activeAyahIndex > 0) setActiveAyahIndex((prev) => prev - 1);
+            }}
+            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+            title="Ayat Sebelumnya"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+              {currentSurah.name}
+            </h2>
+            <p className="text-xs text-slate-400 font-medium">
+              Halaman {currentSurah.page} | Juz {currentSurah.juz}
+            </p>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Antrean Murojaah Terjadwal Hari Ini
-          </h2>
+          <button
+            onClick={() => {
+              if (activeAyahIndex < currentSurah.ayahs.length - 1) {
+                setActiveAyahIndex((prev) => prev + 1);
+              }
+            }}
+            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+            title="Ayat Selanjutnya"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
 
-          <p className="text-emerald-100 text-xs sm:text-sm max-w-xl leading-relaxed">
-            Sistem mendeteksi {dueAyahs.length} ayat yang telah jatuh tempo interval memori. Ulangi pelafalan untuk menjaga status ayat tetap <strong>Mutqin</strong>.
-          </p>
+        {/* Mushaf Body: Basmalah & Ayahs */}
+        <div className="p-6 sm:p-10 flex-1 flex flex-col justify-center space-y-8 select-none">
+          {/* Basmalah */}
+          {currentSurah.number !== 9 && (
+            <div className="text-center py-2">
+              <p className="font-quran text-2xl sm:text-3xl text-slate-800 tracking-wide" dir="rtl">
+                بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+              </p>
+            </div>
+          )}
 
-          <div className="pt-3 flex flex-wrap gap-2.5">
-            {dueAyahs.map((item, idx) => {
-              const isCurrent =
-                activeAyah.surahNumber === item.surahNumber &&
-                activeAyah.ayahNumber === item.ayahNumber;
+          {/* Tampilan Teks Mushaf & Kata Ghaib (Real-time Word by Word) */}
+          <div className="space-y-8" dir="rtl">
+            {currentSurah.ayahs.map((ayah, aIdx) => {
+              const isCurrent = aIdx === activeAyahIndex;
+              const isPast = aIdx < activeAyahIndex;
 
               return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSelectDueItem(item)}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                <div
+                  key={ayah.ayahNumber}
+                  className={`p-4 rounded-2xl transition-all ${
                     isCurrent
-                      ? 'bg-white text-emerald-950 shadow-md font-bold scale-105'
-                      : 'bg-emerald-950/60 hover:bg-emerald-800/80 text-emerald-100 border border-emerald-700/60'
+                      ? 'bg-emerald-50/50 border border-emerald-200/60 shadow-xs'
+                      : isPast
+                      ? 'opacity-85'
+                      : 'opacity-40'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-emerald-600' : 'bg-amber-400'}`} />
-                  <span>
-                    QS. {item.surahName}: Ayat {item.ayahNumber}
-                  </span>
-                </button>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-3 font-quran text-2xl sm:text-3xl leading-relaxed text-right justify-start">
+                    {ayah.words.map((w, wIdx) => {
+                      const isWordRevealed =
+                        isPast ||
+                        !isBlindMode ||
+                        (isCurrent && revealedWordIndices.has(wIdx));
+
+                      return (
+                        <span
+                          key={wIdx}
+                          className={`inline-block transition-all duration-300 ${
+                            isWordRevealed
+                              ? isCurrent && revealedWordIndices.has(wIdx)
+                                ? 'text-emerald-700 font-semibold scale-105 animate-in fade-in'
+                                : 'text-slate-800'
+                              : 'text-slate-300 font-mono tracking-tighter text-xl font-normal select-none'
+                          }`}
+                        >
+                          {isWordRevealed ? w.raw : w.dashed}
+                        </span>
+                      );
+                    })}
+
+                    {/* Nomor Ayat Mushaf ۝ */}
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-300 font-sans text-xs font-bold text-slate-700 mx-2 select-none">
+                      {ayah.ayahNumber}
+                    </span>
+                  </div>
+
+                  {/* Terjemahan & Latin hanya pada ayat aktif saat tidak blind mode */}
+                  {isCurrent && !isBlindMode && (
+                    <div className="mt-3 pt-3 border-t border-emerald-100 text-left font-sans" dir="ltr">
+                      <p className="text-xs font-semibold text-emerald-800">{ayah.textLatin}</p>
+                      <p className="text-xs text-slate-500 italic mt-0.5">{ayah.translation}</p>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
-      </div>
 
-      {/* 2. Recitation Sandbox Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
-        {/* Recitation Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div>
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-700">
-              Evaluasi AI Suara (16 kHz Mono)
+        {/* Indikator Mode Ghaib */}
+        <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isBlindMode ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+            />
+            <span>
+              {isBlindMode
+                ? 'Mode Hafalan Ghaib: Kata tertutup sampai dilafalkan'
+                : 'Mode Bimbingan Teks: Seluruh kata ditampilkan'}
             </span>
-            <h3 className="font-extrabold text-slate-900 text-lg">
-              QS. {activeAyah.surahName} : Ayat {activeAyah.ayahNumber}
-            </h3>
           </div>
 
           <button
-            type="button"
-            onClick={handleToggleQari}
-            className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              isPlayingQari
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-            }`}
+            onClick={handleSimulateWordReveal}
+            className="text-[11px] text-slate-400 hover:text-emerald-700 transition underline"
+            title="Uji coba buka 1 kata jika tanpa mikrofon"
           >
-            {isPlayingQari ? (
-              <>
-                <Pause className="w-3.5 h-3.5" />
-                <span>Jeda Qari</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Dengar Contoh Qari</span>
-              </>
-            )}
+            Uji Buka Kata
           </button>
         </div>
+      </div>
 
-        {/* Big Arabic Verse Display (Amiri Quran) */}
-        <div className="py-8 px-4 text-center bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-3">
-          <p className="font-quran text-3xl sm:text-4xl text-slate-900 leading-loose select-text" dir="rtl">
-            {activeAyah.textArabic}{' '}
-            <span className="inline-block text-amber-600 font-sans text-2xl mr-2">
-              ۝{activeAyah.ayahNumber}
-            </span>
-          </p>
-
-          <p className="text-xs font-semibold text-emerald-800 font-sans">
-            {activeAyah.textLatin}
-          </p>
-
-          <p className="text-xs text-slate-500 italic max-w-lg mx-auto leading-relaxed">
-            "{activeAyah.translation}"
-          </p>
-        </div>
-
-        {/* Live Audio Visualizer Canvas */}
-        {isRecording && (
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 text-center animate-in fade-in duration-300">
-            <div className="flex items-center justify-between text-xs text-emerald-400 font-mono px-2">
-              <span className="flex items-center space-x-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
-                <span>Merekam Pelafalan...</span>
-              </span>
-              <span>00:0{recordDuration}</span>
-            </div>
-            <canvas
-              ref={canvasRef}
-              width={500}
-              height={50}
-              className="w-full h-12 rounded-lg"
-            />
-          </div>
-        )}
-
-        {/* Action Controls Bar */}
-        <div className="flex flex-col items-center justify-center space-y-4 pt-2">
-          {!isRecording && !audioBlob && (
-            <div className="flex flex-col items-center space-y-2">
-              <button
-                type="button"
-                onClick={handleStartRecording}
-                className="w-16 h-16 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all cursor-pointer group"
-                title="Mulai Rekam Suara"
-              >
-                <Mic className="w-8 h-8 group-hover:scale-110 transition-transform" />
-              </button>
-              <p className="text-xs text-slate-500 font-medium">
-                Tekan tombol mikrofon dan lafalkan ayat di atas
-              </p>
-            </div>
-          )}
-
-          {isRecording && (
-            <div className="flex flex-col items-center space-y-2">
-              <button
-                type="button"
-                onClick={handleStopRecording}
-                className="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-lg shadow-rose-600/30 active:scale-95 transition-all cursor-pointer animate-pulse"
-                title="Berhenti Merekam"
-              >
-                <Square className="w-7 h-7" />
-              </button>
-              <p className="text-xs text-slate-600 font-semibold">
-                Tekan tombol merah untuk mengakhiri rekaman
-              </p>
-            </div>
-          )}
-
-          {!isRecording && audioBlob && !evalResult && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleEvaluateAudio}
-                disabled={isEvaluating}
-                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-60"
-              >
-                {isEvaluating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Menganalisis Suara (Levenshtein &lt; 3 dtk)...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Evaluasi Suara Saya Sekarang</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleStartRecording}
-                className="inline-flex items-center space-x-1.5 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-all"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Rekam Ulang</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 3. Word-Level Highlighting & Evaluation Results Card */}
-        {evalResult && (
-          <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/90 space-y-6 animate-in fade-in duration-300">
-            {/* Top Score Banner */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                    evalResult.score >= 85
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                  }`}
-                >
-                  {Math.round(evalResult.score)}%
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-slate-900 text-base">
-                    {evalResult.score >= 85
-                      ? 'Lafalan Tepat & Tajwid Tartil'
-                      : 'Perlu Koreksi Huruf Tertentu'}
-                  </h4>
-                  <p className="text-xs text-slate-500">
-                    Durasi Audio: {(evalResult.audioDurationMs / 1000).toFixed(1)}s • Penyejajaran Levenshtein Kata demi Kata
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2 text-xs">
-                <span className="text-slate-500">Privasi:</span>
-                <span className="text-emerald-700 font-semibold flex items-center space-x-1">
-                  <ShieldCheck className="w-3.5 h-3.5 inline" />
-                  <span>Memory-Only</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Word-Level Diff Visualization (Amiri Quran) */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-800 block">
-                Penyorotan Ketepatan Kata demi Kata:
-              </span>
-
-              <div
-                className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-center gap-3 font-quran text-3xl leading-loose"
-                dir="rtl"
-              >
-                {evalResult.wordDiff.map((wordItem, idx) => {
-                  const isCorrect = wordItem.status === 'correct';
-                  const isSubstituted = wordItem.status === 'substituted';
-
-                  return (
-                    <div key={idx} className="relative group inline-block">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-xl transition-all ${
-                          isCorrect
-                            ? 'bg-emerald-100/90 text-emerald-950 border border-emerald-300'
-                            : isSubstituted
-                            ? 'bg-rose-100 text-rose-950 border border-rose-300'
-                            : 'bg-amber-100 text-amber-950 border border-amber-300'
-                        }`}
-                      >
-                        {wordItem.word}
-                      </span>
-
-                      {/* Tooltip on Hover */}
-                      <div
-                        className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-slate-900 text-white rounded-lg text-[11px] font-sans text-left shadow-xl pointer-events-none"
-                        dir="ltr"
-                      >
-                        <div className="flex items-center justify-between pb-1 border-b border-slate-700">
-                          <span className="font-bold text-emerald-400">
-                            {isCorrect ? 'Tepat' : 'Koreksi'}
-                          </span>
-                          <span className="text-[10px] text-slate-400">Kata #{idx + 1}</span>
-                        </div>
-                        <p className="text-slate-300 text-[10px] mt-1 leading-tight">
-                          {isCorrect
-                            ? `Pelafalan sudah sesuai kaidah tartil.`
-                            : `Terdeteksi: "${wordItem.userSaid}". ${wordItem.mistakeType || 'Perhatikan pelafalan kata ini.'}`}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SRS Spaced Repetition Projection Box */}
-            <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs font-sans">
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-teal-100 border border-teal-300 flex items-center justify-center text-teal-800 shrink-0">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-bold text-teal-950 block">
-                    Jadwal Spaced Repetition Diperbarui (SuperMemo-2)
-                  </span>
-                  <span className="text-teal-800">
-                    Interval berikutnya: <strong>+{evalResult.srsUpdate.intervalDays} Hari</strong> ({evalResult.srsUpdate.nextReviewAt}) • Ease Factor: {evalResult.srsUpdate.easeFactor.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const currentIndex = dueAyahs.findIndex(
-                    (a) => a.ayahNumber === activeAyah.ayahNumber
-                  );
-                  const nextIndex = (currentIndex + 1) % dueAyahs.length;
-                  handleSelectDueItem(dueAyahs[nextIndex]);
-                }}
-                className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs shadow-xs transition-all active:scale-95"
-              >
-                <span>Lanjut Ayat Berikutnya</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+      {/* Floating Bottom Live Dock (Persis seperti screenshot aplikasi) */}
+      <div className="fixed bottom-6 left-0 right-0 z-40 px-4">
+        <div className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3 shadow-2xl shadow-slate-950/15 flex flex-col items-center space-y-3">
+          {/* Status Bar Suara Real-time: "...Menunggu suara" */}
+          <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-600">
+              {isLiveListening && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              )}
+              <span className="truncate font-sans">{liveTranscript && isLiveListening ? liveTranscript : liveStatusText}</span>
             </div>
           </div>
-        )}
+
+          {/* Action Dock Controls */}
+          <div className="flex items-center justify-between w-full px-4 sm:px-6">
+            {/* Tombol Mata (Eye Toggle): Mode Hafalan Ghaib vs Buka Teks */}
+            <button
+              type="button"
+              onClick={() => setIsBlindMode(!isBlindMode)}
+              className={`p-3 rounded-2xl border transition ${
+                isBlindMode
+                  ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                  : 'bg-emerald-100 border-emerald-300 text-emerald-800'
+              }`}
+              title={isBlindMode ? 'Buka Teks Bantuan' : 'Tutup Kata (Uji Hafalan)'}
+            >
+              {isBlindMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+
+            {/* Tombol Ayat Sebelumnya */}
+            <button
+              type="button"
+              disabled={activeAyahIndex === 0}
+              onClick={() => setActiveAyahIndex((prev) => Math.max(0, prev - 1))}
+              className="p-3 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-600 transition"
+              title="Ayat Sebelumnya"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Tombol Mikrofon Utama (Pulsing glowing button) */}
+            <button
+              type="button"
+              onClick={handleToggleListening}
+              className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 active:scale-95 cursor-pointer ${
+                isLiveListening
+                  ? 'bg-rose-600 hover:bg-rose-700 ring-4 ring-rose-300 animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-200'
+              }`}
+              title={isLiveListening ? 'Hentikan Live Listening' : 'Mulai Hafalan Real-time'}
+            >
+              {isLiveListening ? (
+                <Square className="w-6 h-6 fill-white" />
+              ) : (
+                <Mic className="w-7 h-7" />
+              )}
+            </button>
+
+            {/* Tombol Ayat Selanjutnya */}
+            <button
+              type="button"
+              disabled={activeAyahIndex === currentSurah.ayahs.length - 1}
+              onClick={() =>
+                setActiveAyahIndex((prev) =>
+                  Math.min(currentSurah.ayahs.length - 1, prev + 1)
+                )
+              }
+              className="p-3 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-600 transition"
+              title="Ayat Selanjutnya"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Tombol Audio Qari */}
+            <button
+              type="button"
+              onClick={handleToggleQari}
+              className={`p-3 rounded-2xl border transition ${
+                isPlayingQari
+                  ? 'bg-emerald-600 text-white border-emerald-700'
+                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+              }`}
+              title={isPlayingQari ? 'Jeda Qari' : 'Dengar Pelafalan Qari'}
+            >
+              {isPlayingQari ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Volume2 className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
