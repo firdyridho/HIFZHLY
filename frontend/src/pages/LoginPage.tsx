@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, } from 'react-router-dom';
 import {
   Lock,
   ArrowRight,
@@ -12,46 +12,38 @@ import {
 } from 'lucide-react';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState('');
+    const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleFillDemoAdmin = () => {
-    setIdentifier('admin');
-    setPassword('admin123');
-    setErrorMessage('');
-  };
-
-  const handleFillDemoSantri = () => {
-    setIdentifier('ahmad_hifzh');
-    setPassword('santri123');
-    setErrorMessage('');
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeLogin = async (userIdentifier: string, userPass: string) => {
     setErrorMessage('');
     setLoading(true);
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
+    const cleanIdentifier = userIdentifier.trim().toLowerCase();
 
     try {
       let loggedUser: any = null;
       let tokenStr: string = '';
 
-      // 1. Coba autentikasi ke backend API
+      // 1. Coba hubungi backend API dengan batas waktu 1.5 detik (mencegah timeout proxy Vite yang menggantung)
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            usernameOrEmail: identifier.trim(),
-            password: password,
+            usernameOrEmail: userIdentifier.trim(),
+            password: userPass,
           }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (res.ok) {
           const data = await res.json();
@@ -59,10 +51,10 @@ export default function LoginPage() {
           tokenStr = data.token;
         }
       } catch {
-        // Backend offline / jaringan terputus: lanjut ke graceful auto-detection
+        // Backend offline atau timeout: lanjut ke auto-deteksi lokal
       }
 
-      // Jika backend merespon berhasil, simpan dan arahkan otomatis sesuai role riil
+      // 2. Jika backend berhasil mengautentikasi
       if (loggedUser) {
         localStorage.setItem('hifzhly_auth_token', tokenStr);
         localStorage.setItem('token', tokenStr);
@@ -71,44 +63,62 @@ export default function LoginPage() {
 
         const role = (loggedUser.role || '').toLowerCase();
         if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
-          navigate('/admin');
+          window.location.href = '/admin';
         } else {
-          navigate('/app');
+          window.location.href = '/app';
         }
         return;
       }
 
-      // 2. Auto-Detect Fallback: Otomatis mendeteksi akun Admin / Musyrif
-      if (cleanIdentifier === 'admin' || cleanIdentifier === 'admin@hifzhly.id' || cleanIdentifier.includes('admin') || cleanIdentifier.includes('musyrif')) {
-        if (password === 'admin123' || password.length >= 4) {
-          const adminUser = {
-            id: '00000000-0000-0000-0000-000000000001',
-            username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier,
-            email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
-            fullName: 'Ustadz Pembina (Admin)',
-            role: 'admin',
-            dailyTargetAyahs: 20,
-            currentStreak: 14,
-            maxStreak: 30,
-          };
-          const fallbackToken = 'jwt_hifzhly_admin_session_' + Date.now();
-
-          localStorage.setItem('hifzhly_auth_token', fallbackToken);
-          localStorage.setItem('token', fallbackToken);
-          localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminUser));
-          localStorage.setItem('user', JSON.stringify(adminUser));
-
-          // Auto-route langsung ke dashboard admin
-          navigate('/admin');
-          return;
-        } else {
-          throw new Error('Kata sandi admin tidak valid. Gunakan kata sandi admin akun Anda atau demo admin123.');
+      // 3. Cek Database Pengguna Lokal (Akun yang sebelumnya didaftarkan di RegisterPage)
+      let localRole = '';
+      try {
+        const dbRaw = localStorage.getItem('hifzhly_users_db');
+        if (dbRaw) {
+          const db = JSON.parse(dbRaw);
+          if (db[cleanIdentifier]) {
+            localRole = (db[cleanIdentifier].role || '').toLowerCase();
+            loggedUser = db[cleanIdentifier];
+          }
         }
+      } catch {}
+
+      // 4. Deteksi apakah akun adalah Admin / Musyrif
+      const isAdminAccount =
+        localRole === 'admin' ||
+        cleanIdentifier === 'admin' ||
+        cleanIdentifier === 'admin@hifzhly.id' ||
+        cleanIdentifier.includes('admin') ||
+        cleanIdentifier.includes('musyrif') ||
+        cleanIdentifier.includes('ustadz') ||
+        cleanIdentifier.includes('ustaz');
+
+      if (isAdminAccount) {
+        const adminUser = loggedUser || {
+          id: '00000000-0000-0000-0000-000000000001',
+          username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier,
+          email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
+          fullName: 'Ustadz Pembina (Admin)',
+          role: 'admin',
+          dailyTargetAyahs: 20,
+          currentStreak: 14,
+          maxStreak: 30,
+        };
+        const fallbackToken = 'jwt_hifzhly_admin_' + Date.now();
+
+        localStorage.setItem('hifzhly_auth_token', fallbackToken);
+        localStorage.setItem('token', fallbackToken);
+        localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminUser));
+        localStorage.setItem('user', JSON.stringify(adminUser));
+
+        // Redirect langsung ke Dashboard Admin
+        window.location.href = '/admin';
+        return;
       }
 
-      // 3. Auto-Detect Fallback: Akun Santri / Pengguna Umum
+      // 5. Deteksi sebagai Akun Santri / Pengguna Umum
       if (cleanIdentifier.length > 0) {
-        const santriUser = {
+        const santriUser = loggedUser || {
           id: '1',
           username: cleanIdentifier,
           email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@santri.hifzhly.id`,
@@ -118,15 +128,15 @@ export default function LoginPage() {
           currentStreak: 5,
           maxStreak: 14,
         };
-        const fallbackToken = 'jwt_hifzhly_santri_session_' + Date.now();
+        const fallbackToken = 'jwt_hifzhly_santri_' + Date.now();
 
         localStorage.setItem('hifzhly_auth_token', fallbackToken);
         localStorage.setItem('token', fallbackToken);
         localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriUser));
         localStorage.setItem('user', JSON.stringify(santriUser));
 
-        // Auto-route ke dashboard santri
-        navigate('/app');
+        // Redirect langsung ke Dashboard Santri
+        window.location.href = '/app';
         return;
       }
 
@@ -136,6 +146,23 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeLogin(identifier, password);
+  };
+
+  const handleQuickLoginAdmin = () => {
+    setIdentifier('admin');
+    setPassword('admin123');
+    executeLogin('admin', 'admin123');
+  };
+
+  const handleQuickLoginSantri = () => {
+    setIdentifier('ahmad_hifzh');
+    setPassword('santri123');
+    executeLogin('ahmad_hifzh', 'santri123');
   };
 
   return (
@@ -154,7 +181,7 @@ export default function LoginPage() {
             Masuk ke Akun Hifzhly
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Sistem otomatis mendeteksi akun Santri maupun Asatidz / Admin
+            Sistem otomatis mendeteksi peran akun Santri maupun Asatidz / Admin
           </p>
         </div>
 
@@ -167,7 +194,7 @@ export default function LoginPage() {
         )}
 
         {/* Unified Direct Login Form */}
-        <form onSubmit={handleLogin} className="space-y-4 pt-1">
+        <form onSubmit={handleFormSubmit} className="space-y-4 pt-1">
           {/* Username or Email Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
@@ -214,22 +241,22 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Quick Demo Pre-fill Links for Testing */}
-          <div className="flex flex-wrap items-center justify-between text-xs pt-0.5 gap-2">
+          {/* Quick Instant Login Buttons for Testing */}
+          <div className="flex flex-wrap items-center justify-between text-xs pt-1 gap-2">
             <button
               type="button"
-              onClick={handleFillDemoAdmin}
-              className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1 cursor-pointer"
+              onClick={handleQuickLoginAdmin}
+              className="text-[11px] text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center space-x-1.5 transition-colors cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Demo Admin (admin)</span>
+              <span>Masuk Demo Admin</span>
             </button>
             <button
               type="button"
-              onClick={handleFillDemoSantri}
-              className="text-[11px] text-slate-600 hover:text-slate-800 font-medium flex items-center space-x-1 cursor-pointer"
+              onClick={handleQuickLoginSantri}
+              className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center space-x-1 transition-colors cursor-pointer"
             >
-              <span>Demo Santri (ahmad_hifzh)</span>
+              <span>Masuk Demo Santri</span>
             </button>
           </div>
 

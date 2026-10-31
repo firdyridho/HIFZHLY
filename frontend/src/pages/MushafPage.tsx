@@ -1242,7 +1242,7 @@ export default function MushafPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Juz Hero Banner */}
-                  <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                  <div className="-mx-3 sm:mx-0 -mt-2 sm:mt-0 bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-none sm:rounded-3xl shadow-sm border-y sm:border border-emerald-700/60 relative overflow-hidden">
                     <div className="relative z-10 flex items-center justify-between gap-4">
                       <div className="space-y-1">
                         <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-widest block">
@@ -1433,7 +1433,7 @@ export default function MushafPage() {
             ) : currentSurah ? (
               <div className="space-y-6">
                 {/* Surah Hero Banner (Deep Emerald Islamic Aesthetic per reference) */}
-                <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                <div className="-mx-3 sm:mx-0 -mt-2 sm:mt-0 bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-none sm:rounded-3xl shadow-sm border-y sm:border border-emerald-700/60 relative overflow-hidden">
                   
 
                   <div className="relative z-10 flex items-center justify-between gap-4">
@@ -1716,10 +1716,10 @@ export default function MushafPage() {
                       {startingSurah && (
                         <div className="space-y-1.5 my-2 sm:my-3">
                           {/* Kepala Surat: Ornate Islamic Frame Box */}
-                          <div className="rounded-2xl border-2 border-amber-600/40 bg-gradient-to-r from-amber-50/80 via-emerald-50/40 to-amber-50/80 p-2 sm:p-2.5 shadow-2xs">
-                            <div className="flex items-center justify-between text-xs font-semibold px-2">
+                          <div className="relative rounded-xl border border-amber-600/50 bg-[#FDFBF7] p-1.5 sm:p-2 shadow-2xs">
+                            <div className="border border-amber-600/25 rounded-lg py-1 px-2.5 sm:px-3 flex items-center justify-between text-xs font-semibold">
                               {/* Left: Info Jumlah Ayat */}
-                              <div className="text-left text-amber-950 font-sans">
+                              <div className="text-left text-amber-950 font-sans min-w-[65px]">
                                 <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
                                   {startingSurah.numberOfAyahs} Ayat
                                 </span>
@@ -1739,7 +1739,7 @@ export default function MushafPage() {
                               </div>
 
                               {/* Right: Tempat Turun */}
-                              <div className="text-right text-amber-950 font-sans">
+                              <div className="text-right text-amber-950 font-sans min-w-[65px]">
                                 <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
                                   {getNormRevelation(startingSurah.revelationType)}
                                 </span>
@@ -1750,16 +1750,14 @@ export default function MushafPage() {
                             </div>
                           </div>
 
-                          {/* Bismillah Header Flanked with Ornamental Lines (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
+                          {/* Bismillah Header Flanked with Elegant Divider Lines (No AI stars/diamonds) */}
                           {startingSurah.number !== 9 && startingSurah.number !== 1 && (
-                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center">
-                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/30 to-amber-600/70" />
-                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-2">
+                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center select-none">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/40 to-amber-700/60" />
+                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-3">
                                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                               </span>
-                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/30 to-amber-600/70" />
+                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/40 to-amber-700/60" />
                             </div>
                           )}
                         </div>

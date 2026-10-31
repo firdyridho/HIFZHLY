@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   User,
   AtSign,
@@ -16,8 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
   const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>(() => {
     return searchParams.get('role') === 'admin' ? 'admin' : 'user';
   });
@@ -114,10 +113,19 @@ export default function RegisterPage() {
       localStorage.setItem('hifzhly_user_profile', JSON.stringify(registeredUser));
       localStorage.setItem('user', JSON.stringify(registeredUser));
 
+      // Simpan ke database akun lokal agar saat login kembali langsung terdeteksi
+      try {
+        const dbRaw = localStorage.getItem('hifzhly_users_db') || '{}';
+        const db = JSON.parse(dbRaw);
+        db[username.trim().toLowerCase()] = registeredUser;
+        db[email.trim().toLowerCase()] = registeredUser;
+        localStorage.setItem('hifzhly_users_db', JSON.stringify(db));
+      } catch {}
+
       if (registeredUser.role === 'admin') {
-        navigate('/admin');
+        window.location.href = '/admin';
       } else {
-        navigate('/app');
+        window.location.href = '/app';
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan sistem saat mendaftar.');
