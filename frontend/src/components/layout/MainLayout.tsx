@@ -47,6 +47,25 @@ export default function MainLayout() {
           // If offline or network error, keep using cached profile
         });
     }
+
+    const handleProfileUpdate = () => {
+      const cached = localStorage.getItem('hifzhly_user_profile');
+      if (cached) {
+        try {
+          setProfile(JSON.parse(cached));
+        } catch (e) {
+          console.error('Failed to parse cached profile:', e);
+        }
+      }
+    };
+
+    window.addEventListener('hifzhly_profile_updated', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('hifzhly_profile_updated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
   }, []);
 
   const handleLogout = () => {
