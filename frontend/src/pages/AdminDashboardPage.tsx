@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
     const topicToUse = aiPromptTopic || title || 'Hukum Nun Sukun dan Tanwin';
     setIsGeneratingAI(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
       const res = await fetch('/api/v1/admin/tajwid/generate-quiz', {
         method: 'POST',
         headers: {
@@ -239,7 +239,7 @@ export default function AdminDashboardPage() {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
       const authHeaders = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -312,7 +312,7 @@ export default function AdminDashboardPage() {
   const handleDeleteModule = async (id: string, modTitle: string) => {
     if (!confirm(`Hapus modul "${modTitle}" beserta kuis terkait?`)) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
       const res = await fetch(`/api/v1/admin/tajwid/modules/${id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},

@@ -102,7 +102,10 @@ export default function MurojaahPage() {
 
   // Fetch SRS Due Ayahs
   useEffect(() => {
-    fetch('/api/v1/srs/today')
+    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+    fetch('/api/v1/srs/today', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch SRS items');
         return res.json();
@@ -243,7 +246,7 @@ export default function MurojaahPage() {
       formData.append('surahNumber', String(activeAyah.surahNumber));
       formData.append('ayahNumber', String(activeAyah.ayahNumber));
 
-      const token = localStorage.getItem('hifzhly_auth_token');
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
       const res = await fetch('/api/v1/murojaah/evaluate', {
         method: 'POST',
         headers: {
@@ -255,6 +258,14 @@ export default function MurojaahPage() {
       if (res.ok) {
         const data: EvaluationResult = await res.json();
         setEvalResult(data);
+        fetch('/api/v1/srs/today', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.items && Array.isArray(d.items) && d.items.length > 0) setDueAyahs(d.items);
+          })
+          .catch(() => {});
       } else {
         throw new Error('Fallback to local AI evaluator simulation');
       }
