@@ -19,21 +19,29 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            # Pindah ke direktori proyek di VPS (sesuaikan path jika berbeda)
-            TARGET_DIR="/www/wwwroot/hifzhly"
+            TARGET_DIR="/www/wwwroot/HIFZHLY"
             if [ ! -d "$TARGET_DIR" ]; then
+              TARGET_DIR="/www/wwwroot/hifzhly"
+            fi
+            
+            # Jika belum di-clone, clone secara otomatis
+            if [ ! -d "$TARGET_DIR" ] && [ ! -d "$HOME/HIFZHLY" ]; then
+              echo "Folder belum ada, melakukan git clone awal ke /www/wwwroot/HIFZHLY..."
+              mkdir -p /www/wwwroot
+              cd /www/wwwroot
+              git clone -b staging https://github.com/firdyridho/HIFZHLY.git
+              TARGET_DIR="/www/wwwroot/HIFZHLY"
+            elif [ -d "$HOME/HIFZHLY" ]; then
               TARGET_DIR="$HOME/HIFZHLY"
             fi
             
-            if [ -d "$TARGET_DIR" ]; then
-              cd "$TARGET_DIR"
-              chmod +x deploy.sh
-              ./deploy.sh
-            else
-              echo "Direktori $TARGET_DIR belum ditemukan. Harap git clone repositori terlebih dahulu ke VPS."
-              exit 1
-            fi
+            echo "Menjalankan deployment di $TARGET_DIR..."
+            cd "$TARGET_DIR"
+            chmod +x deploy.sh
+            ./deploy.sh
+
