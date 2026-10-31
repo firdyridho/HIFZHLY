@@ -127,7 +127,7 @@ export default function MainLayout() {
               </span>
             </Link>
 
-            {/* Desktop Minimalist Navigation (Clean, no clutter, no badge sumpek) */}
+            {/* Desktop Minimalist Navigation (Murojaah with Mic icon in header, no Hafalan here) */}
             <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5">
               <NavLink
                 to="/app"
@@ -169,7 +169,7 @@ export default function MainLayout() {
                 }
               >
                 <Mic className="w-4 h-4" />
-                <span>Hafalan</span>
+                <span>Murojaah</span>
               </NavLink>
 
               <NavLink
@@ -235,7 +235,7 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Mobile Bottom Navigation Bar (Murojaah with Mic in slot 2, Mutabaah in slot 4, Keluar in slot 5) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
         <div className="max-w-md mx-auto grid grid-cols-5 items-center justify-items-center">
           {/* 1. Qur'an */}
@@ -251,7 +251,7 @@ export default function MainLayout() {
             <span className="text-[10px] mt-1 font-medium">Qur'an</span>
           </NavLink>
 
-          {/* 2. Hafalan */}
+          {/* 2. Murojaah (Mic icon as requested in prompt) */}
           <NavLink
             to="/app/murojaah"
             className={({ isActive }) =>
@@ -261,7 +261,7 @@ export default function MainLayout() {
             }
           >
             <Mic className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Hafalan</span>
+            <span className="text-[10px] mt-1 font-medium">Murojaah</span>
           </NavLink>
 
           {/* 3. Beranda (Center Elevated Green Floating Action Button) */}
@@ -293,18 +293,15 @@ export default function MainLayout() {
             <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
           </NavLink>
 
-          {/* 5. Tajwid */}
-          <NavLink
-            to="/app/tajwid"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 transition-all ${
-                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`
-            }
+          {/* 5. Keluar */}
+          <button
+            type="button"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="flex flex-col items-center justify-center py-1 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
           >
-            <GraduationCap className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Tajwid</span>
-          </NavLink>
+            <LogOut className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Keluar</span>
+          </button>
         </div>
       </nav>
 

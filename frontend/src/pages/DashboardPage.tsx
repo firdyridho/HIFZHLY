@@ -340,7 +340,7 @@ export default function DashboardPage() {
 
             {/* 2. Hafalan (SRS) */}
             <Link
-              to="/app/murojaah"
+              to="/app/hafalan"
               className="flex flex-col items-center group cursor-pointer"
             >
               <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 group-hover:scale-105 group-hover:bg-teal-100/80 transition-all shadow-xs">

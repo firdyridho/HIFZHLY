@@ -8,6 +8,7 @@ import RegisterPage from '../pages/RegisterPage';
 import TermsPage from '../pages/TermsPage';
 import AdminDashboardPage from '../pages/AdminDashboardPage';
 import MurojaahPage from '../pages/MurojaahPage';
+import HafalanPage from '../pages/HafalanPage';
 import MushafPage from '../pages/MushafPage';
 import TajwidPage from '../pages/TajwidPage';
 import MutabaahPage from '../pages/MutabaahPage';
@@ -32,7 +33,7 @@ export default function AppRoutes() {
         }
       />
 
-      {/* 3. Murojaah App (Santri Portal with Nested MainLayout, Protected) */}
+      {/* 3. Murojaah & Santri App (Protected) */}
       <Route
         path="/app"
         element={
@@ -44,13 +45,13 @@ export default function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="murojaah" element={<MurojaahPage />} />
-        <Route path="hafalan" element={<MurojaahPage />} />
+        <Route path="hafalan" element={<HafalanPage />} />
         <Route path="mushaf" element={<MushafPage />} />
         <Route path="tajwid" element={<TajwidPage />} />
         <Route path="mutabaah" element={<MutabaahPage />} />
       </Route>
 
-      {/* 4. Legacy Redirects (agar /murojaah, /hafalan, /mushaf tetap jalan) */}
+      {/* 4. Legacy Redirects */}
       <Route path="/murojaah" element={<Navigate to="/app/murojaah" replace />} />
       <Route path="/hafalan" element={<Navigate to="/app/hafalan" replace />} />
       <Route path="/mushaf" element={<Navigate to="/app/mushaf" replace />} />

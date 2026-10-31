@@ -46,6 +46,16 @@
   font-family: 'Lora', Georgia, serif;
 }
 
+@keyframes card-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: card-shake 0.35s ease-in-out;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
