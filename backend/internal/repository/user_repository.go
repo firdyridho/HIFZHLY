@@ -137,3 +137,4 @@ func (r *userRepositoryImpl) UpdateStreak(ctx context.Context, userID string, cu
 	_, err := r.pool.Exec(ctx, query, currentStreak, maxStreak, time.Now().UTC(), userID)
 	return err
 }
+

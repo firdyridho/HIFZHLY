@@ -144,3 +144,4 @@ func (s *authServiceImpl) ValidateToken(tokenString string) (string, error) {
 func (s *authServiceImpl) GetProfile(ctx context.Context, userID string) (*model.User, error) {
 	return s.userRepo.FindByID(ctx, userID)
 }
+

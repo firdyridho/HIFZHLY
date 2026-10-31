@@ -39,11 +39,13 @@ func main() {
 	userRepo := repository.NewUserRepository(pgPool)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	quranService := service.NewQuranService()
+	murojaahService := service.NewMurojaahService(quranService)
 
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
 	authMiddleware := appMiddleware.NewAuthMiddleware(authService)
 	quranHandler := handler.NewQuranHandler(quranService)
+	murojaahHandler := handler.NewMurojaahHandler(murojaahService)
 
 	r := chi.NewRouter()
 
@@ -83,6 +85,9 @@ func main() {
 		// Quran Proxy Endpoints
 		r.Get("/quran/surahs", quranHandler.GetSurahs)
 		r.Get("/quran/surahs/{number}", quranHandler.GetSurahDetail)
+
+		// Murojaah AI Voice Evaluator (Word Diff & Scoring)
+		r.Post("/murojaah/evaluate", murojaahHandler.Evaluate)
 
 		// Spaced Repetition (SRS)
 		r.Get("/srs/today", func(w http.ResponseWriter, r *http.Request) {

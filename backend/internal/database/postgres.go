@@ -40,3 +40,4 @@ func NewPostgresPool(databaseURL string) (*pgxpool.Pool, error) {
 	log.Println("[Database] Berhasil terhubung ke PostgreSQL!")
 	return pool, nil
 }
+

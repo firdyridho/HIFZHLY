@@ -38,3 +38,4 @@ func NewRedisClient(host, port string) *redis.Client {
 
 	return client
 }
+
