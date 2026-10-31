@@ -56,6 +56,13 @@ export function getJuzFromPage(page: number): number {
   return 30;
 }
 
+export function getHizbFromPage(page: number): number {
+  const juz = getJuzFromPage(page);
+  const range = JUZ_PAGE_RANGES[juz] || { startPage: 1, endPage: 20 };
+  const mid = Math.floor((range.startPage + range.endPage) / 2);
+  return page <= mid ? (juz - 1) * 2 + 1 : (juz - 1) * 2 + 2;
+}
+
 export function getSurahStartPage(surahNumber: number): number {
   if (surahNumber < 1) return 1;
   if (surahNumber > 114) return 604;
@@ -83,3 +90,119 @@ export function calculateAyahPage(
   const estimatedOffset = Math.floor(progressRatio * pagesSpan);
   return Math.min(604, Math.max(1, startPage + estimatedOffset));
 }
+
+/**
+ * Konversi angka latin ke angka Arab Uthmani untuk ornamen ayat (contoh: 1 -> ١, 25 -> ٢٥)
+ */
+export function toArabicDigits(num: number): string {
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return num
+    .toString()
+    .split('')
+    .map((char) => {
+      const idx = parseInt(char, 10);
+      return !isNaN(idx) ? arabicDigits[idx] : char;
+    })
+    .join('');
+}
+
+// 114 Nama Surah dalam Teks Arab
+export const SURAH_ARABIC_NAMES: Record<number, string> = {
+  1: 'الفَاتِحَة', 2: 'البَقَرَة', 3: 'آلِ عِمْرَان', 4: 'النِّسَاء', 5: 'المَائِدَة',
+  6: 'الأَنْعَام', 7: 'الأَعْرَاف', 8: 'الأَنْفَال', 9: 'التَّوْبَة', 10: 'يُونُس',
+  11: 'هُود', 12: 'يُوسُف', 13: 'الرَّعْد', 14: 'إِبْرَاهِيم', 15: 'الحِجْر',
+  16: 'النَّحْل', 17: 'الإِسْرَاء', 18: 'الكَهْف', 19: 'مَرْيَم', 20: 'طه',
+  21: 'الأَنْبِيَاء', 22: 'الحَجّ', 23: 'المُؤْمِنُون', 24: 'النُّور', 25: 'الفُرْقَان',
+  26: 'الشُّعَرَاء', 27: 'النَّمْل', 28: 'القَصَص', 29: 'العَنْكَبُوت', 30: 'الرُّوم',
+  31: 'لُقْمَان', 32: 'السَّجْدَة', 33: 'الأَحْزَاب', 34: 'سَبَأ', 35: 'فَاطِر',
+  36: 'يس', 37: 'الصَّافَّات', 38: 'ص', 39: 'الزُّمَر', 40: 'غَافِر',
+  41: 'فُصِّلَت', 42: 'الشُّورَى', 43: 'الزُّخْرُف', 44: 'الدُّخَان', 45: 'الجَاثِيَة',
+  46: 'الأَحْقَاف', 47: 'مُحَمَّد', 48: 'الفَتْح', 49: 'الحُجُرَات', 50: 'ق',
+  51: 'الذَّارِيَات', 52: 'الطُّور', 53: 'النَّجْم', 54: 'القَمَر', 55: 'الرَّحْمَن',
+  56: 'الوَاقِعَة', 57: 'الحَدِيد', 58: 'المُجَادَلَة', 59: 'الحَشْر', 60: 'المُمْتَحَنَة',
+  61: 'الصَّفّ', 62: 'الجُمُعَة', 63: 'المُنَافِقُون', 64: 'التَّغَابُن', 65: 'الطَّلَاق',
+  66: 'التَّحْرِيم', 67: 'المُلْك', 68: 'القَلَم', 69: 'الحَاقَّة', 70: 'المَعَارِج',
+  71: 'نُوح', 72: 'الجِنّ', 73: 'المُزَّمِّل', 74: 'المُدَّثِّر', 75: 'القِيَامَة',
+  76: 'الإِنْسَان', 77: 'المُرْسَلَات', 78: 'النَّبَأ', 79: 'النَّازِعَات', 80: 'عَبَس',
+  81: 'التَّكْوِير', 82: 'الانْفِطَار', 83: 'المُطَفِّفِين', 84: 'الانْشِقَاق', 85: 'البُرُوج',
+  86: 'الطَّارِق', 87: 'الأَعْلَى', 88: 'الغَاشِيَة', 89: 'الفَجْر', 90: 'البَلَد',
+  91: 'الشَّمْس', 92: 'اللَّيْل', 93: 'الضُّحَى', 94: 'الشَّرْح', 95: 'التِّين',
+  96: 'العَلَق', 97: 'القَدْر', 98: 'البَيِّنَة', 99: 'الزَّلْزَلَة', 100: 'العَادِيَات',
+  101: 'القَارِعَة', 102: 'التَّكَاثُر', 103: 'العَصْر', 104: 'الهُمَزَة', 105: 'الفِيل',
+  106: 'قُرَيْش', 107: 'المَاعُون', 108: 'الكَوْثَر', 109: 'الكَافِرُون', 110: 'النَّصْر',
+  111: 'المَسَد', 112: 'الإِخْلَاص', 113: 'الفَلَق', 114: 'النَّاس',
+};
+
+/**
+ * Normalisasi Teks Arab Quran standar QUL & Tilawa (Yazin Sai):
+ * Menangani Dagger Alif (\u0670 -> \u0627), Tatweel, Harakat, Variasi Alif, Ta Marbutha.
+ */
+export function normalizeArabicQuran(text: string): string {
+  if (!text) return '';
+  return text
+    // 1. Ubah dagger alif (alif khanjariyah) menjadi alif biasa sebelum harakat dihapus
+    .replace(/\u0670/g, '\u0627')
+    // 2. Hapus tatweel / kashida
+    .replace(/\u0640/g, '')
+    // 3. Hapus harakat, tanda tajwid, waqaf, sukun uthmani, maddah
+    .replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '')
+    // 4. Normalisasi variasi Alif (Wasla, Madda, Hamza) ke Alif polos
+    .replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627')
+    // 5. Normalisasi Ta Marbuthah ke Ha
+    .replace(/\u0629/g, '\u0647')
+    // 6. Normalisasi Alif Maqsura ke Ya
+    .replace(/\u0649/g, '\u064A')
+    // 7. Normalisasi Hamzah di atas Waw / Ya
+    .replace(/[\u0624\u0626]/g, '\u0621')
+    // 8. Buang semua selain huruf hijaiyah dan spasi
+    .replace(/[^\u0621-\u064A\s]/g, '')
+    // 9. Rapikan spasi ganda
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Levenshtein distance untuk toleransi variasi fonetik pengucapan
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const d: number[][] = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+  return d[m][n];
+}
+
+/**
+ * Pencocokan cerdas kata demi kata antara teks ayat Quran vs lafal suara santri
+ */
+export function isArabicWordMatch(targetClean: string, spokenToken: string): boolean {
+  if (!targetClean || !spokenToken) return false;
+  if (targetClean === spokenToken) return true;
+
+  // Toleransi imbuhan awalan 'wa' (و) atau 'fa' (ف)
+  if ((spokenToken.startsWith('و') || spokenToken.startsWith('ف')) && spokenToken.slice(1) === targetClean) return true;
+  if ((targetClean.startsWith('و') || targetClean.startsWith('ف')) && targetClean.slice(1) === spokenToken) return true;
+
+  // Toleransi imbuhan alif-lam 'al' (ال)
+  if (spokenToken.startsWith('ال') && spokenToken.slice(2) === targetClean) return true;
+  if (targetClean.startsWith('ال') && targetClean.slice(2) === spokenToken) return true;
+
+  // Toleransi Levenshtein distance 1 untuk kata dengan panjang >= 4
+  const maxLen = Math.max(targetClean.length, spokenToken.length);
+  const dist = levenshteinDistance(targetClean, spokenToken);
+
+  if (maxLen >= 4 && dist <= 1) return true;
+  if (maxLen >= 7 && dist <= 2) return true;
+
+  return false;
+}
+
+
