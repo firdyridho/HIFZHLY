@@ -33,15 +33,43 @@ func (r *tajwidRepository) GetAllModules(ctx context.Context) ([]model.TajwidMod
 		return r.getFallbackModules(), nil
 	}
 
-	query := `
-		SELECT id, title, slug, summary, youtube_video_id, order_index, is_active, created_at, updated_at
+	queryWithMedia := `
+		SELECT id, title, slug, summary, youtube_video_id, order_index, is_active, created_at, updated_at,
+		       COALESCE(thumbnail_url, ''), COALESCE(pdf_url, '')
 		FROM tajwid_modules
 		WHERE is_active = true
 		ORDER BY order_index ASC
 	`
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, queryWithMedia)
 	if err != nil {
-		return r.getFallbackModules(), nil
+		// Fallback to legacy query without thumbnail_url / pdf_url
+		queryLegacy := `
+			SELECT id, title, slug, summary, youtube_video_id, order_index, is_active, created_at, updated_at
+			FROM tajwid_modules
+			WHERE is_active = true
+			ORDER BY order_index ASC
+		`
+		legacyRows, legacyErr := r.db.Query(ctx, queryLegacy)
+		if legacyErr != nil {
+			return r.getFallbackModules(), nil
+		}
+		defer legacyRows.Close()
+
+		var modules []model.TajwidModule
+		for legacyRows.Next() {
+			var m model.TajwidModule
+			if err := legacyRows.Scan(
+				&m.ID, &m.Title, &m.Slug, &m.Summary,
+				&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
+			); err != nil {
+				return nil, err
+			}
+			modules = append(modules, m)
+		}
+		if len(modules) == 0 {
+			return r.getFallbackModules(), nil
+		}
+		return modules, nil
 	}
 	defer rows.Close()
 
@@ -51,6 +79,7 @@ func (r *tajwidRepository) GetAllModules(ctx context.Context) ([]model.TajwidMod
 		if err := rows.Scan(
 			&m.ID, &m.Title, &m.Slug, &m.Summary,
 			&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
+			&m.ThumbnailURL, &m.PdfURL,
 		); err != nil {
 			return nil, err
 		}
@@ -74,24 +103,37 @@ func (r *tajwidRepository) GetModuleBySlug(ctx context.Context, slug string) (*m
 		return nil, nil
 	}
 
-	query := `
-		SELECT id, title, slug, summary, content_body, youtube_video_id, order_index, is_active, created_at, updated_at
+	queryWithMedia := `
+		SELECT id, title, slug, summary, content_body, youtube_video_id, order_index, is_active, created_at, updated_at,
+		       COALESCE(thumbnail_url, ''), COALESCE(pdf_url, '')
 		FROM tajwid_modules
 		WHERE slug = $1 AND is_active = true
 	`
 	var m model.TajwidModule
-	err := r.db.QueryRow(ctx, query, slug).Scan(
+	err := r.db.QueryRow(ctx, queryWithMedia, slug).Scan(
 		&m.ID, &m.Title, &m.Slug, &m.Summary, &m.ContentBody,
 		&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
+		&m.ThumbnailURL, &m.PdfURL,
 	)
 	if err != nil {
-		// Fallback
-		for _, fm := range r.getFallbackModules() {
-			if fm.Slug == slug {
-				return &fm, nil
+		// Fallback to legacy query without thumbnail_url / pdf_url
+		queryLegacy := `
+			SELECT id, title, slug, summary, content_body, youtube_video_id, order_index, is_active, created_at, updated_at
+			FROM tajwid_modules
+			WHERE slug = $1 AND is_active = true
+		`
+		errLegacy := r.db.QueryRow(ctx, queryLegacy, slug).Scan(
+			&m.ID, &m.Title, &m.Slug, &m.Summary, &m.ContentBody,
+			&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
+		)
+		if errLegacy != nil {
+			for _, fm := range r.getFallbackModules() {
+				if fm.Slug == slug {
+					return &fm, nil
+				}
 			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	return &m, nil
@@ -223,6 +265,8 @@ func (r *tajwidRepository) CreateModule(ctx context.Context, req model.CreateOrU
 		Slug:           req.Slug,
 		Summary:        req.Summary,
 		ContentBody:    req.ContentBody,
+		ThumbnailURL:   req.ThumbnailURL,
+		PdfURL:         req.PdfURL,
 		YoutubeVideoID: req.YoutubeVideoID,
 		OrderIndex:     req.OrderIndex,
 		IsActive:       req.IsActive,
@@ -235,15 +279,25 @@ func (r *tajwidRepository) CreateModule(ctx context.Context, req model.CreateOrU
 		return m, nil
 	}
 
-	query := `
-		INSERT INTO tajwid_modules (title, slug, summary, content_body, youtube_video_id, order_index, is_active)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	queryWithMedia := `
+		INSERT INTO tajwid_modules (title, slug, summary, content_body, youtube_video_id, order_index, is_active, thumbnail_url, pdf_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at
 	`
-	err := r.db.QueryRow(ctx, query, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive).
+	err := r.db.QueryRow(ctx, queryWithMedia, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive, req.ThumbnailURL, req.PdfURL).
 		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
 	if err != nil {
-		return nil, err
+		// Fallback jika database belum memiliki kolom thumbnail_url / pdf_url
+		queryLegacy := `
+			INSERT INTO tajwid_modules (title, slug, summary, content_body, youtube_video_id, order_index, is_active)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id, created_at, updated_at
+		`
+		errLegacy := r.db.QueryRow(ctx, queryLegacy, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive).
+			Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
+		if errLegacy != nil {
+			return nil, errLegacy
+		}
 	}
 	return m, nil
 }
@@ -256,6 +310,8 @@ func (r *tajwidRepository) UpdateModule(ctx context.Context, id string, req mode
 		Slug:           req.Slug,
 		Summary:        req.Summary,
 		ContentBody:    req.ContentBody,
+		ThumbnailURL:   req.ThumbnailURL,
+		PdfURL:         req.PdfURL,
 		YoutubeVideoID: req.YoutubeVideoID,
 		OrderIndex:     req.OrderIndex,
 		IsActive:       req.IsActive,
@@ -266,16 +322,27 @@ func (r *tajwidRepository) UpdateModule(ctx context.Context, id string, req mode
 		return m, nil
 	}
 
-	query := `
+	queryWithMedia := `
 		UPDATE tajwid_modules
-		SET title = $1, slug = $2, summary = $3, content_body = $4, youtube_video_id = $5, order_index = $6, is_active = $7, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $8
+		SET title = $1, slug = $2, summary = $3, content_body = $4, youtube_video_id = $5, order_index = $6, is_active = $7, thumbnail_url = $8, pdf_url = $9, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $10
 		RETURNING created_at, updated_at
 	`
-	err := r.db.QueryRow(ctx, query, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive, id).
+	err := r.db.QueryRow(ctx, queryWithMedia, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive, req.ThumbnailURL, req.PdfURL, id).
 		Scan(&m.CreatedAt, &m.UpdatedAt)
 	if err != nil {
-		return nil, err
+		// Fallback jika belum memiliki kolom thumbnail_url / pdf_url
+		queryLegacy := `
+			UPDATE tajwid_modules
+			SET title = $1, slug = $2, summary = $3, content_body = $4, youtube_video_id = $5, order_index = $6, is_active = $7, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $8
+			RETURNING created_at, updated_at
+		`
+		errLegacy := r.db.QueryRow(ctx, queryLegacy, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive, id).
+			Scan(&m.CreatedAt, &m.UpdatedAt)
+		if errLegacy != nil {
+			return nil, errLegacy
+		}
 	}
 	return m, nil
 }

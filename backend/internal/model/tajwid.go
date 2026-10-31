@@ -9,6 +9,8 @@ type TajwidModule struct {
 	Slug           string    `json:"slug"`
 	Summary        string    `json:"summary"`
 	ContentBody    string    `json:"contentBody,omitempty"`
+	ThumbnailURL   string    `json:"thumbnailUrl,omitempty"`
+	PdfURL         string    `json:"pdfUrl,omitempty"`
 	YoutubeVideoID string    `json:"youtubeVideoId"`
 	OrderIndex     int       `json:"orderIndex"`
 	IsActive       bool      `json:"isActive"`
@@ -88,6 +90,8 @@ type CreateOrUpdateModuleRequest struct {
 	Slug           string `json:"slug"`
 	Summary        string `json:"summary"`
 	ContentBody    string `json:"contentBody"`
+	ThumbnailURL   string `json:"thumbnailUrl,omitempty"`
+	PdfURL         string `json:"pdfUrl,omitempty"`
 	YoutubeVideoID string `json:"youtubeVideoId"`
 	OrderIndex     int    `json:"orderIndex"`
 	IsActive       bool   `json:"isActive"`

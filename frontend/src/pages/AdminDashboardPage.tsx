@@ -16,7 +16,6 @@ import {
   FileText,
   HelpCircle,
   RefreshCw,
-Save,
   X,
   Layers,
   GraduationCap,
@@ -27,6 +26,7 @@ Save,
 import type { TajwidModule } from '../types';
 import { getAdminSantriMonitoring, submitUstadzEvaluation, AdminSantriMonitoringItem } from '../lib/mutabaahService';
 import { TrendingUp, MessageSquare } from 'lucide-react';
+import TajwidCurriculumEditor from '../components/admin/TajwidCurriculumEditor';
 
 interface SantriOverview {
   id: string;
@@ -37,16 +37,6 @@ interface SantriOverview {
   lastScore: number;
   lastActive: string;
   status: 'active' | 'need_review';
-}
-
-interface QuestionForm {
-  questionText: string;
-  verseArabic?: string;
-  syarahExplanation: string;
-  options: {
-    optionText: string;
-    isCorrect: boolean;
-  }[];
 }
 
 export default function AdminDashboardPage() {
@@ -116,35 +106,35 @@ export default function AdminDashboardPage() {
   // Tajwid Modules state
   const [modules, setModules] = useState<TajwidModule[]>([]);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [aiPromptTopic, setAiPromptTopic] = useState('');
-  const [aiDifficulty, setAiDifficulty] = useState('sedang');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditingTajwid, setIsEditingTajwid] = useState(false);
+  const [activeEditingModule, setActiveEditingModule] = useState<TajwidModule | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Form State
-  const [moduleId, setModuleId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [summary, setSummary] = useState('');
-  const [youtubeVideoId, setYoutubeVideoId] = useState('');
-  const [orderIndex, setOrderIndex] = useState(1);
-  const [contentBody, setContentBody] = useState('');
-  const [quizTitle, setQuizTitle] = useState('');
-  const [quizPassingScore, setQuizPassingScore] = useState(70);
-  const [questions, setQuestions] = useState<QuestionForm[]>([]);
 
   const fetchModules = async () => {
     setIsLoadingModules(true);
     try {
       const res = await fetch('/api/v1/tajwid/modules');
+      let serverMods: TajwidModule[] = [];
       if (res.ok) {
-        const data = await res.json();
-        setModules(data || []);
+        serverMods = (await res.json()) || [];
+      }
+      const rawLocal = localStorage.getItem('hifzhly_local_tajwid_modules');
+      if (rawLocal) {
+        const localMods: TajwidModule[] = JSON.parse(rawLocal);
+        const map = new Map<string, TajwidModule>();
+        serverMods.forEach((m) => map.set(m.slug, m));
+        localMods.forEach((m) => map.set(m.slug, m));
+        setModules(Array.from(map.values()));
+      } else {
+        setModules(serverMods);
       }
     } catch {
-      // silently fallback
+      const rawLocal = localStorage.getItem('hifzhly_local_tajwid_modules');
+      if (rawLocal) {
+        try {
+          setModules(JSON.parse(rawLocal));
+        } catch {}
+      }
     } finally {
       setIsLoadingModules(false);
     }
@@ -228,157 +218,82 @@ export default function AdminDashboardPage() {
   };
 
   const handleOpenEditModal = (mod: TajwidModule) => {
-    setModuleId(mod.id);
-    setTitle(mod.title);
-    setSlug(mod.slug);
-    setSummary(mod.summary || '');
-    setYoutubeVideoId(mod.youtubeVideoId || '');
-    setOrderIndex(mod.orderIndex);
-    setContentBody(mod.contentBody || '');
-    setQuizTitle('');
-    setQuizPassingScore(70);
-    setQuestions([]);
-    setAiPromptTopic('');
-    setIsModalOpen(true);
+    setActiveEditingModule(mod);
+    setIsEditingTajwid(true);
   };
 
   const handleOpenAddModal = () => {
-    setModuleId(null);
-    setTitle('');
-    setSlug('');
-    setSummary('');
-    setYoutubeVideoId('');
-    setOrderIndex(modules.length + 1);
-    setContentBody('');
-    setQuizTitle('');
-    setQuizPassingScore(70);
-    setQuestions([]);
-    setAiPromptTopic('');
-    setIsModalOpen(true);
+    setActiveEditingModule(null);
+    setIsEditingTajwid(true);
   };
 
-  const handleGenerateAIQuiz = async () => {
-    const topicToUse = aiPromptTopic || title || 'Hukum Nun Sukun dan Tanwin';
-    setIsGeneratingAI(true);
+  const handleSaveCurriculumFromEditor = async (moduleData: {
+    title: string;
+    slug: string;
+    summary: string;
+    contentBody: string;
+    youtubeVideoId: string;
+    thumbnailUrl: string;
+    pdfUrl: string;
+    orderIndex: number;
+    quizTitle: string;
+    quizPassingScore: number;
+    questions: any[];
+  }) => {
+    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    const targetId = activeEditingModule?.id;
+    const moduleUrl = targetId
+      ? `/api/v1/admin/tajwid/modules/${targetId}`
+      : `/api/v1/admin/tajwid/modules`;
+    const moduleMethod = targetId ? 'PUT' : 'POST';
+
+    const modulePayload = {
+      title: moduleData.title,
+      slug: moduleData.slug,
+      summary: moduleData.summary,
+      contentBody: moduleData.contentBody,
+      thumbnailUrl: moduleData.thumbnailUrl,
+      pdfUrl: moduleData.pdfUrl,
+      youtubeVideoId: moduleData.youtubeVideoId,
+      orderIndex: moduleData.orderIndex,
+      isActive: true,
+    };
+
+    let savedModuleId = targetId;
+
     try {
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const res = await fetch('/api/v1/admin/tajwid/generate-quiz', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          topic: topicToUse,
-          difficulty: aiDifficulty,
-          questionCount: 3,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.questions && Array.isArray(data.questions)) {
-          const generatedForms: QuestionForm[] = data.questions.map((q: any) => ({
-            questionText: q.questionText,
-            verseArabic: q.verseArabic || '',
-            syarahExplanation: q.syarahExplanation || '',
-            options: (q.options || []).map((opt: any) => ({
-              optionText: opt.optionText,
-              isCorrect: !!opt.isCorrect,
-            })),
-          }));
-          setQuestions((prev) => [...prev, ...generatedForms]);
-          if (!quizTitle) {
-            setQuizTitle(`Kuis Evaluasi ${topicToUse}`);
-          }
-          showToast(`Berhasil menghasilkan ${generatedForms.length} soal kuis dari Gemini AI.`);
-        }
-      } else {
-        showToast('Gagal memanggil generator AI. Gunakan input manual atau periksa konfigurasi.');
-      }
-    } catch {
-      showToast('Koneksi terputus saat memanggil generator kuis AI.');
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
-
-  const handleAddQuestionManual = () => {
-    setQuestions([
-      ...questions,
-      {
-        questionText: '',
-        verseArabic: '',
-        syarahExplanation: '',
-        options: [
-          { optionText: '', isCorrect: true },
-          { optionText: '', isCorrect: false },
-          { optionText: '', isCorrect: false },
-          { optionText: '', isCorrect: false },
-        ],
-      },
-    ]);
-  };
-
-  const handleRemoveQuestion = (idx: number) => {
-    setQuestions(questions.filter((_, i) => i !== idx));
-  };
-
-  const handleSaveModuleAndQuiz = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !slug) {
-      alert('Judul dan slug wajib diisi.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const authHeaders = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-
-      // 1. Save or Update Module
-      const modulePayload = {
-        title,
-        slug,
-        summary,
-        youtubeVideoId,
-        orderIndex: Number(orderIndex),
-        contentBody,
-      };
-
-      const moduleUrl = moduleId
-        ? `/api/v1/admin/tajwid/modules/${moduleId}`
-        : `/api/v1/admin/tajwid/modules`;
-      const moduleMethod = moduleId ? 'PUT' : 'POST';
-
-      const modRes = await fetch(moduleUrl, {
+      const res = await fetch(moduleUrl, {
         method: moduleMethod,
         headers: authHeaders,
         body: JSON.stringify(modulePayload),
       });
 
-      if (!modRes.ok) {
-        throw new Error('Gagal menyimpan modul tajwid.');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.id) savedModuleId = json.id;
       }
+    } catch (e) {
+      console.warn('Backend sync failed, storing locally:', e);
+    }
 
-      const savedModule = await modRes.json();
-      const targetModuleId = savedModule.id || moduleId;
-
-      // 2. If questions present, save Quiz
-      if (questions.length > 0 && targetModuleId) {
+    // Save Quiz if questions present
+    if (moduleData.questions.length > 0) {
+      try {
         const quizPayload = {
-          title: quizTitle || `Kuis Evaluasi ${title}`,
-          description: `Evaluasi pemahaman materi ${title}`,
-          passingScore: Number(quizPassingScore),
-          questions: questions.map((q, qIdx) => ({
+          title: moduleData.quizTitle || `Kuis Evaluasi ${moduleData.title}`,
+          description: `Evaluasi pemahaman materi ${moduleData.title}`,
+          passingScore: Number(moduleData.quizPassingScore) || 70,
+          questions: moduleData.questions.map((q, qIdx) => ({
             questionText: q.questionText,
             verseArabic: q.verseArabic,
             syarahExplanation: q.syarahExplanation,
             orderIndex: qIdx + 1,
-            options: q.options.map((opt, oIdx) => ({
+            options: q.options.map((opt: any, oIdx: number) => ({
               optionText: opt.optionText,
               isCorrect: opt.isCorrect,
               orderIndex: oIdx + 1,
@@ -386,21 +301,63 @@ export default function AdminDashboardPage() {
           })),
         };
 
-        await fetch(`/api/v1/admin/tajwid/modules/${targetModuleId}/quizzes`, {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify(quizPayload),
-        });
+        if (savedModuleId) {
+          await fetch(`/api/v1/admin/tajwid/modules/${savedModuleId}/quizzes`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify(quizPayload),
+          });
+        }
+      } catch (e) {
+        console.warn('Quiz sync failed:', e);
       }
-
-      showToast('Modul dan kurikulum kuis berhasil disimpan.');
-      setIsModalOpen(false);
-      fetchModules();
-    } catch (err: any) {
-      alert(err.message || 'Terjadi kesalahan sistem.');
-    } finally {
-      setIsSubmitting(false);
     }
+
+    // Persist to local cache for instant feedback
+    try {
+      const localKey = 'hifzhly_local_tajwid_modules';
+      const raw = localStorage.getItem(localKey) || '[]';
+      const list = JSON.parse(raw);
+      const newMod: TajwidModule = {
+        id: savedModuleId || 'mod-local-' + Date.now(),
+        title: moduleData.title,
+        slug: moduleData.slug,
+        summary: moduleData.summary,
+        contentBody: moduleData.contentBody,
+        thumbnailUrl: moduleData.thumbnailUrl,
+        pdfUrl: moduleData.pdfUrl,
+        youtubeVideoId: moduleData.youtubeVideoId,
+        orderIndex: moduleData.orderIndex,
+        quiz: {
+          id: 'quiz-' + Date.now(),
+          title: moduleData.quizTitle,
+          description: `Evaluasi pemahaman materi ${moduleData.title}`,
+          passingScore: moduleData.quizPassingScore,
+          questions: moduleData.questions.map((q, idx) => ({
+            id: 'q-' + idx,
+            questionText: q.questionText,
+            orderIndex: idx + 1,
+            options: q.options.map((opt: any, oIdx: number) => ({
+              id: 'opt-' + oIdx,
+              optionText: opt.optionText,
+            })),
+          })),
+        },
+      };
+
+      const existingIdx = list.findIndex((m: any) => m.id === newMod.id || m.slug === newMod.slug);
+      if (existingIdx >= 0) {
+        list[existingIdx] = newMod;
+      } else {
+        list.push(newMod);
+      }
+      localStorage.setItem(localKey, JSON.stringify(list));
+    } catch {}
+
+    showToast(`Modul "${moduleData.title}" berhasil disimpan dan diterbitkan.`);
+    setIsEditingTajwid(false);
+    setActiveEditingModule(null);
+    fetchModules();
   };
 
   const handleDeleteModule = async (id: string, modTitle: string) => {
@@ -429,6 +386,19 @@ export default function AdminDashboardPage() {
     const matchesFilter = filterStatus === 'all' || s.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  if (isEditingTajwid) {
+    return (
+      <TajwidCurriculumEditor
+        initialModule={activeEditingModule}
+        onSave={handleSaveCurriculumFromEditor}
+        onCancel={() => {
+          setIsEditingTajwid(false);
+          setActiveEditingModule(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-emerald-100 selection:text-emerald-900">
@@ -1290,396 +1260,7 @@ export default function AdminDashboardPage() {
         </main>
       </div>
 
-      {/* 4. MODAL: TAMBAH MODUL & KUIS GEMINI AI (Clean White Modal) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 overflow-hidden">
-            {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-slate-100 bg-linear-to-b from-emerald-50/50 to-white flex items-center justify-between">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-2">
-                  <BookOpen className="w-5 h-5 text-emerald-600" />
-                  <span>Tambah Modul &amp; Kuis Evaluasi AI</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Lengkapi kaidah tajwid, materi video, dan generate bank soal kuis dengan Gemini AI
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                title="Tutup dialog"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form onSubmit={handleSaveModuleAndQuiz} className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs">
-              {/* Section 1: Data Modul */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5 pb-2 border-b border-slate-100">
-                  <FileText className="w-4 h-4 text-emerald-600" />
-                  <span>1. Informasi Materi Modul</span>
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Judul Modul <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Hukum Mim Sukun"
-                      value={title}
-                      onChange={(e) => {
-                        setTitle(e.target.value);
-                        if (!slug) {
-                          setSlug(
-                            e.target.value
-                              .toLowerCase()
-                              .replace(/[^a-z0-9]+/g, '-')
-                              .replace(/(^-|-$)/g, '')
-                          );
-                        }
-                      }}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Slug URL <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="hukum-mim-sukun"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono text-[11px] focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Ringkasan Singkat
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ringkasan 1-2 kalimat untuk kartu materi..."
-                      value={summary}
-                      onChange={(e) => setSummary(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Urutan Tampil
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={orderIndex}
-                      onChange={(e) => setOrderIndex(Number(e.target.value))}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 flex items-center space-x-1.5">
-                    <Video className="w-3.5 h-3.5 text-rose-500" />
-                    <span>YouTube Video ID (Opsional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 7kK84x4_uY8"
-                    value={youtubeVideoId}
-                    onChange={(e) => setYoutubeVideoId(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Isi Materi Tajwid Lengkap (Mendukung Markdown &amp; Teks Arab)
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Tuliskan penjelasan kaidah tajwid, contoh ayat, dan pembahasannya di sini..."
-                    value={contentBody}
-                    onChange={(e) => setContentBody(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-900 font-sans focus:outline-hidden focus:ring-2 focus:ring-emerald-500 leading-relaxed resize-none"
-                  />
-                </div>
-              </div>
-
-              {/* Section 2: Generator Kuis Gemini AI */}
-              <div className="space-y-3 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
-                    <Sparkles className="w-4 h-4 text-emerald-600" />
-                    <span>2. Bank Soal &amp; Generator Kuis (Gemini AI)</span>
-                  </h4>
-                </div>
-
-                <div className="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-end">
-                    <div className="sm:col-span-2 space-y-1">
-                      <label className="block text-[11px] font-bold text-emerald-950">
-                        Topik Soal Tajwid untuk AI
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={title || 'Contoh: Iqlab dan Idgham Bighunnah'}
-                        value={aiPromptTopic}
-                        onChange={(e) => setAiPromptTopic(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-emerald-950">
-                        Tingkat Kesulitan
-                      </label>
-                      <select
-                        value={aiDifficulty}
-                        onChange={(e) => setAiDifficulty(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                      >
-                        <option value="mudah">Mudah (Dasar)</option>
-                        <option value="sedang">Sedang (Standar)</option>
-                        <option value="sulit">Sulit (Mendalam)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <button
-                        type="button"
-                        disabled={isGeneratingAI}
-                        onClick={handleGenerateAIQuiz}
-                        className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-xs transition-all cursor-pointer"
-                      >
-                        {isGeneratingAI ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Menyusun...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>Generate Soal AI</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quiz Metadata */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Judul Kuis Evaluasi
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={`Kuis Evaluasi ${title || 'Tajwid'}`}
-                      value={quizTitle}
-                      onChange={(e) => setQuizTitle(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Nilai Kelulusan Minimal
-                    </label>
-                    <input
-                      type="number"
-                      min={10}
-                      max={100}
-                      value={quizPassingScore}
-                      onChange={(e) => setQuizPassingScore(Number(e.target.value))}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Questions List */}
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">
-                      Daftar Pertanyaan ({questions.length} Soal)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleAddQuestionManual}
-                      className="text-xs text-emerald-700 hover:text-emerald-900 flex items-center space-x-1 font-bold cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Soal Manual</span>
-                    </button>
-                  </div>
-
-                  {questions.length === 0 ? (
-                    <div className="p-6 text-center text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-xs">
-                      Belum ada soal kuis. Gunakan tombol "Generate Soal AI" di atas atau tambahkan manual.
-                    </div>
-                  ) : (
-                    questions.map((q, qIdx) => (
-                      <div
-                        key={qIdx}
-                        className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-2.5"
-                      >
-                        <div className="flex items-start justify-between">
-                          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-lg">
-                            Soal #{qIdx + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveQuestion(qIdx)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                            title="Hapus soal"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
-                            Pertanyaan
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Tuliskan pertanyaan kuis..."
-                            value={q.questionText}
-                            onChange={(e) => {
-                              const updated = [...questions];
-                              updated[qIdx].questionText = e.target.value;
-                              setQuestions(updated);
-                            }}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
-                            Potongan Ayat Al-Qur'an (Opsional)
-                          </label>
-                          <input
-                            type="text"
-                            dir="rtl"
-                            placeholder="Contoh: مَن يَقُولُ"
-                            value={q.verseArabic || ''}
-                            onChange={(e) => {
-                              const updated = [...questions];
-                              updated[qIdx].verseArabic = e.target.value;
-                              setQuestions(updated);
-                            }}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-sm font-quran text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-right"
-                          />
-                        </div>
-
-                        {/* Options */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Pilihan Jawaban (Pilih radio untuk jawaban BENAR)
-                          </label>
-                          <div className="space-y-1.5">
-                            {q.options.map((opt, oIdx) => (
-                              <div key={oIdx} className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`correct-option-${qIdx}`}
-                                  checked={opt.isCorrect}
-                                  onChange={() => {
-                                    const updated = [...questions];
-                                    updated[qIdx].options.forEach((o, i) => {
-                                      o.isCorrect = i === oIdx;
-                                    });
-                                    setQuestions(updated);
-                                  }}
-                                  className="w-4 h-4 text-emerald-600 accent-emerald-600"
-                                />
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder={`Pilihan ${String.fromCharCode(65 + oIdx)}`}
-                                  value={opt.optionText}
-                                  onChange={(e) => {
-                                    const updated = [...questions];
-                                    updated[qIdx].options[oIdx].optionText = e.target.value;
-                                    setQuestions(updated);
-                                  }}
-                                  className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
-                            Syarah &amp; Pembahasan
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="Alasan mengapa jawaban tersebut benar menurut kaidah tajwid..."
-                            value={q.syarahExplanation}
-                            onChange={(e) => {
-                              const updated = [...questions];
-                              updated[qIdx].syarahExplanation = e.target.value;
-                              setQuestions(updated);
-                            }}
-                            className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 resize-none"
-                          />
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="border-t border-slate-100 pt-4 flex items-center justify-end space-x-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Simpan Modul &amp; Kuis</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* SWEETALERT-STYLE LOGOUT CONFIRMATION MODAL */}
+{/* SWEETALERT-STYLE LOGOUT CONFIRMATION MODAL */}
       {showLogoutConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"

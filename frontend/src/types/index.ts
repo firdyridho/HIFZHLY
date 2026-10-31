@@ -49,6 +49,8 @@ export interface TajwidModule {
   youtubeVideoId: string;
   orderIndex: number;
   contentBody?: string;
+  thumbnailUrl?: string;
+  pdfUrl?: string;
   quiz?: QuizDetail;
 }
 
