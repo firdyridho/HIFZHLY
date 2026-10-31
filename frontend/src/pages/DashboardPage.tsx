@@ -4,11 +4,11 @@ import {
   MapPin,
   Settings,
   Bell,
-  CloudMoon,
+  Sunrise,
   Sun,
   CloudSun,
-  Moon,
-  Sparkles,
+  Sunset,
+  MoonStar,
   BookOpen,
   Brain,
   Mic,
@@ -29,17 +29,17 @@ import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 interface PrayerSchedule {
   name: string;
   time: string;
-  icon: typeof Sun;
+  icon: typeof Sunrise;
   hours: number;
   minutes: number;
 }
 
 const DEFAULT_PRAYER_TIMES: PrayerSchedule[] = [
-  { name: 'Shubuh', time: '04:10', icon: CloudMoon, hours: 4, minutes: 10 },
+  { name: 'Shubuh', time: '04:10', icon: Sunrise, hours: 4, minutes: 10 },
   { name: 'Dzuhur', time: '11:39', icon: Sun, hours: 11, minutes: 39 },
   { name: 'Ashar', time: '14:56', icon: CloudSun, hours: 14, minutes: 56 },
-  { name: 'Maghrib', time: '17:49', icon: Moon, hours: 17, minutes: 49 },
-  { name: 'Isya', time: '19:00', icon: Sparkles, hours: 19, minutes: 0 },
+  { name: 'Maghrib', time: '17:49', icon: Sunset, hours: 17, minutes: 49 },
+  { name: 'Isya', time: '19:00', icon: MoonStar, hours: 19, minutes: 0 },
 ];
 
 export default function DashboardPage() {
@@ -62,12 +62,12 @@ export default function DashboardPage() {
         if (!data) return;
         if (data.city) setCityName(data.city);
         if (data.schedules && Array.isArray(data.schedules)) {
-          const iconMap: Record<string, typeof Sun> = {
-            Shubuh: CloudMoon,
+          const iconMap: Record<string, typeof Sunrise> = {
+            Shubuh: Sunrise,
             Dzuhur: Sun,
             Ashar: CloudSun,
-            Maghrib: Moon,
-            Isya: Sparkles,
+            Maghrib: Sunset,
+            Isya: MoonStar,
           };
           const mapped = data.schedules.map((s: any) => ({
             ...s,
@@ -257,13 +257,13 @@ export default function DashboardPage() {
                 </span>
                 <div className="my-1.5 flex justify-center">
                   <div
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all ${
                       isNext
-                        ? 'bg-white text-emerald-700 shadow-xs'
-                        : 'text-emerald-200'
+                        ? 'bg-white text-emerald-800 shadow-sm'
+                        : 'bg-white/10 text-emerald-100 hover:bg-white/15'
                     }`}
                   >
-                    <IconComponent className="w-4 h-4" />
+                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
                   </div>
                 </div>
                 <span
