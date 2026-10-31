@@ -85,14 +85,14 @@ export default function MainLayout() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Brand Identity */}
-          <Link to="/app" className="flex items-center space-x-3 group">
+          <Link to="/app" className="flex items-center space-x-2.5 group shrink-0">
             <img
               src="/logo saja.png"
               alt="Hifzhly Logo"
               className="w-9 h-9 object-contain group-hover:scale-105 transition-transform"
             />
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 <span className="font-black text-lg tracking-tight text-slate-900 leading-none">
                   Hifzhly
                 </span>
@@ -100,11 +100,82 @@ export default function MainLayout() {
                   {roleName}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                Membantu Menjaga Murojaahmu
-              </span>
             </div>
           </Link>
+
+          {/* Desktop Navigation Links in Navbar (User Request: header menu pilihannya taro di navbar ada untuk yg dekstop) */}
+          <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5">
+            <NavLink
+              to="/app"
+              end
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Beranda</span>
+            </NavLink>
+
+            <NavLink
+              to="/app/mushaf"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Mushaf</span>
+            </NavLink>
+
+            <NavLink
+              to="/app/murojaah"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Murojaah</span>
+            </NavLink>
+
+            <NavLink
+              to="/app/tajwid"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Tajwid</span>
+            </NavLink>
+
+            <NavLink
+              to="/app/mutabaah"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Mutabaah</span>
+            </NavLink>
+          </nav>
 
           {/* User Profile & Habit Metrics (REQ-FE-02) */}
           <div className="flex items-center space-x-2 sm:space-x-4">
@@ -152,80 +223,6 @@ export default function MainLayout() {
 
       {/* Main Content Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
-        {/* Desktop Navigation Tabs Bar with Active State */}
-        <nav className="hidden md:grid grid-cols-5 gap-1.5 p-1.5 bg-slate-200/70 rounded-2xl mb-6 text-xs sm:text-sm font-medium">
-          <NavLink
-            to="/app"
-            end
-            className={({ isActive }) =>
-              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`
-            }
-          >
-            <Home className="w-4 h-4 text-emerald-700" />
-            <span>Beranda</span>
-          </NavLink>
-
-          <NavLink
-            to="/app/murojaah"
-            className={({ isActive }) =>
-              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`
-            }
-          >
-            <Mic className="w-4 h-4 text-emerald-700" />
-            <span>Smart Murojaah</span>
-          </NavLink>
-
-          <NavLink
-            to="/app/mushaf"
-            className={({ isActive }) =>
-              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`
-            }
-          >
-            <BookOpen className="w-4 h-4 text-emerald-700" />
-            <span>Mushaf Digital</span>
-          </NavLink>
-
-          <NavLink
-            to="/app/tajwid"
-            className={({ isActive }) =>
-              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`
-            }
-          >
-            <GraduationCap className="w-4 h-4 text-emerald-700" />
-            <span>Tajwid Academy</span>
-          </NavLink>
-
-          <NavLink
-            to="/app/mutabaah"
-            className={({ isActive }) =>
-              `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`
-            }
-          >
-            <BarChart3 className="w-4 h-4 text-emerald-700" />
-            <span>Mutabaah</span>
-          </NavLink>
-        </nav>
-
         {/* Dynamic Nested Page Content */}
         <Outlet />
       </main>
@@ -299,24 +296,6 @@ export default function MainLayout() {
           </button>
         </div>
       </nav>
-
-      {/* Academic & Islamic Footer */}
-      <footer className="border-t border-slate-200/90 bg-white py-6 mt-auto">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <div className="flex items-center space-x-2">
-            <img src="/hafizhly_panjang.png" alt="Hifzhly" className="h-6 w-auto object-contain" />
-            <span className="text-slate-300">|</span>
-            <span>Platform Murojaah Al-Qur'an Berbasis AI &amp; Spaced Repetition</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Link to="/terms" className="hover:underline hover:text-emerald-700">
-              Ketentuan &amp; Privasi
-            </Link>
-            <span className="text-slate-300">•</span>
-            <p>© 2026 Tim FIFA - Untirta</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
