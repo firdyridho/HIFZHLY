@@ -108,6 +108,16 @@ function formatTajweedHtml(rawHtml: string, stripEndBadge = false): string {
   return res;
 }
 
+// Clean raw footnote HTML tags from translation (e.g. <sup foot_note=134958>1</sup>)
+function cleanTranslationText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<sup[^>]*>.*?<\/sup>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export default function MushafPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -167,15 +177,9 @@ export default function MushafPage() {
   const [pageVerses, setPageVerses] = useState<any[]>([]);
   const [loadingPage, setLoadingPage] = useState<boolean>(false);
   const [selectedMushafAyah, setSelectedMushafAyah] = useState<any | null>(null);
+  const [mushafTafsirOpen, setMushafTafsirOpen] = useState<boolean>(false);
 
-  // Interactive Tajweed Hover (Desktop) & Bottom Sheet (Mobile)
-  const [hoveredTajweed, setHoveredTajweed] = useState<{
-    ruleKey: string;
-    rule: { label: string; desc: string; color: string; example: string };
-    x: number;
-    y: number;
-  } | null>(null);
-
+  // Tajweed Info Bottom Sheet / Modal (Triggered strictly on Click to avoid mouse hover distraction)
   const [bottomSheetTajweed, setBottomSheetTajweed] = useState<{
     ruleKey: string;
     rule: { label: string; desc: string; color: string; example: string };
@@ -184,6 +188,27 @@ export default function MushafPage() {
   // Mobile Touch Gesture for Page Swapping / Flipping
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+
+  // Long-press / Klik Tahan detection for inspecting Ayah in Mushaf
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startLongPress = (ayahObj: any) => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      setSelectedMushafAyah(ayahObj);
+      setMushafTafsirOpen(false);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate(40); } catch {}
+      }
+    }, 400);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -209,26 +234,10 @@ export default function MushafPage() {
     touchStartY.current = null;
   };
 
-  const handleTajweedPointerMove = (e: React.MouseEvent) => {
-    const target = (e.target as HTMLElement).closest('[data-rule]') as HTMLElement | null;
-    if (target) {
-      const ruleKey = target.getAttribute('data-rule');
-      if (ruleKey && TAJWEED_RULES[ruleKey]) {
-        setHoveredTajweed({
-          ruleKey,
-          rule: TAJWEED_RULES[ruleKey],
-          x: e.clientX,
-          y: e.clientY,
-        });
-        return;
-      }
-    }
-    if (hoveredTajweed) setHoveredTajweed(null);
-  };
-
   const handleTajweedClick = (e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest('[data-rule]') as HTMLElement | null;
     if (target) {
+      e.stopPropagation();
       const ruleKey = target.getAttribute('data-rule');
       if (ruleKey && TAJWEED_RULES[ruleKey]) {
         setBottomSheetTajweed({
@@ -439,7 +448,7 @@ export default function MushafPage() {
         surahName: surahName,
         ayahNumber: ayahNum,
         audioUrl: `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`,
-        translationText: verse.translations?.[0]?.text || '',
+        translationText: cleanTranslationText(verse.translations?.[0]?.text || ''),
       };
 
       if (verse.words && Array.isArray(verse.words)) {
@@ -516,30 +525,31 @@ export default function MushafPage() {
     }
   }, [targetAyahToScroll, currentSurah, loadingDetail, readingMode]);
 
-  // 8. Handle Tafsir Toggle
-  const handleToggleTafsir = async (ayahNumber: number) => {
-    if (!selectedSurahNumber) return;
+  // 8. Handle Tafsir Toggle (supports both Ayat and Mushaf modes)
+  const handleToggleTafsir = async (ayahNumber: number, surahNum?: number) => {
+    const sNum = surahNum || selectedSurahNumber;
+    if (!sNum) return;
 
-    if (expandedTafsir[ayahNumber]) {
+    if (expandedTafsir[ayahNumber] && !surahNum) {
       setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: false }));
       return;
     }
 
-    if (tafsirCache[selectedSurahNumber]) {
+    if (tafsirCache[sNum]) {
       setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: true }));
       return;
     }
 
     setLoadingTafsirAyah(ayahNumber);
     try {
-      const res = await fetch(`https://equran.id/api/v2/tafsir/${selectedSurahNumber}`);
+      const res = await fetch(`https://equran.id/api/v2/tafsir/${sNum}`);
       const json = await res.json();
       if (json.code === 200 && json.data?.tafsir) {
         const map: Record<number, string> = {};
         json.data.tafsir.forEach((item: { ayat: number; teks: string }) => {
           map[item.ayat] = item.teks;
         });
-        setTafsirCache((prev) => ({ ...prev, [selectedSurahNumber]: map }));
+        setTafsirCache((prev) => ({ ...prev, [sNum]: map }));
         setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: true }));
       }
     } catch (err) {
@@ -646,7 +656,7 @@ export default function MushafPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="w-full font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Dynamic CSS for Interactive Tajweed */}
       <style>{`
         .tajweed-ham_wasl, .tajweed-laam_shamsiyah, .tajweed-slnt { color: #94A3B8; }
@@ -665,8 +675,8 @@ export default function MushafPage() {
 
       {/* 1. DEDICATED IN-QURAN READING HEADER & TOOLBAR (Replaces Standard Header at top-0, Single Line on Mobile) */}
       {selectedSurahNumber !== null && (
-        <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs px-3 sm:px-6 py-2 sm:py-2.5">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+        <div className="w-full sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs px-4 sm:px-8 py-2.5">
+          <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3">
             {/* Left: Back Arrow + Surah Name & Metadata */}
             <div className="flex items-center space-x-1.5 sm:space-x-2.5 min-w-0 shrink">
               <button
@@ -840,6 +850,7 @@ export default function MushafPage() {
       )}
 
       {/* 2. MAIN CONTENT AREA */}
+      <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
       {selectedSurahNumber !== null ? (
         readingMode === 'ayat' ? (
           /* ======================================================== */
@@ -854,14 +865,8 @@ export default function MushafPage() {
             ) : currentSurah ? (
               <div className="space-y-6">
                 {/* Surah Hero Banner (Deep Emerald Islamic Aesthetic per reference) */}
-                <div className="bg-[#064e3b] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
-                  {/* Subtle Islamic Arabesque Watermark */}
-                  <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none translate-x-6 flex items-center">
-                    <svg className="w-56 h-56 text-emerald-200" viewBox="0 0 100 100" fill="currentColor">
-                      <polygon points="50,5 64,36 98,36 71,56 82,90 50,70 18,90 29,56 2,36 36,36" opacity="0.5" />
-                      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                  </div>
+                <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                  
 
                   <div className="relative z-10 flex items-center justify-between gap-4">
                     {/* Left: Metadata, Latin Name, Indonesian Meaning */}
@@ -896,7 +901,7 @@ export default function MushafPage() {
                 </div>
 
                 {/* Ayat Cards List */}
-                <div className="space-y-4" onMouseMove={handleTajweedPointerMove} onMouseLeave={() => setHoveredTajweed(null)} onClick={handleTajweedClick}>
+                <div className="space-y-4" onClick={handleTajweedClick}>
                   {currentSurah.ayahs.map((ayah) => {
                     const isCurrentPlaying = playingAyah === ayah.ayahNumber;
                     const isLastReadAyah =
@@ -1127,7 +1132,7 @@ export default function MushafPage() {
                 <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
               </div>
             ) : Object.keys(pageLines).length > 0 ? (
-              <div className="space-y-0.5 sm:space-y-1 py-1" onMouseMove={handleTajweedPointerMove} onMouseLeave={() => setHoveredTajweed(null)} onClick={handleTajweedClick}>
+              <div className="space-y-0.5 sm:space-y-1 py-1" onClick={handleTajweedClick}>
                 {/* Exact 15 Lines: Full Width Responsive Alignment with Inline Surah Headers */}
                 {Object.entries(pageLines).map(([lineStr, words]) => {
                   const lineNum = parseInt(lineStr, 10);
@@ -1223,8 +1228,14 @@ export default function MushafPage() {
                         return (
                           <span
                             key={idx}
-                            onClick={() => setSelectedMushafAyah(w.ayahObj)}
-                            className="cursor-pointer hover:text-emerald-700 transition-colors inline-block"
+                            onMouseDown={() => startLongPress(w.ayahObj)}
+                            onMouseUp={cancelLongPress}
+                            onMouseLeave={cancelLongPress}
+                            onTouchStart={() => startLongPress(w.ayahObj)}
+                            onTouchEnd={cancelLongPress}
+                            onTouchMove={cancelLongPress}
+                            onClick={handleTajweedClick}
+                            className="cursor-pointer hover:text-emerald-700 transition-colors inline-block select-text"
                           >
                             {tajweedHtml ? (
                               <span dangerouslySetInnerHTML={{ __html: tajweedHtml }} />
@@ -1275,7 +1286,7 @@ export default function MushafPage() {
             {/* Mobile Touch Swap Hint */}
             <p className="text-center text-[11px] text-slate-400">
               <span className="sm:hidden">Geser layar (swap) ke kiri / kanan untuk membalik halaman • </span>
-              Ketuk teks ayat untuk audio & terjemah
+              Tekan & tahan (klik tahan) ayat untuk terjemah & tafsir • Geser layar untuk ganti halaman
             </p>
 
             {/* Bottom Helper Hint */}
@@ -1283,62 +1294,113 @@ export default function MushafPage() {
               Ketuk teks ayat atau nomor untuk audio & terjemah • Posisi 15 baris standar Mushaf Madinah
             </p>
 
-            {/* Quick Action Drawer for Selected Verse in Mushaf View */}
+            {/* Quick Action Popup / Bottom Sheet for Selected Verse in Mushaf View */}
             {selectedMushafAyah && (
-              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200 shadow-xl space-y-2.5 animate-in slide-in-from-bottom-2">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">
-                      QS. {selectedMushafAyah.verse_key}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">
-                      Halaman {selectedMushafAyah.page_number} • Juz {selectedMushafAyah.juz_number}
-                    </span>
-                  </div>
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in" onClick={() => setSelectedMushafAyah(null)}>
+                <div
+                  className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 sm:zoom-in-95"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Mobile drag handle */}
+                  <div className="sm:hidden w-12 h-1.5 bg-slate-300 rounded-full mx-auto -mt-1 mb-2" />
 
-                  <div className="flex items-center space-x-1.5">
-                    {/* Audio Play for Mushaf Selected Verse */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleToggleAudio(selectedMushafAyah.ayahNumber, selectedMushafAyah.audioUrl);
-                      }}
-                      className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Audio</span>
-                    </button>
-
-                    {/* Bookmark */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSetLastRead(
-                          selectedMushafAyah.surahNumber,
-                          selectedMushafAyah.surahName,
-                          selectedMushafAyah.ayahNumber
-                        );
-                      }}
-                      className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Bookmark className="w-3.5 h-3.5" />
-                      <span>Simpan</span>
-                    </button>
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2.5 py-0.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">
+                          QS. {selectedMushafAyah.surahName} : Ayat {selectedMushafAyah.ayahNumber}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          Hal. {selectedMushafAyah.page_number} • Juz {selectedMushafAyah.juz_number}
+                        </span>
+                      </div>
+                    </div>
 
                     <button
                       type="button"
                       onClick={() => setSelectedMushafAyah(null)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-5 h-5" />
                     </button>
                   </div>
-                </div>
 
-                <div className="space-y-1 text-left">
-                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
-                    {selectedMushafAyah.translationText || 'Terjemahan Kemenag RI'}
-                  </p>
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center space-x-2">
+                    {/* Audio Play */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAudio(selectedMushafAyah.ayahNumber, selectedMushafAyah.audioUrl)}
+                      className="p-2 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer border border-emerald-200/60"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{playingAyah === selectedMushafAyah.ayahNumber ? 'Memutar...' : 'Audio'}</span>
+                    </button>
+
+                    {/* Bookmark */}
+                    <button
+                      type="button"
+                      onClick={() => handleSetLastRead(selectedMushafAyah.surahNumber, selectedMushafAyah.surahName, selectedMushafAyah.ayahNumber)}
+                      className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer border border-slate-200/80"
+                    >
+                      <Bookmark className="w-3.5 h-3.5" />
+                      <span>Simpan Terakhir Baca</span>
+                    </button>
+
+                    {/* Tafsir Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const willOpen = !mushafTafsirOpen;
+                        setMushafTafsirOpen(willOpen);
+                        if (willOpen && !tafsirCache[selectedMushafAyah.surahNumber]) {
+                          handleToggleTafsir(selectedMushafAyah.ayahNumber, selectedMushafAyah.surahNumber);
+                        }
+                      }}
+                      className={`p-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 cursor-pointer border transition-colors ${
+                        mushafTafsirOpen
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200/80'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>{mushafTafsirOpen ? 'Tutup Tafsir' : 'Tafsir Kemenag'}</span>
+                    </button>
+                  </div>
+
+                  {/* Cleaned Translation */}
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1 text-left">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Terjemahan Kemenag RI
+                    </span>
+                    <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans">
+                      {cleanTranslationText(selectedMushafAyah.translationText) || 'Terjemahan sedang dimuat...'}
+                    </p>
+                  </div>
+
+                  {/* Tafsir Content (if opened) */}
+                  {mushafTafsirOpen && (
+                    <div className="bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-100 space-y-2 text-left animate-in fade-in">
+                      <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                        Tafsir Ringkas Kemenag RI
+                      </span>
+                      {loadingTafsirAyah === selectedMushafAyah.ayahNumber ? (
+                        <div className="flex items-center space-x-2 py-4 text-emerald-700 text-xs font-semibold">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Memuat penjelasan tafsir...</span>
+                        </div>
+                      ) : tafsirCache[selectedMushafAyah.surahNumber]?.[selectedMushafAyah.ayahNumber] ? (
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line font-sans max-h-56 overflow-y-auto pr-1">
+                          {tafsirCache[selectedMushafAyah.surahNumber][selectedMushafAyah.ayahNumber]}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500 italic">
+                          Tafsir untuk ayat ini sedang diproses atau tidak tersedia.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1621,32 +1683,9 @@ export default function MushafPage() {
         </div>
       )}
 
-      {/* Desktop Floating Tajweed Tooltip */}
-      {hoveredTajweed && (
-        <div
-          style={{
-            position: 'fixed',
-            left: `${Math.min(window.innerWidth - 240, Math.max(16, hoveredTajweed.x - 100))}px`,
-            top: `${Math.max(12, hoveredTajweed.y - 80)}px`,
-            pointerEvents: 'none',
-            zIndex: 60,
-          }}
-          className="bg-slate-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-xl shadow-xl text-xs space-y-1 max-w-[240px] animate-in fade-in duration-100 border border-slate-700"
-        >
-          <div className="flex items-center space-x-1.5 font-bold">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shrink-0" />
-            <span className="text-emerald-300 font-semibold">{hoveredTajweed.rule.label}</span>
-          </div>
-          <p className="text-[11px] text-slate-300 leading-tight">
-            {hoveredTajweed.rule.desc}
-          </p>
-          <div className="text-[10px] text-slate-400 font-quran text-right pt-0.5">
-            Contoh: {hoveredTajweed.rule.example}
-          </div>
-        </div>
-      )}
+      </div>
 
-      {/* Mobile Tajweed Rule Bottom Sheet */}
+      {/* Tajweed Rule Modal & Bottom Sheet (Shown on Click) */}
       {bottomSheetTajweed && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           {/* Backdrop */}
