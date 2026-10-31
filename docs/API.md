@@ -148,14 +148,25 @@ Backend Go melakukan caching otomatis terhadap respons API EQuran.id ke dalam Re
       "textArabic": "عَمَّ يَتَسَآءَلُونَ",
       "textLatin": "'Amma yatasaa'aluun",
       "translation": "Tentang apakah mereka saling bertanya-tanya?",
-      "audioUrl": "https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3"
+      "audioUrl": "https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3",
+      "mutashabihat": []
     },
     {
-      "ayahNumber": 2,
-      "textArabic": "عَنِ ٱلنَّبَإِ ٱلْعَظِيمِ",
-      "textLatin": "'Anin-naba'il-'aziim",
-      "translation": "Tentang berita yang besar (hari kiamat),",
-      "audioUrl": "https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078002.mp3"
+      "ayahNumber": 4,
+      "textArabic": "كَلَّا سَيَعْلَمُونَ",
+      "textLatin": "Kallaa saya'lamuun",
+      "translation": "Sekali-kali tidak! Kelak mereka akan mengetahui,",
+      "audioUrl": "https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078004.mp3",
+      "mutashabihat": [
+        {
+          "surahNumber": 78,
+          "surahName": "An-Naba'",
+          "ayahNumber": 5,
+          "textArabic": "ثُمَّ كَلَّا سَيَعْلَمُونَ",
+          "similarity": "Penekanan Berulang (Tawkid)",
+          "note": "Ayat 4 diawali 'كَلَّا', sedangkan ayat 5 ada tambahan 'ثُمَّ'."
+        }
+      ]
     }
   ]
 }

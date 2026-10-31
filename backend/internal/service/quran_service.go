@@ -15,14 +15,16 @@ type QuranService interface {
 }
 
 type quranServiceImpl struct {
-	httpClient *http.Client
-	baseURL    string
+	httpClient          *http.Client
+	baseURL             string
+	mutashabihatService MutashabihatService
 }
 
-func NewQuranService() QuranService {
+func NewQuranService(mutashabihatService MutashabihatService) QuranService {
 	return &quranServiceImpl{
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-		baseURL:    "https://equran.id/api/v2",
+		httpClient:          &http.Client{Timeout: 10 * time.Second},
+		baseURL:             "https://equran.id/api/v2",
+		mutashabihatService: mutashabihatService,
 	}
 }
 
@@ -142,12 +144,18 @@ func (s *quranServiceImpl) GetSurahDetail(surahNumber int) (*model.SurahDetail, 
 			}
 		}
 
+		var mutashabihat []model.MutashabihItem
+		if s.mutashabihatService != nil {
+			mutashabihat = s.mutashabihatService.GetMutashabihat(res.Data.Nomor, item.NomorAyat)
+		}
+
 		detail.Ayahs = append(detail.Ayahs, model.AyahDetail{
-			AyahNumber:  item.NomorAyat,
-			TextArabic:  item.TeksArab,
-			TextLatin:   item.TeksLatin,
-			Translation: item.TeksIndonesia,
-			AudioUrl:    ayahAudio,
+			AyahNumber:   item.NomorAyat,
+			TextArabic:   item.TeksArab,
+			TextLatin:    item.TeksLatin,
+			Translation:  item.TeksIndonesia,
+			AudioUrl:     ayahAudio,
+			Mutashabihat: mutashabihat,
 		})
 	}
 

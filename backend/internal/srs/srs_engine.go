@@ -89,3 +89,4 @@ func CalculateNextReview(current SrsState, score float64) model.SrsUpdate {
 		NextReviewAt:    nextDateFormatted,
 	}
 }
+

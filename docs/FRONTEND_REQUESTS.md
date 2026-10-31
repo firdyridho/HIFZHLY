@@ -44,6 +44,15 @@
 
 ## Daftar Permintaan Aktif (Active Inbox)
 
+* [ ] **REQ-FE-03: Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard)**
+  * Tanggal Diminta: 2026-10-31 (Jam 04:30)
+  * Diminta Oleh: Backend Team (Firdy)
+  * Latar Belakang / Endpoint Aktif: Endpoint `GET /api/v1/quran/surahs/{number}` dan `GET /api/v1/quran/mutashabihat/{surah}/{ayah}` kini telah mengembalikan data array `mutashabihat` (pemetaan ayat-ayat serupa).
+  * Kebutuhan Tampilan:
+    1. Jika suatu ayat memiliki `mutashabihat.length > 0`, tampilkan badge kuning kecil di samping nomor ayat (misal: `⚠️ Ayat Mutasyabih`).
+    2. Saat badge diklik/di-hover, tampilkan tooltip atau popup info: menampilkan surah & ayat pembanding, bunyi ayat yang mirip, dan catatan perbedaannya agar hafalan santri tidak tertukar.
+  * Status: Menunggu Dikerjakan
+
 * [ ] **REQ-FE-02: Integrasi State Autentikasi Pengguna (Login & Register)**
   * Tanggal Diminta: 2026-10-31 (Jam 03:00)
   * Diminta Oleh: Backend Team (Firdy)

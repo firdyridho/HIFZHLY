@@ -49,3 +49,4 @@ type MurojaahSession struct {
 	StartedAt   time.Time  `json:"startedAt"`
 	FinishedAt  *time.Time `json:"finishedAt,omitempty"`
 }
+

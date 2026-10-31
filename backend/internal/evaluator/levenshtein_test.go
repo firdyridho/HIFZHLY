@@ -25,3 +25,4 @@ func TestEvaluateRecitation(t *testing.T) {
 		t.Errorf("Ekspektasi skor 50.0, dapat: %f", res2.Score)
 	}
 }
+

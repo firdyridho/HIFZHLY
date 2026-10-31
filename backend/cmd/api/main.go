@@ -14,6 +14,7 @@ import (
 	"github.com/fifa-team/hifzhly-backend/internal/database"
 	"github.com/fifa-team/hifzhly-backend/internal/handler"
 	appMiddleware "github.com/fifa-team/hifzhly-backend/internal/middleware"
+	"github.com/fifa-team/hifzhly-backend/internal/model"
 	"github.com/fifa-team/hifzhly-backend/internal/repository"
 	"github.com/fifa-team/hifzhly-backend/internal/service"
 )
@@ -38,7 +39,8 @@ func main() {
 	// 2. Repositories & Services
 	userRepo := repository.NewUserRepository(pgPool)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
-	quranService := service.NewQuranService()
+	mutashabihatService := service.NewMutashabihatService()
+	quranService := service.NewQuranService(mutashabihatService)
 	murojaahService := service.NewMurojaahService(quranService)
 
 	// 3. Handlers & Middlewares
@@ -82,9 +84,27 @@ func main() {
 			r.Get("/auth/me", authHandler.GetMe)
 		})
 
-		// Quran Proxy Endpoints
+		// Quran Proxy & Enrichment Endpoints
 		r.Get("/quran/surahs", quranHandler.GetSurahs)
 		r.Get("/quran/surahs/{number}", quranHandler.GetSurahDetail)
+		r.Get("/quran/mutashabihat/{surah}/{ayah}", func(w http.ResponseWriter, r *http.Request) {
+			surahStr := chi.URLParam(r, "surah")
+			ayahStr := chi.URLParam(r, "ayah")
+			var sNum, aNum int
+			fmt.Sscanf(surahStr, "%d", &sNum)
+			fmt.Sscanf(ayahStr, "%d", &aNum)
+
+			items := mutashabihatService.GetMutashabihat(sNum, aNum)
+			w.Header().Set("Content-Type", "application/json")
+			if items == nil {
+				items = []model.MutashabihItem{}
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"surahNumber":  sNum,
+				"ayahNumber":   aNum,
+				"mutashabihat": items,
+			})
+		})
 
 		// Murojaah AI Voice Evaluator (Word Diff & Scoring)
 		r.Post("/murojaah/evaluate", murojaahHandler.Evaluate)

@@ -68,3 +68,4 @@ func (s *murojaahServiceImpl) EvaluateText(ctx context.Context, surahNumber, aya
 
 	return resp, nil
 }
+
