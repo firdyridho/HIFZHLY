@@ -64,16 +64,19 @@ func main() {
 	}))
 
 	// Health Check
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "healthy",
 			"app":     "Hifzhly Backend",
 			"version": "1.0.0",
 		})
-	})
+	}
+	r.Get("/health", healthHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/health", healthHandler)
+
 		// Public Auth Endpoints
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)

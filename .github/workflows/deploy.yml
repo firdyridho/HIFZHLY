@@ -1,0 +1,39 @@
+name: Deploy to Tencent VPS
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Pindah ke direktori proyek di VPS (sesuaikan path jika berbeda)
+            TARGET_DIR="/www/wwwroot/hifzhly"
+            if [ ! -d "$TARGET_DIR" ]; then
+              TARGET_DIR="$HOME/HIFZHLY"
+            fi
+            
+            if [ -d "$TARGET_DIR" ]; then
+              cd "$TARGET_DIR"
+              chmod +x deploy.sh
+              ./deploy.sh
+            else
+              echo "Direktori $TARGET_DIR belum ditemukan. Harap git clone repositori terlebih dahulu ke VPS."
+              exit 1
+            fi
