@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Mic, Award, ArrowRight, CheckCircle2, ShieldCheck, Sparkles, BookOpen } from 'lucide-react';
 import HeroSandbox from '../components/landing/HeroSandbox';
 import ScholarlyStats from '../components/landing/ScholarlyStats';
@@ -31,7 +32,7 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* Quick Navigation Links (Desktop) */}
+          {/* Quick Navigation Links */}
           <nav className="hidden md:flex items-center space-x-6 text-xs font-semibold text-slate-600">
             <Link to="/app" className="hover:text-emerald-700 transition-colors">
               Murojaah
@@ -65,28 +66,33 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section with Interactive Sandbox */}
-      <section className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/25 to-slate-50">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-14 pb-20 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column: Value Proposition & CTAs */}
-            <div className="lg:col-span-6 space-y-6 text-left">
+            {/* Left Column: Simple & Punchy Hero Proposition */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="lg:col-span-6 space-y-5 text-left"
+            >
               <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-50 border border-emerald-200/80 rounded-md text-[11px] font-semibold text-emerald-800">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Inclusive Education and Future Skills • Tim FIFA</span>
+                <span>AI Voice &amp; Spaced Repetition • Tim FIFA</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-                Murojaah Mandiri Lebih Melekat dengan{' '}
-                <span className="text-emerald-700 underline decoration-emerald-300 decoration-wavy decoration-2 underline-offset-4">
-                  Kecerdasan Buatan
-                </span>{' '}
-                &amp; Spaced Repetition
+              {/* Simple, Punchy, Impactful Headline */}
+              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.12]">
+                Hafalan Lebih Kuat.{' '}
+                <span className="text-emerald-700 block mt-1">
+                  Presisi Kata demi Kata.
+                </span>
               </h1>
 
-              <p className="text-base text-slate-600 leading-relaxed">
-                Hifzhly mendengarkan dan mengevaluasi bacaan hafalanmu secara mandiri kata demi kata, 
-                menjadwalkan pengulangan berdasarkan kurva lupa ilmiah SuperMemo-2, dan memperdalam kaidah tajwid lewat kuis interaktif.
+              {/* Simple, Clear Subtitle */}
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-lg">
+                Asisten AI cerdas yang menyimak bacaanmu secara real-time, menyorot huruf yang keliru, dan menjadwalkan review berdasarkan kurva lupa ilmiah.
               </p>
 
               {/* Action Buttons */}
@@ -105,15 +111,15 @@ export default function LandingPage() {
                   className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm border border-slate-200 shadow-xs transition-all"
                 >
                   <Award className="w-4 h-4 text-emerald-600" />
-                  <span>Pelajari Tajwid Academy</span>
+                  <span>Tajwid Academy</span>
                 </Link>
               </div>
 
-              {/* Verified Trust Badges */}
-              <div className="pt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+              {/* Trust Indicators */}
+              <div className="pt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                 <span className="flex items-center space-x-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Kemenag RI (EQuran.id API v2)</span>
+                  <span>Standar Kemenag RI</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -124,12 +130,17 @@ export default function LandingPage() {
                   <span>Privasi Suara Memory-Only</span>
                 </span>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Right Column: Live Interactive Simulation Sandbox */}
-            <div className="lg:col-span-6 flex justify-center">
+            {/* Right Column: Interactive Recitation Sandbox */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="lg:col-span-6 flex justify-center"
+            >
               <HeroSandbox />
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -140,7 +151,7 @@ export default function LandingPage() {
       {/* Sticky 3D Scrollytelling Mushaf Section */}
       <MushafScrollytelling />
 
-      {/* Interactive Bento Grid Features Section */}
+      {/* Interactive Bento Grid Features Section with InteractiveCard */}
       <BentoFeatures />
 
       {/* Step-by-Step Interactive Workflow Timeline */}
@@ -151,7 +162,13 @@ export default function LandingPage() {
 
       {/* Closing Call to Action Banner */}
       <section className="max-w-5xl mx-auto px-4 w-full pb-20">
-        <div className="p-8 sm:p-14 rounded-3xl bg-emerald-900 text-white shadow-xl shadow-emerald-950/20 text-center space-y-5 border border-emerald-800/80">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="p-8 sm:p-14 rounded-3xl bg-emerald-900 text-white shadow-xl shadow-emerald-950/20 text-center space-y-5 border border-emerald-800/80"
+        >
           <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-700 flex items-center justify-center text-emerald-300 mx-auto">
             <BookOpen className="w-6 h-6" />
           </div>
@@ -161,7 +178,7 @@ export default function LandingPage() {
           </h2>
 
           <p className="text-emerald-100 text-sm max-w-xl mx-auto leading-relaxed">
-            Bergabunglah bersama ribuan santri dan penghafal mandiri dalam menjaga kalamullah secara konsisten dengan bimbingan teknologi modern dan ilmiah.
+            Bergabunglah bersama santri dan penghafal mandiri dalam merawat kalamullah dengan bimbingan teknologi modern dan ilmiah.
           </p>
 
           <div className="pt-3">
@@ -173,7 +190,7 @@ export default function LandingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Academic & Islamic Footer */}

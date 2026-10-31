@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { InteractiveCard } from '@/components/lightswind/interactive-card';
 
 interface RecitationWord {
   arabic: string;
@@ -42,7 +43,6 @@ export default function HeroSandbox() {
   const words = simulationMode === 'accurate' ? ACCURATE_WORDS : MISTAKE_SIMULATION_WORDS;
   const targetScore = simulationMode === 'accurate' ? 98.8 : 84.5;
 
-  // Step-by-step recitation evaluation simulation loop
   useEffect(() => {
     let timer: NodeJS.Timeout;
 
@@ -80,7 +80,13 @@ export default function HeroSandbox() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto bg-white rounded-3xl border border-slate-200/90 shadow-lg shadow-slate-200/50 p-5 sm:p-7 relative overflow-hidden transition-all duration-300">
+    <InteractiveCard
+      InteractiveColor="rgba(16, 185, 129, 0.28)"
+      borderRadius="28px"
+      rotationFactor={0.18}
+      containerClassName="w-full max-w-xl mx-auto shadow-xl shadow-slate-200/50"
+      className="p-5 sm:p-7 relative overflow-hidden"
+    >
       {/* Top Banner Status Bar */}
       <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
         <div className="flex items-center space-x-2.5">
@@ -178,7 +184,6 @@ export default function HeroSandbox() {
                   {item.arabic}
                 </span>
 
-                {/* Ayat Separator Marker */}
                 {index === 1 && (
                   <span className="inline-block text-amber-600/80 mx-2 text-2xl font-sans" title="Akhir Ayat 1">
                     ۝١
@@ -190,7 +195,6 @@ export default function HeroSandbox() {
                   </span>
                 )}
 
-                {/* Micro-interaction Tooltip */}
                 {(activeTooltip === index || isWordActive) && (
                   <div
                     className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white rounded-lg text-[11px] font-sans text-left shadow-xl pointer-events-none transition-all duration-200"
@@ -214,13 +218,12 @@ export default function HeroSandbox() {
           })}
         </div>
 
-        {/* Translation Subtext */}
         <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200/60 italic font-sans">
           "Tentang apakah mereka saling bertanya-tanya? Tentang berita yang besar (hari berbangkit)."
         </p>
       </div>
 
-      {/* Live AI Metric Counters & Result Bar */}
+      {/* Live AI Metric Counters */}
       <div className="grid grid-cols-3 gap-3 mb-5 text-center font-sans">
         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
           <span className="block text-[11px] text-slate-600 font-medium">Akurasi Kata</span>
@@ -230,21 +233,20 @@ export default function HeroSandbox() {
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-          <span className="block text-[11px] text-slate-600 font-medium">Algoritma Penyejajaran</span>
+          <span className="block text-[11px] text-slate-600 font-medium">Algoritma</span>
           <span className="text-base sm:text-lg font-bold text-slate-900">
             Levenshtein
           </span>
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-          <span className="block text-[11px] text-slate-600 font-medium">Jadwal SRS Baru</span>
+          <span className="block text-[11px] text-slate-600 font-medium">Jadwal SRS</span>
           <span className="text-base sm:text-lg font-bold text-emerald-700">
             {simulationMode === 'accurate' ? '+3 Hari' : '+1 Hari'}
           </span>
         </div>
       </div>
 
-      {/* Status Box Callout */}
       {isCompleted && (
         <div
           className={`p-3 rounded-xl mb-5 flex items-center space-x-2.5 text-xs transition-all duration-300 ${
@@ -294,6 +296,6 @@ export default function HeroSandbox() {
           <span>Privasi Suara Memory-Only</span>
         </div>
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

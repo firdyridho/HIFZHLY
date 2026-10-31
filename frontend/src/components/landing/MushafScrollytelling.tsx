@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, Calendar, Layers, ChevronRight, ChevronLeft } from 'lucide-react';
+import { InteractiveCard } from '@/components/lightswind/interactive-card';
 
 interface StageData {
   id: number;
@@ -8,6 +10,7 @@ interface StageData {
   subtitle: string;
   description: string;
   points: string[];
+  color: string;
 }
 
 const STAGES: StageData[] = [
@@ -23,6 +26,7 @@ const STAGES: StageData[] = [
       'Identifikasi kata tertukar (Substituted), kata terlewat (Deleted), dan kata berlebih (Inserted)',
       'Formula penskoran objektif: Skor = max(0, 1 - (S+D+I)/N) * 100',
     ],
+    color: 'rgba(16, 185, 129, 0.28)',
   },
   {
     id: 1,
@@ -36,6 +40,7 @@ const STAGES: StageData[] = [
       'Penandaan kata pembeda dengan sorotan visual kontras',
       'Catatan kaidah perbandingan surah rujukan agar hafalan mantap',
     ],
+    color: 'rgba(245, 158, 11, 0.28)',
   },
   {
     id: 2,
@@ -49,6 +54,7 @@ const STAGES: StageData[] = [
       'Interval pengulangan adaptif: 1 hari -> 3 hari -> 7 hari -> 14 hari -> 30 hari',
       'Antrean ayat jatuh tempo otomatis tersaji begitu aplikasi dibuka',
     ],
+    color: 'rgba(20, 184, 166, 0.28)',
   },
 ];
 
@@ -57,7 +63,6 @@ export default function MushafScrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Intersection observer to track active section while scrolling
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -83,9 +88,14 @@ export default function MushafScrollytelling() {
   };
 
   return (
-    <section ref={containerRef} className="py-20 max-w-6xl mx-auto px-4 w-full relative">
-      {/* Section Header */}
-      <div className="text-center max-w-2xl mx-auto mb-16">
+    <section ref={containerRef} className="py-24 max-w-6xl mx-auto px-4 w-full relative">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="text-center max-w-2xl mx-auto mb-16"
+      >
         <div className="inline-flex items-center space-x-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-700 mb-3">
           <Layers className="w-3.5 h-3.5 text-emerald-700" />
           <span>Scrollytelling Interaktif</span>
@@ -96,15 +106,19 @@ export default function MushafScrollytelling() {
         <p className="text-slate-600 text-sm sm:text-base mt-2">
           Bagaimana sinergi Speech Recognition, Pemetaan Mutasyabihat, dan Algoritma SRS bekerja bersama dalam satu lembaran Mushaf.
         </p>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative">
         {/* Left Side: 3 Informative Stages */}
         <div className="lg:col-span-6 space-y-24 py-8">
           {STAGES.map((stage, idx) => (
-            <div
+            <motion.div
               key={stage.id}
               ref={(el) => { stageRefs.current[idx] = el; }}
+              initial={{ opacity: 0, y: 35 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className={`p-6 sm:p-8 rounded-3xl border transition-all duration-500 cursor-pointer ${
                 activeStage === idx
                   ? 'bg-white border-emerald-500/60 shadow-lg shadow-emerald-950/5 ring-1 ring-emerald-500/20'
@@ -136,19 +150,25 @@ export default function MushafScrollytelling() {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
-        {/* Right Side: Sticky 3D Perspective Mushaf Flip Card */}
-        <div className="lg:col-span-6 sticky top-28 perspective-1000">
-          <div className="w-full bg-white rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/60 p-6 sm:p-8 relative overflow-hidden transition-all duration-700">
+        {/* Right Side: Sticky 3D Perspective Mushaf Flip Card with InteractiveCard */}
+        <div className="lg:col-span-6 sticky top-28">
+          <InteractiveCard
+            InteractiveColor={STAGES[activeStage].color}
+            borderRadius="28px"
+            rotationFactor={0.18}
+            containerClassName="w-full shadow-xl shadow-slate-200/60"
+            className="p-6 sm:p-8 relative overflow-hidden"
+          >
             {/* Card Header Bar */}
             <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
               <div className="flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span className="text-xs font-bold text-slate-900 tracking-tight">
-                  Tampilan Mushaf & Analisis Cerdas
+                  Tampilan Mushaf &amp; Analisis Cerdas
                 </span>
               </div>
 
@@ -168,7 +188,7 @@ export default function MushafScrollytelling() {
               </div>
             </div>
 
-            {/* 3D Animated Card Content Container */}
+            {/* 3D Animated Card Content */}
             <div
               className="relative transition-all duration-500 ease-out"
               style={{
@@ -272,7 +292,6 @@ export default function MushafScrollytelling() {
                       </div>
                     </div>
 
-                    {/* Progress Interval Timeline Bar */}
                     <div className="space-y-1.5 pt-2">
                       <div className="flex justify-between text-[11px] font-semibold text-slate-600">
                         <span>Hari ke-1 (Lolos)</span>
@@ -318,7 +337,7 @@ export default function MushafScrollytelling() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
+          </InteractiveCard>
         </div>
       </div>
     </section>
