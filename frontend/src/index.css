@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+.font-quran {
+  font-family: 'Amiri Quran', serif;
+  line-height: 2.2;
+}
+
