@@ -21,7 +21,7 @@
 
 ### Tahap 2: Layanan UI Inti, Mushaf & Routing Modular (Jam 02:00 – 10:00)
 - [x] Setup Modular Routing (`react-router-dom` v7) di [`src/routes/index.tsx`](../frontend/src/routes/index.tsx):
-  - [x] Rute Landing Page Publik (`/` di [`LandingPage.tsx`](../frontend/src/pages/LandingPage.tsx)) dengan `TubelightNavbar` terisolasi
+  - [x] Rute Landing Page Publik (`/` di [`LandingPage.tsx`](../frontend/src/pages/LandingPage.tsx)) dengan `TubelightNavbar` terisolasi dan in-page section smooth scrolling (`#simulasi`, `#fitur`, `#arsitektur`, `#alur`, `#faq`)
   - [x] Rute Beranda Murojaah Santri (`/app` di [`MurojaahPage.tsx`](../frontend/src/pages/MurojaahPage.tsx))
   - [x] Rute Mushaf Al-Qur'an (`/app/mushaf` di [`MushafPage.tsx`](../frontend/src/pages/MushafPage.tsx))
   - [x] Rute Tajwid Academy (`/app/tajwid` di [`TajwidPage.tsx`](../frontend/src/pages/TajwidPage.tsx))
@@ -42,10 +42,10 @@
   - [x] Integrasi Tombol Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard) pada ayat dengan `mutashabihat.length > 0` (`AlertTriangle` icon, tanpa emoji).
   - [x] Modal perbandingan ayat mutasyabihat: menampilkan ayat aktif, ayat pembanding di surah lain, wazan kemiripan, dan catatan tajwid pembeda.
   - [x] Pemutar audio qari resmi per ayat (audio element dengan play/pause toggle).
-- [ ] Modul Perekaman Suara (Web Audio API Recorder):
-  - [ ] Mengambil izin mikrofon peramban pengguna (`navigator.mediaDevices.getUserMedia`).
-  - [ ] Konversi audio ke sample rate **16 kHz Mono WAV/PCM**.
-  - [ ] Visualizer animasi gelombang suara (*waveform canvas/bars*) saat pengguna melafalkan ayat.
+- [x] Modul Perekaman Suara (Web Audio API Recorder):
+  - [x] Mengambil izin mikrofon peramban pengguna (`navigator.mediaDevices.getUserMedia`).
+  - [x] Konversi audio ke sample rate **16 kHz Mono WAV/PCM**.
+  - [x] Visualizer animasi gelombang suara (*waveform canvas/bars*) saat pengguna melafalkan ayat.
 - [x] Layar Pembelajaran Tajwid & Kuis (`REQ-FE-01`):
   - [x] Fetch data modul dari `/api/v1/tajwid/modules`.
   - [x] Integrasi video YouTube embed player.
@@ -53,21 +53,21 @@
   - [x] Layar Review Pembahasan Kuis Pasca Submit: Skor numerik besar, status Lulus / Coba Lagi, perbandingan pilihan santri vs kunci jawaban, dan kotak penjelasan kaidah toska lembut.
 
 ### Tahap 3: Visualisasi Hasil AI Voice & Layar Review Pembahasan (Jam 10:00 – 17:00)
-- [ ] Integrasi Endpoint Evaluasi Suara `/api/v1/murojaah/evaluate`:
-  - [ ] Pengiriman payload `multipart/form-data` audio suara ke backend.
-  - [ ] Indikator loading evaluasi AI yang responsif (< 3 detik).
-- [ ] Komponen Penyorotan Kata (*Word-Level Highlighting*):
-  - [ ] Kata berstatus `correct`: warna teks hijau tua lembut.
-  - [ ] Kata berstatus `substituted`: warna latar merah muda dan teks merah tebal, dengan tooltip koreksi.
-  - [ ] Kata berstatus `deleted`: penanda tanda panah/kata terlewat.
+- [x] Integrasi Endpoint Evaluasi Suara `/api/v1/murojaah/evaluate`:
+  - [x] Pengiriman payload `multipart/form-data` audio suara ke backend.
+  - [x] Indikator loading evaluasi AI yang responsif (< 3 detik).
+- [x] Komponen Penyorotan Kata (*Word-Level Highlighting*):
+  - [x] Kata berstatus `correct`: warna teks hijau tua lembut dan border emerald.
+  - [x] Kata berstatus `substituted`: warna latar merah muda dan teks merah tebal, dengan tooltip koreksi detail.
+  - [x] Kata berstatus `deleted`: penanda tanda panah/kata terlewat.
 - [x] Layar Review Pembahasan Kuis Tajwid (`REQ-FE-01` selesai diimplementasikan di `TajwidPage.tsx`).
-- [ ] Mengonsumsi data antrean murojaah harian dari `/api/v1/srs/today`.
+- [x] Mengonsumsi data antrean murojaah harian dari `/api/v1/srs/today`.
 
 ### Tahap 4: Dashboard Mutabaah, Responsivitas Mobile & Polish (Jam 17:00 – 21:00)
-- [ ] Dashboard Mutabaah Digital:
-  - [ ] Indikator Streak Api Murojaah (`currentStreak` & `maxStreak`).
-  - [ ] Visualisasi Heatmap Hafalan Surah (kode warna: Kuat/Hijau, Sedang/Kuning, Lemah/Merah).
-  - [ ] Grafik aktivitas mingguan konsistensi murojaah.
+- [x] Dashboard Mutabaah Digital ([`MutabaahPage.tsx`](../frontend/src/pages/MutabaahPage.tsx)):
+  - [x] Indikator Streak Api Murojaah (`currentStreak` & `maxStreak` dengan ikon `Flame` Lucide SVG).
+  - [x] Visualisasi Heatmap Hafalan 37 Surah Juz 'Amma (kode warna: Kuat/Hijau, Sedang/Kuning, Lemah/Merah) beserta modal interaktif perincian ayat per surah.
+  - [x] Grafik aktivitas mingguan konsistensi murojaah dari `/api/v1/mutabaah/summary`.
 - [x] Uji responsivitas pada layar smartphone (resolusi 360 px, 390 px iPhone, 412 px Android) memastikan tidak ada horizontal scrollbar.
 - [x] State caching di LocalStorage untuk preferensi font, profil user, dan token JWT.
 
@@ -93,3 +93,5 @@
 * [x] **2026-10-31 (14:45)**: Refactor Hero copywriting simpel & punchy, implementasi Lightswind InteractiveCard (3D tilt & cursor radial glow), dan animasi scroll-reveal viewport di seluruh card landing page.
 * [x] **2026-10-31 (15:00)**: Implementasi 3D Scroll-Driven Deck Carousel (kartu maju/mundur mengikuti scroll atas-bawah menggunakan InteractiveCard) & integrasi Lightswind ScrollTimeline pada seksi arsitektur evaluasi Hifzhly.
 * [x] **2026-10-31 (15:35)**: Pembersihan menyeluruh badge pill pada Landing Page (Zero Badge Slop), integrasi `TubelightNavbar` terisolasi di landing page, pemisahan header aplikasi pasca-login dengan profil santri dinamis (`REQ-FE-02`), peringatan ayat Mutasyabihat Tarteel QUL di `MushafPage.tsx` (`REQ-FE-03`), dan layar review pembahasan kuis pasca submit di `TajwidPage.tsx` (`REQ-FE-01`).
+* [x] **2026-10-31 (16:20)**: Penyesuaian tautan navbar landing page eksklusif ke anchor section in-page (`#simulasi`, `#fitur`, `#arsitektur`, `#alur`, `#faq`) dengan animasi smooth scroll & scrollspy aktif. Seluruh fitur utama dialokasikan penuh ke area pasca-login.
+* [x] **2026-10-31 (16:26)**: Implementasi penuh modul perekaman suara Web Audio API dengan visualizer waveform canvas real-time, evaluasi suara AI Levenshtein kata demi kata (`MurojaahPage.tsx`), dan dashboard mutabaah digital dengan heatmap interaktif 37 surah Juz 'Amma serta grafik aktivitas mingguan (`MutabaahPage.tsx`).
