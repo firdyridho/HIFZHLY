@@ -59,6 +59,31 @@
 
 ---
 
+* [ ] **REQ-FE-04: Komponen Exit-Intent Quick Logger Modal (`ExitMutabaahModal.tsx`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Backend Team (Firdy)
+  * **Kebutuhan UI**:
+    1. Tracker otomatis di `MushafPage.tsx` merekam surat, ayat awal-akhir, jumlah lembar, dan durasi membaca saat santri aktif membaca.
+    2. Saat santri mengklik tombol kembali (`<-`) atau hendak keluar, tampilkan modal popup ringkas pra-terisi (*pre-filled*).
+    3. Menyediakan textarea untuk catatan santri opsional dan tombol "Simpan ke Mutabaah".
+  * **Status**: Menunggu Dikerjakan Frontend
+
+* [ ] **REQ-FE-05: Halaman Mutabaah Santri Lengkap (`MutabaahPage.tsx`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Backend Team (Firdy)
+  * **Kebutuhan UI**:
+    1. Tab Timeline Jurnal: Menampilkan kartu-kartu aktivitas mutabaah (tilawah, setoran, murojaah) beserta skor, catatan santri, dan catatan ustadz pembimbing.
+    2. Tab Target & Komitmen: Form interaktif mengatur target hafalan surat pilihan, target ayat/lembar harian, dan evaluasi kepatuhan.
+  * **Status**: Menunggu Dikerjakan Frontend
+
+* [ ] **REQ-FE-06: Monitoring Mutabaah Santri & Feedback Ustadz di Admin (`AdminDashboardPage.tsx`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Backend Team (Firdy)
+  * **Kebutuhan UI**:
+    1. Tabel live monitoring kepatuhan santri hari ini (status tilawah, status murojaah, streak).
+    2. Drawer / modal detail santri dengan input teks untuk mengirimkan Catatan Evaluasi Musyrif/Ustadz.
+  * **Status**: Menunggu Dikerjakan Frontend
+
 ## Riwayat Permintaan Selesai (Archive)
 
 * [x] **REQ-FE-03: Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard)**

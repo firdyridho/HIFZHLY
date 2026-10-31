@@ -214,6 +214,45 @@
 
 ---
 
+* [ ] **REQ-BE-07: Endpoint Auto-Logging Mutabaah dari Exit Modal (`POST /api/v1/mutabaah/log`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Modal konfirmasi sebelum keluar dari Tilawah/Hafalan/Murojaah mengirimkan data aktivitas yang sudah ter-record otomatis beserta catatan opsional santri.
+  * **Payload Request**:
+    ```json
+    {
+      "activityType": "tilawah",
+      "surahNumber": 2,
+      "surahName": "Al-Baqarah",
+      "startAyah": 142,
+      "endAyah": 160,
+      "totalAyahs": 19,
+      "pagesCount": 2,
+      "durationSeconds": 480,
+      "score": 92.5,
+      "santriNotes": "Ayat 155 makhraj 'ain masih perlu dilancarkan"
+    }
+    ```
+  * **Status**: Menunggu Dikerjakan Backend
+
+* [ ] **REQ-BE-08: Endpoint Riwayat Timeline Jurnal Mutabaah & Catatan (`GET /api/v1/mutabaah/history`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Halaman Mutabaah santri menampilkan log riwayat aktivitas lengkap dengan catatan santri dan catatan evaluasi ustadz.
+  * **Status**: Menunggu Dikerjakan Backend
+
+* [ ] **REQ-BE-09: Endpoint Target & Komitmen Mandiri Santri (`GET` & `PUT /api/v1/mutabaah/targets`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Mengambil dan menyimpan pengaturan target hafalan/tilawah mandiri santri (surat pilihan, rentang ayat, target lembar/hari).
+  * **Status**: Menunggu Dikerjakan Backend
+
+* [ ] **REQ-BE-10: Endpoint Monitoring & Evaluasi Musyrif/Ustadz (`GET /api/v1/admin/mutabaah/monitoring` & `POST /api/v1/admin/mutabaah/:id/evaluation`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam: 00:50)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Dashboard admin/musyrif untuk melihat rekap live kepatuhan seluruh santri dan mengirimkan feedback evaluasi ustadz.
+  * **Status**: Menunggu Dikerjakan Backend
+
 ## Riwayat Permintaan Selesai (Archive)
 
 * [x] **REQ-BE-01: Penyediaan Mock Payload Evaluasi Suara Murojaah untuk Pengujian Tampilan Kata**
