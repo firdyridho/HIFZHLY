@@ -86,4 +86,5 @@
 * [x] **2026-10-31 (03:30)**: Pemasangan aset branding resmi Hifzhly (`icon_favicon.png`, `logo saja.png`, dan `hafizhly_panjang.png`).
 * [x] **2026-10-31 (04:15)**: Implementasi arsitektur routing modular `react-router-dom` v7 di `src/routes/index.tsx`, `MainLayout.tsx`, dan pembuatan halaman 404 kustom islami di `src/pages/NotFoundPage.tsx`.
 * [x] **2026-10-31 (05:00)**: Pemisahan seluruh halaman view ke dalam folder terisolasi `src/pages/` (MurojaahPage, MushafPage, TajwidPage, MutabaahPage, NotFoundPage).
+* [x] **2026-10-31 (13:55)**: Refactor & upgrade Landing Page interaktif: integrasi Lenis smooth scroll, live Hero Sandbox 'Sedang Mendengarkan' (QS. An-Naba 1-2 dengan Levenshtein word diff), 3D Mushaf scrollytelling, Bento Grid interaktif dengan kuis mini langsung, dan timeline alur murojaah 4 tahap sesuai Zero Emojis Policy.
 
