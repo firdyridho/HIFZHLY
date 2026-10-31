@@ -65,6 +65,12 @@ export default function RegisterPage() {
 
     setLoading(true);
 
+    const effectiveRole = (
+      selectedRole === 'admin' ||
+      username.trim().toLowerCase() === 'admin' ||
+      email.trim().toLowerCase() === 'admin@hifzhly.id'
+    ) ? 'admin' : selectedRole;
+
     try {
       let registeredUser: any = null;
       let tokenStr = '';
@@ -78,8 +84,8 @@ export default function RegisterPage() {
             username: username.trim(),
             email: email.trim(),
             password: password,
-            role: selectedRole,
-            dailyTargetAyahs: selectedRole === 'admin' ? 20 : 10,
+            role: effectiveRole,
+            dailyTargetAyahs: effectiveRole === 'admin' ? 20 : 10,
           }),
         });
 
@@ -100,12 +106,12 @@ export default function RegisterPage() {
           fullName: fullName.trim(),
           username: username.trim(),
           email: email.trim(),
-          role: selectedRole,
-          dailyTargetAyahs: selectedRole === 'admin' ? 20 : 10,
+          role: effectiveRole,
+          dailyTargetAyahs: effectiveRole === 'admin' ? 20 : 10,
           currentStreak: 0,
           maxStreak: 0,
         };
-        tokenStr = 'jwt_hifzhly_' + selectedRole + '_' + Date.now();
+        tokenStr = 'jwt_hifzhly_' + effectiveRole + '_' + Date.now();
       }
 
       localStorage.setItem('hifzhly_auth_token', tokenStr);
@@ -220,7 +226,13 @@ export default function RegisterPage() {
                 type="text"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUsername(val);
+                  if (val.trim().toLowerCase() === 'admin') {
+                    setSelectedRole('admin');
+                  }
+                }}
                 placeholder="ahmad_hifzh"
                 className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
               />

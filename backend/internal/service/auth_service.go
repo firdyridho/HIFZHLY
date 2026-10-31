@@ -127,6 +127,11 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 		return nil, fmt.Errorf("kredensial login tidak valid")
 	}
 
+	// Otomatis pastikan akun admin mendapatkan role admin meskipun di db lama tercatat user
+	if user.Username == "admin" || user.Email == "admin@hifzhly.id" {
+		user.Role = "admin"
+	}
+
 	// Validasi expected role jika dikirim (misal login lewat portal admin)
 	if req.ExpectedRole != "" && user.Role != req.ExpectedRole {
 		return nil, fmt.Errorf("akun ini tidak memiliki akses sebagai %s", req.ExpectedRole)
@@ -194,5 +199,12 @@ func (s *authServiceImpl) GetProfile(ctx context.Context, userID string) (*model
 			DailyTargetAyahs: 20,
 		}, nil
 	}
-	return s.userRepo.FindByID(ctx, userID)
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil && (user.Username == "admin" || user.Email == "admin@hifzhly.id") {
+		user.Role = "admin"
+	}
+	return user, nil
 }
