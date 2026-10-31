@@ -94,12 +94,18 @@ const TAJWEED_RULES: Record<string, { label: string; desc: string; color: string
   slnt: { label: 'Huruf Dilebur (Silent)', desc: 'Tertulis tetapi tidak dibaca', color: 'text-slate-400', example: 'كَفَرُوا۟' },
 };
 
-function formatTajweedHtml(rawHtml: string): string {
+function formatTajweedHtml(rawHtml: string, stripEndBadge = false): string {
   if (!rawHtml) return '';
-  return rawHtml
-    .replace(/<tajweed class=([a-z_]+)>/g, '<span class="tajweed-$1 hover:underline cursor-pointer" data-rule="$1">')
-    .replace(/<\/tajweed>/g, '</span>')
-    .replace(/<span class=end>(.*?)<\/span>/g, '<span class="inline-flex items-center justify-center text-amber-700 font-bold px-1.5 text-sm select-none">($1)</span>');
+  let res = rawHtml
+    .replace(/<(?:tajweed|rule) class=([a-z_]+)>/g, '<span class="tajweed-$1" data-rule="$1">')
+    .replace(/<\/(?:tajweed|rule)>/g, '</span>');
+
+  if (stripEndBadge) {
+    res = res.replace(/<span class=end>(.*?)<\/span>/g, '');
+  } else {
+    res = res.replace(/<span class=end>(.*?)<\/span>/g, '<span class="inline-flex items-center justify-center w-7 h-7 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50 text-[11px] font-sans font-bold text-amber-900 shadow-2xs select-none">$1</span>');
+  }
+  return res;
 }
 
 export default function MushafPage() {
@@ -117,7 +123,7 @@ export default function MushafPage() {
 
   // Header Toolbar Controls State
   const [readingMode, setReadingMode] = useState<'ayat' | 'mushaf'>('ayat');
-  const [fontSize, setFontSize] = useState<number>(28); // 20px - 44px
+  const [fontSize, setFontSize] = useState<number>(26); // 20px - 44px
   const [showTranslation, setShowTranslation] = useState<boolean>(true);
   const [showTajwid, setShowTajwid] = useState<boolean>(true);
   const [showTajwidGuide, setShowTajwidGuide] = useState<boolean>(false);
@@ -274,7 +280,8 @@ export default function MushafPage() {
         if (data.verses && Array.isArray(data.verses)) {
           const tMap: Record<number, string> = {};
           data.verses.forEach((v: any, idx: number) => {
-            tMap[idx + 1] = formatTajweedHtml(v.text_uthmani_tajweed);
+            // Strip end badge inside Ayat card so there's no duplicate number
+            tMap[idx + 1] = formatTajweedHtml(v.text_uthmani_tajweed, true);
           });
           setTajweedMap(tMap);
         }
@@ -282,12 +289,12 @@ export default function MushafPage() {
       .catch(() => {});
   }, [selectedSurahNumber]);
 
-  // 3. Fetch Verses by Page for Mushaf Mode
+  // 3. Fetch Verses by Page for Mushaf Mode (with words and exact line numbers)
   useEffect(() => {
     if (readingMode !== 'mushaf' || !currentPage) return;
 
     setLoadingPage(true);
-    fetch(`https://api.quran.com/api/v4/verses/by_page/${currentPage}?translations=33&fields=text_uthmani,text_uthmani_tajweed,chapter_id,page_number,juz_number`)
+    fetch(`https://api.quran.com/api/v4/verses/by_page/${currentPage}?words=true&word_fields=text_uthmani,line_number,char_type_name,text_uthmani_tajweed&translations=33&fields=chapter_id,page_number,juz_number`)
       .then((res) => res.json())
       .then((data) => {
         if (data.verses) {
@@ -298,7 +305,50 @@ export default function MushafPage() {
       .finally(() => setLoadingPage(false));
   }, [readingMode, currentPage]);
 
-  // 4. Fetch Asbabun Nuzul & Surah Info when requested
+  // 4. Compute 15 exact lines for Madinah Mushaf Page
+  const pageLines = useMemo(() => {
+    const linesMap: Record<number, any[]> = {};
+    pageVerses.forEach((verse: any) => {
+      const parts = verse.verse_key?.split(':') || [];
+      const surahNum = parseInt(parts[0], 10);
+      const ayahNum = parseInt(parts[1], 10);
+      const sPad = String(surahNum).padStart(3, '0');
+      const aPad = String(ayahNum).padStart(3, '0');
+      const surahName = surahs.find((s) => s.number === surahNum)?.nameLatin || `Surah ${surahNum}`;
+
+      const ayahObj = {
+        ...verse,
+        surahNumber: surahNum,
+        surahName: surahName,
+        ayahNumber: ayahNum,
+        audioUrl: `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`,
+        translationText: verse.translations?.[0]?.text || '',
+      };
+
+      if (verse.words && Array.isArray(verse.words)) {
+        verse.words.forEach((w: any) => {
+          const lineNum = w.line_number || 1;
+          if (!linesMap[lineNum]) linesMap[lineNum] = [];
+          linesMap[lineNum].push({
+            ...w,
+            ayahObj,
+          });
+        });
+      }
+    });
+    return linesMap;
+  }, [pageVerses, surahs]);
+
+  // 5. Compute actual Surah Name for current page
+  const currentMushafSurahName = useMemo(() => {
+    if (pageVerses.length > 0 && pageVerses[0].chapter_id) {
+      const s = surahs.find((item) => item.number === pageVerses[0].chapter_id);
+      if (s) return s.nameLatin;
+    }
+    return currentSurah?.nameLatin || 'Al-Qur\'an';
+  }, [pageVerses, surahs, currentSurah]);
+
+  // 6. Fetch Asbabun Nuzul & Surah Info when requested
   const handleOpenInfoModal = () => {
     setShowInfoModal(true);
     if (chapterInfo || !selectedSurahNumber) return;
@@ -318,7 +368,7 @@ export default function MushafPage() {
       .finally(() => setLoadingInfo(false));
   };
 
-  // 5. Scroll to target ayah if requested
+  // 7. Scroll to target ayah if requested
   useEffect(() => {
     if (targetAyahToScroll && currentSurah && !loadingDetail && readingMode === 'ayat') {
       setTimeout(() => {
@@ -330,7 +380,7 @@ export default function MushafPage() {
     }
   }, [targetAyahToScroll, currentSurah, loadingDetail, readingMode]);
 
-  // 6. Handle Tafsir Toggle
+  // 8. Handle Tafsir Toggle
   const handleToggleTafsir = async (ayahNumber: number) => {
     if (!selectedSurahNumber) return;
 
@@ -500,7 +550,7 @@ export default function MushafPage() {
               </button>
               <div>
                 <h2 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight flex items-center space-x-1.5">
-                  <span>{currentSurah?.nameLatin || 'Al-Qur\'an'}</span>
+                  <span>{readingMode === 'mushaf' ? currentMushafSurahName : (currentSurah?.nameLatin || 'Al-Qur\'an')}</span>
                 </h2>
                 <span className="text-[11px] text-slate-500 font-medium">
                   {currentSurah?.numberOfAyahs} Ayat • {getNormRevelation(currentSurah?.revelationType)}
@@ -508,7 +558,7 @@ export default function MushafPage() {
               </div>
             </div>
 
-            {/* Right: Controls Toolbar (Matches User's Design Image) */}
+            {/* Right: Controls Toolbar */}
             <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
               {/* 1. View Switcher Pill: [ Ayat ] | [ Mushaf ] */}
               <div className="bg-slate-100 p-0.5 rounded-xl flex items-center border border-slate-200/80">
@@ -548,8 +598,8 @@ export default function MushafPage() {
               <div className="flex items-center bg-slate-100 border border-slate-200/80 rounded-xl px-1 py-0.5">
                 <button
                   type="button"
-                  onClick={() => setFontSize((prev) => Math.max(20, prev - 2))}
-                  disabled={fontSize <= 20}
+                  onClick={() => setFontSize((prev) => Math.max(18, prev - 2))}
+                  disabled={fontSize <= 18}
                   className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
                   title="Perkecil Ukuran Huruf Arab"
                 >
@@ -561,8 +611,8 @@ export default function MushafPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setFontSize((prev) => Math.min(48, prev + 2))}
-                  disabled={fontSize >= 48}
+                  onClick={() => setFontSize((prev) => Math.min(44, prev + 2))}
+                  disabled={fontSize >= 44}
                   className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
                   title="Perbesar Ukuran Huruf Arab"
                 >
@@ -878,116 +928,138 @@ export default function MushafPage() {
         ) : (
           /* ======================================================== */
           /* MODE 2: MUSHAF PER HALAMAN (Madinah Mushaf 604 Halaman)  */
+          /* 15 Baris Rapi, Sama Panjang Penuh (Justified Edge-to-Edge)*/
           /* ======================================================== */
           <div className="space-y-6">
-            {/* Mushaf Page Container */}
-            <div className="relative bg-[#FCFBF7] rounded-3xl border-2 border-emerald-700/20 p-5 sm:p-10 shadow-lg shadow-emerald-900/5 min-h-[640px]">
-              {/* Mushaf Top Frame Header */}
-              <div className="flex items-center justify-between pb-4 mb-6 border-b border-emerald-700/20 text-xs font-bold text-slate-700">
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                  {pageVerses[0]?.juz_number ? `Juz ${pageVerses[0].juz_number}` : 'Juz Al-Qur\'an'}
-                </span>
+            {/* Mushaf Page Framed Container */}
+            <div className="relative bg-[#FCFBF7] rounded-3xl border-2 border-emerald-700/20 p-5 sm:p-8 md:p-10 shadow-lg shadow-emerald-900/5 min-h-[640px] flex flex-col justify-between">
+              <div>
+                {/* Mushaf Top Frame Header */}
+                <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-emerald-700/20 text-xs font-bold text-slate-700">
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                    {pageVerses[0]?.juz_number ? `Juz ${pageVerses[0].juz_number}` : 'Juz Al-Qur\'an'}
+                  </span>
 
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                    className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
-                    title="Halaman Sebelumnya"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-emerald-800" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
+                      title="Halaman Sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-emerald-800" />
+                    </button>
 
-                  <div className="text-center">
-                    <span className="font-bold text-emerald-900 text-sm block">
-                      {currentSurah?.nameLatin || 'Al-Qur\'an'}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      Hal. {currentPage} / 604
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
-                    disabled={currentPage >= 604}
-                    className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
-                    title="Halaman Selanjutnya"
-                  >
-                    <ChevronRight className="w-4 h-4 text-emerald-800" />
-                  </button>
-                </div>
-
-                <span className="text-slate-500 font-medium hidden sm:inline">
-                  Mushaf Madinah
-                </span>
-              </div>
-
-              {/* Page Content: Continuous Quran Text */}
-              {loadingPage ? (
-                <div className="flex flex-col items-center justify-center py-32 text-emerald-700 space-y-2">
-                  <Loader2 className="w-7 h-7 animate-spin" />
-                  <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
-                </div>
-              ) : pageVerses.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Bismillah Header jika awal surah di halaman ini */}
-                  {pageVerses.some((v) => v.verse_key?.endsWith(':1')) && currentPage !== 1 && currentPage !== 187 && (
-                    <div className="text-center py-4 border-y border-emerald-700/15 mb-4">
-                      <span className="font-quran text-2xl sm:text-3xl text-emerald-900">
-                        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                    <div className="text-center">
+                      <span className="font-bold text-emerald-900 text-sm block">
+                        {currentMushafSurahName}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Hal. {currentPage} / 604
                       </span>
                     </div>
-                  )}
 
-                  {/* 15 Lines Aesthetic Quran Flow */}
-                  <div
-                    style={{ fontSize: `${fontSize}px` }}
-                    className="font-quran text-slate-900 leading-[2.6] sm:leading-[2.8] text-justify text-right tracking-wide selection:bg-emerald-200"
-                  >
-                    {pageVerses.map((verse) => {
-                      const parts = verse.verse_key.split(':');
-                      const surahNum = parseInt(parts[0], 10);
-                      const ayahNum = parseInt(parts[1], 10);
-                      const isSelected = selectedMushafAyah?.verse_key === verse.verse_key;
-                      const tajweedHtml = verse.text_uthmani_tajweed ? formatTajweedHtml(verse.text_uthmani_tajweed) : null;
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
+                      disabled={currentPage >= 604}
+                      className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
+                      title="Halaman Selanjutnya"
+                    >
+                      <ChevronRight className="w-4 h-4 text-emerald-800" />
+                    </button>
+                  </div>
+
+                  <span className="text-slate-500 font-medium hidden sm:inline">
+                    Mushaf Madinah
+                  </span>
+                </div>
+
+                {/* Page Content: Exact 15 Lines Structure */}
+                {loadingPage ? (
+                  <div className="flex flex-col items-center justify-center py-32 text-emerald-700 space-y-2">
+                    <Loader2 className="w-7 h-7 animate-spin" />
+                    <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
+                  </div>
+                ) : Object.keys(pageLines).length > 0 ? (
+                  <div className="space-y-1.5 sm:space-y-2 py-2">
+                    {/* Bismillah Header jika awal surah ada di halaman ini (kecuali surah 1 dan surah 9) */}
+                    {pageVerses.some((v) => v.verse_key?.endsWith(':1')) && currentPage !== 1 && currentPage !== 187 && (
+                      <div className="text-center py-2.5 border-y border-emerald-700/15 mb-3">
+                        <span className="font-quran text-2xl sm:text-3xl text-emerald-900">
+                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Exact 15 Lines: Full Width Alignment (Sama Panjang Sisi Kiri & Kanan) */}
+                    {Object.entries(pageLines).map(([lineStr, words]) => {
+                      const lineNum = parseInt(lineStr, 10);
+                      const totalLines = Object.keys(pageLines).length;
+                      // Line terakhir atau baris sangat pendek dipusatkan
+                      const isShortLine = words.length <= 4 || (lineNum === totalLines && words.length <= 8);
 
                       return (
-                        <span
-                          key={verse.verse_key}
-                          onClick={() => setSelectedMushafAyah(verse)}
-                          className={`inline cursor-pointer transition-colors px-1 rounded-lg ${
-                            isSelected ? 'bg-emerald-100/80 ring-2 ring-emerald-500/40' : 'hover:bg-emerald-50/70'
+                        <div
+                          key={lineNum}
+                          dir="rtl"
+                          style={{ fontSize: `${fontSize}px` }}
+                          className={`w-full flex items-center font-quran select-none transition-all ${
+                            isShortLine ? 'justify-center gap-3 sm:gap-5' : 'justify-between'
                           }`}
-                          title={`QS. ${surahNum}:${ayahNum} - Klik untuk audio & terjemah`}
                         >
-                          {showTajwid && tajweedHtml ? (
-                            <span dangerouslySetInnerHTML={{ __html: tajweedHtml }} />
-                          ) : (
-                            <span>{verse.text_uthmani}</span>
-                          )}{' '}
-                          <span className="inline-flex items-center justify-center w-7 h-7 mx-1 rounded-full border border-amber-600/60 bg-amber-50/80 text-[11px] font-sans font-bold text-amber-900 select-none shadow-2xs align-middle">
-                            {ayahNum}
-                          </span>{' '}
-                        </span>
+                          {words.map((w: any, idx: number) => {
+                            if (w.char_type_name === 'end') {
+                              return (
+                                <span
+                                  key={idx}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedMushafAyah(w.ayahObj);
+                                  }}
+                                  className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50/90 text-[11px] sm:text-xs font-sans font-bold text-amber-900 shadow-2xs cursor-pointer hover:scale-110 hover:bg-amber-100 transition-all shrink-0 align-middle"
+                                  title={`Ayat ${w.text_uthmani} - Klik untuk audio & terjemah`}
+                                >
+                                  {w.text_uthmani}
+                                </span>
+                              );
+                            }
+
+                            const tajweedHtml = showTajwid && w.text_uthmani_tajweed ? formatTajweedHtml(w.text_uthmani_tajweed, true) : null;
+
+                            return (
+                              <span
+                                key={idx}
+                                onClick={() => setSelectedMushafAyah(w.ayahObj)}
+                                className="cursor-pointer hover:text-emerald-700 transition-colors inline-block"
+                              >
+                                {tajweedHtml ? (
+                                  <span dangerouslySetInnerHTML={{ __html: tajweedHtml }} />
+                                ) : (
+                                  w.text_uthmani
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
                       );
                     })}
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-24 text-slate-500 text-sm">
-                  Gagal memuat ayat untuk halaman {currentPage}.
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-24 text-slate-500 text-sm">
+                    Gagal memuat ayat untuk halaman {currentPage}.
+                  </div>
+                )}
+              </div>
 
               {/* Bottom Caption */}
               <div className="mt-8 pt-4 border-t border-emerald-700/20 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
                 <span>
-                  Gunakan tombol panah atau tombol kiri-kanan untuk pindah halaman
+                  Gunakan tombol panah kiri-kanan untuk pindah halaman (1 - 604)
                 </span>
                 <span className="font-medium text-emerald-800">
-                  Ketuk teks ayat untuk memutar audio, tafsir, & terjemahan
+                  Ketuk teks ayat atau lingkaran nomor untuk memutar audio & terjemahan
                 </span>
               </div>
             </div>
@@ -1010,11 +1082,7 @@ export default function MushafPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const parts = selectedMushafAyah.verse_key.split(':');
-                        const sPad = String(parts[0]).padStart(3, '0');
-                        const aPad = String(parts[1]).padStart(3, '0');
-                        const audioUrl = `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`;
-                        handleToggleAudio(parseInt(parts[1], 10), audioUrl);
+                        handleToggleAudio(selectedMushafAyah.ayahNumber, selectedMushafAyah.audioUrl);
                       }}
                       className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold flex items-center space-x-1 cursor-pointer"
                     >
@@ -1026,11 +1094,10 @@ export default function MushafPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const parts = selectedMushafAyah.verse_key.split(':');
                         handleSetLastRead(
-                          parseInt(parts[0], 10),
-                          currentSurah?.nameLatin || `Surah ${parts[0]}`,
-                          parseInt(parts[1], 10)
+                          selectedMushafAyah.surahNumber,
+                          selectedMushafAyah.surahName,
+                          selectedMushafAyah.ayahNumber
                         );
                       }}
                       className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold flex items-center space-x-1 cursor-pointer"
@@ -1050,8 +1117,8 @@ export default function MushafPage() {
                 </div>
 
                 <div className="space-y-1 text-left">
-                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {selectedMushafAyah.translations?.[0]?.text || 'Terjemahan Kemenag RI'}
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+                    {selectedMushafAyah.translationText || 'Terjemahan Kemenag RI'}
                   </p>
                 </div>
               </div>
