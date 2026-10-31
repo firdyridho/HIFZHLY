@@ -1,6 +1,17 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mic, Award, ArrowRight, CheckCircle2, ShieldCheck, BookOpen, BarChart3 } from 'lucide-react';
+import {
+  Mic,
+  Layers,
+  Workflow,
+  Route,
+  HelpCircle,
+  Award,
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  BookOpen,
+} from 'lucide-react';
 import TubelightNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
 import ScholarlyStats from '../components/landing/ScholarlyStats';
@@ -10,11 +21,13 @@ import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
 
 export default function LandingPage() {
+  // Navigation items strictly linking to in-page landing sections
   const navItems = [
-    { name: 'Murojaah', url: '/app', icon: Mic },
-    { name: 'Mushaf', url: '/app/mushaf', icon: BookOpen },
-    { name: 'Tajwid Academy', url: '/app/tajwid', icon: Award },
-    { name: 'Mutabaah', url: '/app/mutabaah', icon: BarChart3 },
+    { name: 'Simulasi AI', url: '#simulasi', icon: Mic },
+    { name: 'Pilar Fitur', url: '#fitur', icon: Layers },
+    { name: 'Arsitektur', url: '#arsitektur', icon: Workflow },
+    { name: 'Alur', url: '#alur', icon: Route },
+    { name: 'FAQ', url: '#faq', icon: HelpCircle },
   ];
 
   const rightActions = (
@@ -35,12 +48,12 @@ export default function LandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 scroll-smooth">
       {/* Tubelight Navbar Header for Landing Page */}
       <TubelightNavbar items={navItems} rightActions={rightActions} />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50">
+      {/* Hero Section & Live Simulation Sandbox */}
+      <section id="simulasi" className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column: Simple & Punchy Hero Proposition */}
@@ -121,16 +134,24 @@ export default function LandingPage() {
       <ScholarlyStats />
 
       {/* 3D Scroll-Driven Carousel Section ("Semua yang Kamu Butuhkan untuk Menjaga Hafalan") */}
-      <Scroll3DCarousel />
+      <div id="fitur">
+        <Scroll3DCarousel />
+      </div>
 
       {/* Scroll Timeline Section ("Terus Gulir, Selami Arsitektur Evaluasi Hifzhly") */}
-      <MushafScrollytelling />
+      <div id="arsitektur">
+        <MushafScrollytelling />
+      </div>
 
       {/* Step-by-Step Interactive Workflow Timeline */}
-      <TimelineWorkflow />
+      <div id="alur">
+        <TimelineWorkflow />
+      </div>
 
       {/* Interactive FAQ Section */}
-      <FaqSection />
+      <div id="faq">
+        <FaqSection />
+      </div>
 
       {/* Closing Call to Action Banner */}
       <section className="max-w-5xl mx-auto px-4 w-full pb-20">
