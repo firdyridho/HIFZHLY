@@ -1416,6 +1416,7 @@ export default function MutabaahPage() {
                 <div className="space-y-2.5">
                   {selectedDayData.reports.map((report: MutabaahReportItem) => {
                     const isAi = report.type === 'murojaah_ai' || report.type === 'murojaah';
+                    const isTilawah = report.type === 'tilawah';
                     return (
                       <div
                         key={report.id}
@@ -1424,12 +1425,21 @@ export default function MutabaahPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-2">
                             <span
-                              className={`p-1.5 rounded-lg text-xs ${isAi
+                              className={`p-1.5 rounded-lg text-xs ${
+                                isTilawah
+                                  ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                                  : isAi
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-teal-50 text-teal-700 border border-teal-200'
                                 }`}
                             >
-                              {isAi ? <Mic className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                              {isTilawah ? (
+                                <BookOpen className="w-3.5 h-3.5" />
+                              ) : isAi ? (
+                                <Mic className="w-3.5 h-3.5" />
+                              ) : (
+                                <FileText className="w-3.5 h-3.5" />
+                              )}
                             </span>
                             <div>
                               <span className="text-xs font-bold text-slate-900 block">
@@ -1462,7 +1472,7 @@ export default function MutabaahPage() {
                             <UserCheck className="w-3 h-3 text-emerald-600" />
                             <span>Penguji: {report.verifier || 'Mandiri'}</span>
                           </span>
-                          <span className="capitalize">{report.type.replace('_', ' ')}</span>
+                          <span className="capitalize">{isTilawah ? 'Tilawah Harian' : report.type.replace('_', ' ')}</span>
                         </div>
                       </div>
                     );

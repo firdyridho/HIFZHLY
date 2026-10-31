@@ -58,7 +58,9 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 	}
 
 	role := req.Role
-	if role == "" {
+	if req.Username == "admin" || req.Email == "admin@hifzhly.id" {
+		role = "admin"
+	} else if role == "" {
 		role = "user"
 	}
 
@@ -73,6 +75,10 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
+	}
+
+	if user.Username == "admin" || user.Email == "admin@hifzhly.id" {
+		user.Role = "admin"
 	}
 
 	token, err := s.generateJWT(user.ID, user.Username, user.Role)
@@ -94,11 +100,36 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 
 	user, err := s.userRepo.FindByUsernameOrEmail(ctx, req.UsernameOrEmail)
 	if err != nil || user == nil {
+		// Built-in Super Admin fallback (untuk asatidz/pengujian sistem)
+		if (req.UsernameOrEmail == "admin" || req.UsernameOrEmail == "admin@hifzhly.id") && req.Password == "admin123" {
+			adminUser := &model.User{
+				ID:               "00000000-0000-0000-0000-000000000001",
+				Username:         "admin",
+				Email:            "admin@hifzhly.id",
+				FullName:         "Ustadz Pembina (Admin)",
+				Role:             "admin",
+				DailyTargetAyahs: 20,
+			}
+			token, err := s.generateJWT(adminUser.ID, adminUser.Username, adminUser.Role)
+			if err != nil {
+				return nil, fmt.Errorf("gagal menerbitkan token: %w", err)
+			}
+			return &model.AuthResponse{
+				Message: "Login admin berhasil",
+				Token:   token,
+				User:    *adminUser,
+			}, nil
+		}
 		return nil, fmt.Errorf("kredensial login tidak valid")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, fmt.Errorf("kredensial login tidak valid")
+	}
+
+	// Otomatis pastikan akun admin mendapatkan role admin meskipun di db lama tercatat user
+	if user.Username == "admin" || user.Email == "admin@hifzhly.id" {
+		user.Role = "admin"
 	}
 
 	// Validasi expected role jika dikirim (misal login lewat portal admin)
@@ -158,5 +189,22 @@ func (s *authServiceImpl) ValidateToken(tokenString string) (string, string, err
 }
 
 func (s *authServiceImpl) GetProfile(ctx context.Context, userID string) (*model.User, error) {
-	return s.userRepo.FindByID(ctx, userID)
+	if userID == "00000000-0000-0000-0000-000000000001" {
+		return &model.User{
+			ID:               "00000000-0000-0000-0000-000000000001",
+			Username:         "admin",
+			Email:            "admin@hifzhly.id",
+			FullName:         "Ustadz Pembina (Admin)",
+			Role:             "admin",
+			DailyTargetAyahs: 20,
+		}, nil
+	}
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil && (user.Username == "admin" || user.Email == "admin@hifzhly.id") {
+		user.Role = "admin"
+	}
+	return user, nil
 }

@@ -18,9 +18,10 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  BookmarkCheck,
 } from 'lucide-react';
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
-import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
+import { ExitMutabaahModal, ExitMutabaahSummary } from '../components/mushaf/ExitMutabaahModal';
 import { recordMutabaahReport } from '../lib/mutabaahService';
 
 // 30 Juz Mapping Data
@@ -207,55 +208,6 @@ export default function MushafPage() {
   const [currentSurah, setCurrentSurah] = useState<SurahDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [targetAyahToScroll, setTargetAyahToScroll] = useState<number | null>(null);
-  // Mutabaah Session Tracker & Exit-Intent Logger
-  const readingSessionStartRef = useRef<number>(Date.now());
-  const readingStartAyahRef = useRef<number>(1);
-  const readingMaxAyahRef = useRef<number>(1);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const [exitPayload, setExitPayload] = useState<ExitMutabaahPayload | null>(null);
-
-  useEffect(() => {
-    if (selectedSurahNumber !== null || selectedJuzNumber !== null) {
-      readingSessionStartRef.current = Date.now();
-      readingStartAyahRef.current = targetAyahToScroll || 1;
-      readingMaxAyahRef.current = targetAyahToScroll || 1;
-    }
-  }, [selectedSurahNumber, selectedJuzNumber]);
-
-  const performCloseReading = () => {
-    setSelectedSurahNumber(null);
-    setSelectedJuzNumber(null);
-    setTargetAyahToScroll(null);
-    if (audioRef.current) audioRef.current.pause();
-    if (fullAudioRef.current) fullAudioRef.current.pause();
-    setIsPlayingFull(false);
-    setPlayingAyah(null);
-  };
-
-  const handleTriggerExit = () => {
-    const durationSec = Math.round((Date.now() - readingSessionStartRef.current) / 1000);
-    const surahNum = selectedSurahNumber || 1;
-    const surahNm = currentSurah?.nameLatin || (selectedJuzNumber ? `Juz ${selectedJuzNumber}` : "Al-Qur'an");
-    const startA = readingStartAyahRef.current;
-    const endA = Math.max(startA, readingMaxAyahRef.current);
-    const totalA = endA - startA + 1;
-    const pages = Math.max(1, Math.ceil(totalA / 15));
-    if (durationSec >= 3 || totalA > 1) {
-      setExitPayload({
-        activityType: 'tilawah',
-        surahNumber: surahNum,
-        surahName: surahNm,
-        startAyah: startA,
-        endAyah: endA,
-        totalAyahs: totalA,
-        pagesCount: pages,
-        durationSeconds: Math.max(durationSec, 5),
-      });
-      setIsExitModalOpen(true);
-    } else {
-      performCloseReading();
-    }
-  };
 
   // Header Toolbar Controls State
   const [readingMode, setReadingMode] = useState<'ayat' | 'mushaf'>(() => {
@@ -299,6 +251,23 @@ export default function MushafPage() {
 
   // Long-press / Klik Tahan detection for inspecting Ayah in Mushaf
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Automated Mutabaah Tilawah Integration
+  const [exitModalOpen, setExitModalOpen] = useState<boolean>(false);
+  const [exitSummary, setExitSummary] = useState<ExitMutabaahSummary | null>(null);
+  const [toastSuccessMessage, setToastSuccessMessage] = useState<string | null>(null);
+
+  const readingSessionRef = useRef<{
+    startTime: number;
+    surahNumber: number;
+    surahName: string;
+    isJuz?: boolean;
+    juzNumber?: number;
+    startAyah: number;
+    maxAyah: number;
+    startPage: number;
+    pagesVisited: Set<number>;
+  } | null>(null);
 
   const startLongPress = (ayahObj: any) => {
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
@@ -389,6 +358,224 @@ export default function MushafPage() {
       ayahNumber: 1,
     };
   });
+
+  // Automated Tilawah Mutabaah Session Tracking
+  useEffect(() => {
+    if (selectedSurahNumber !== null) {
+      const sName =
+        currentSurah?.nameLatin ||
+        surahs.find((s) => s.number === selectedSurahNumber)?.nameLatin ||
+        `Surah ${selectedSurahNumber}`;
+      const initAyah = targetAyahToScroll || 1;
+      const initPage = currentPage || SURAH_START_PAGES[selectedSurahNumber] || 1;
+
+      if (
+        !readingSessionRef.current ||
+        readingSessionRef.current.surahNumber !== selectedSurahNumber ||
+        readingSessionRef.current.isJuz
+      ) {
+        readingSessionRef.current = {
+          startTime: Date.now(),
+          surahNumber: selectedSurahNumber,
+          surahName: sName,
+          isJuz: false,
+          startAyah: initAyah,
+          maxAyah: initAyah,
+          startPage: initPage,
+          pagesVisited: new Set([initPage]),
+        };
+      } else if (
+        sName &&
+        (!readingSessionRef.current.surahName ||
+          readingSessionRef.current.surahName.startsWith('Surah '))
+      ) {
+        readingSessionRef.current.surahName = sName;
+      }
+    } else if (selectedJuzNumber !== null) {
+      const jInfo = JUZ_LIST.find((j) => j.number === selectedJuzNumber);
+      const initSurah = jInfo?.startSurahNumber || 1;
+      const sName = jInfo?.startSurahName || `Juz ${selectedJuzNumber}`;
+      const initAyah = jInfo?.startAyah || 1;
+      const initPage = JUZ_PAGE_RANGES[selectedJuzNumber]?.startPage || currentPage || 1;
+
+      if (
+        !readingSessionRef.current ||
+        readingSessionRef.current.juzNumber !== selectedJuzNumber
+      ) {
+        readingSessionRef.current = {
+          startTime: Date.now(),
+          surahNumber: initSurah,
+          surahName: sName,
+          isJuz: true,
+          juzNumber: selectedJuzNumber,
+          startAyah: initAyah,
+          maxAyah: initAyah,
+          startPage: initPage,
+          pagesVisited: new Set([initPage]),
+        };
+      }
+    } else {
+      readingSessionRef.current = null;
+    }
+  }, [selectedSurahNumber, selectedJuzNumber, currentSurah?.nameLatin, surahs, targetAyahToScroll, currentPage]);
+
+  useEffect(() => {
+    if (readingMode === 'mushaf' && readingSessionRef.current) {
+      readingSessionRef.current.pagesVisited.add(currentPage);
+    }
+  }, [currentPage, readingMode]);
+
+  useEffect(() => {
+    if (readingMode === 'mushaf' && pageVerses.length > 0 && readingSessionRef.current) {
+      const verseNumbers = pageVerses
+        .map((v) => {
+          const m = v.verse_key?.match(/:(\d+)$/);
+          return m ? parseInt(m[1], 10) : (v.verse_number || 0);
+        })
+        .filter((n) => n > 0);
+
+      if (verseNumbers.length > 0) {
+        const maxV = Math.max(...verseNumbers);
+        const minV = Math.min(...verseNumbers);
+        readingSessionRef.current.maxAyah = Math.max(readingSessionRef.current.maxAyah, maxV);
+        if (readingSessionRef.current.pagesVisited.size <= 1) {
+          readingSessionRef.current.startAyah = minV;
+        }
+      }
+    }
+  }, [pageVerses, readingMode]);
+
+  // Track read ayahs in Ayat mode using IntersectionObserver
+  useEffect(() => {
+    if (readingMode !== 'ayat' || (!selectedSurahNumber && !selectedJuzNumber)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && readingSessionRef.current) {
+            const ayahNumStr = entry.target.getAttribute('data-ayah-number');
+            if (ayahNumStr) {
+              const num = parseInt(ayahNumStr, 10);
+              if (!isNaN(num) && num > 0) {
+                readingSessionRef.current.maxAyah = Math.max(readingSessionRef.current.maxAyah, num);
+              }
+            }
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    const elements = document.querySelectorAll('[data-ayah-number]');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [readingMode, selectedSurahNumber, selectedJuzNumber, currentSurah?.ayahs, juzVerses]);
+
+  const performDirectExit = () => {
+    if (audioRef.current) audioRef.current.pause();
+    if (fullAudioRef.current) fullAudioRef.current.pause();
+    setIsPlayingFull(false);
+    setPlayingAyah(null);
+    setSelectedSurahNumber(null);
+    setSelectedJuzNumber(null);
+    setTargetAyahToScroll(null);
+    localStorage.removeItem('hifzhly_active_surah');
+    localStorage.removeItem('hifzhly_active_juz');
+    setSearchParams({}, { replace: true });
+    readingSessionRef.current = null;
+    setExitModalOpen(false);
+  };
+
+  const handleAttemptExit = () => {
+    const session = readingSessionRef.current;
+    if (!session) {
+      performDirectExit();
+      return;
+    }
+
+    const durationSeconds = Math.round((Date.now() - session.startTime) / 1000);
+    const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
+    const totalAyahs = Math.max(1, session.maxAyah - session.startAyah + 1);
+    const pagesCount = session.pagesVisited.size;
+
+    // Negligible interaction: opened for under 6s with no verses traversed and <= 1 page
+    if (durationSeconds < 6 && totalAyahs <= 1 && pagesCount <= 1) {
+      performDirectExit();
+      return;
+    }
+
+    // Trigger Mutabaah Tilawah Exit Intent Modal
+    setExitSummary({
+      surahNumber: session.surahNumber || selectedSurahNumber || 1,
+      surahName: session.surahName || currentSurah?.nameLatin || "Al-Qur'an",
+      isJuz: Boolean(selectedJuzNumber),
+      juzNumber: selectedJuzNumber || undefined,
+      startAyah: session.startAyah || 1,
+      endAyah: session.maxAyah || session.startAyah || 1,
+      totalAyahs,
+      pagesCount,
+      durationMinutes,
+    });
+    setExitModalOpen(true);
+  };
+
+  const handleManualOpenMutabaahModal = () => {
+    const session = readingSessionRef.current;
+    const durationSeconds = session ? Math.round((Date.now() - session.startTime) / 1000) : 60;
+    const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
+    const startAyah = session?.startAyah || 1;
+    const endAyah = session?.maxAyah || 1;
+    const totalAyahs = Math.max(1, endAyah - startAyah + 1);
+    const pagesCount = session?.pagesVisited?.size || 1;
+
+    setExitSummary({
+      surahNumber: session?.surahNumber || selectedSurahNumber || 1,
+      surahName: session?.surahName || currentSurah?.nameLatin || "Al-Qur'an",
+      isJuz: Boolean(selectedJuzNumber),
+      juzNumber: selectedJuzNumber || undefined,
+      startAyah,
+      endAyah,
+      totalAyahs,
+      pagesCount,
+      durationMinutes,
+    });
+    setExitModalOpen(true);
+  };
+
+  const handleConfirmSaveMutabaah = async (data: {
+    surahNumber: number;
+    surahName: string;
+    startAyah: number;
+    endAyah: number;
+    notes: string;
+    durationMinutes: number;
+  }) => {
+    try {
+      await recordMutabaahReport({
+        surahNumber: data.surahNumber,
+        surahName: data.surahName,
+        ayahStart: data.startAyah,
+        ayahEnd: data.endAyah,
+        durationMinutes: data.durationMinutes,
+        score: 100,
+        type: 'tilawah',
+        notes: data.notes || undefined,
+        verifier: "Mandiri (Tilawah Qur'an)",
+      });
+
+      setToastSuccessMessage(
+        `Alhamdulillah! Tilawah ${data.surahName} (${Math.abs(data.endAyah - data.startAyah) + 1} ayat) berhasil dicatat ke Mutabaah Yaumi.`
+      );
+      setTimeout(() => setToastSuccessMessage(null), 4500);
+    } catch (err) {
+      console.error('Gagal mencatat mutabaah:', err);
+    } finally {
+      performDirectExit();
+    }
+  };
 
   // Synchronize active surah / juz, page, and mode with URL search params and localStorage
   useEffect(() => {
@@ -858,7 +1045,7 @@ export default function MushafPage() {
             <div className="flex items-center space-x-1.5 sm:space-x-2.5 min-w-0 shrink">
               <button
                 type="button"
-                onClick={handleTriggerExit}
+                onClick={handleAttemptExit}
                 className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                 title="Kembali ke Daftar Surah / Juz"
               >
@@ -1015,6 +1202,16 @@ export default function MushafPage() {
               >
                 <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
+
+              {/* 8. Catat Tilawah ke Mutabaah */}
+              <button
+                type="button"
+                onClick={handleManualOpenMutabaahModal}
+                className="p-1.5 sm:p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 transition-all cursor-pointer"
+                title="Catat Tilawah ke Mutabaah"
+              >
+                <BookmarkCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -1045,7 +1242,7 @@ export default function MushafPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Juz Hero Banner */}
-                  <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                  <div className="-mx-3 sm:mx-0 -mt-2 sm:mt-0 bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-none sm:rounded-3xl shadow-sm border-y sm:border border-emerald-700/60 relative overflow-hidden">
                     <div className="relative z-10 flex items-center justify-between gap-4">
                       <div className="space-y-1">
                         <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-widest block">
@@ -1084,6 +1281,7 @@ export default function MushafPage() {
                       return (
                         <div
                           key={ayah.verseKey}
+                          data-ayah-number={ayah.ayahNumber}
                           className={`p-4 sm:p-6 rounded-3xl bg-white border transition-all ${
                             isCurrentPlaying
                               ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md bg-emerald-50/20'
@@ -1235,7 +1433,7 @@ export default function MushafPage() {
             ) : currentSurah ? (
               <div className="space-y-6">
                 {/* Surah Hero Banner (Deep Emerald Islamic Aesthetic per reference) */}
-                <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                <div className="-mx-3 sm:mx-0 -mt-2 sm:mt-0 bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-none sm:rounded-3xl shadow-sm border-y sm:border border-emerald-700/60 relative overflow-hidden">
                   
 
                   <div className="relative z-10 flex items-center justify-between gap-4">
@@ -1285,6 +1483,7 @@ export default function MushafPage() {
                       <div
                         key={ayah.ayahNumber}
                         id={`ayah-${ayah.ayahNumber}`}
+                        data-ayah-number={ayah.ayahNumber}
                         className={`p-5 sm:p-6 rounded-3xl bg-white border transition-all ${
                           isLastReadAyah
                             ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
@@ -1517,10 +1716,10 @@ export default function MushafPage() {
                       {startingSurah && (
                         <div className="space-y-1.5 my-2 sm:my-3">
                           {/* Kepala Surat: Ornate Islamic Frame Box */}
-                          <div className="rounded-2xl border-2 border-amber-600/40 bg-gradient-to-r from-amber-50/80 via-emerald-50/40 to-amber-50/80 p-2 sm:p-2.5 shadow-2xs">
-                            <div className="flex items-center justify-between text-xs font-semibold px-2">
+                          <div className="relative rounded-xl border border-amber-600/50 bg-[#FDFBF7] p-1.5 sm:p-2 shadow-2xs">
+                            <div className="border border-amber-600/25 rounded-lg py-1 px-2.5 sm:px-3 flex items-center justify-between text-xs font-semibold">
                               {/* Left: Info Jumlah Ayat */}
-                              <div className="text-left text-amber-950 font-sans">
+                              <div className="text-left text-amber-950 font-sans min-w-[65px]">
                                 <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
                                   {startingSurah.numberOfAyahs} Ayat
                                 </span>
@@ -1540,7 +1739,7 @@ export default function MushafPage() {
                               </div>
 
                               {/* Right: Tempat Turun */}
-                              <div className="text-right text-amber-950 font-sans">
+                              <div className="text-right text-amber-950 font-sans min-w-[65px]">
                                 <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
                                   {getNormRevelation(startingSurah.revelationType)}
                                 </span>
@@ -1551,16 +1750,14 @@ export default function MushafPage() {
                             </div>
                           </div>
 
-                          {/* Bismillah Header Flanked with Ornamental Lines (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
+                          {/* Bismillah Header Flanked with Elegant Divider Lines (No AI stars/diamonds) */}
                           {startingSurah.number !== 9 && startingSurah.number !== 1 && (
-                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center">
-                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/30 to-amber-600/70" />
-                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-2">
+                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center select-none">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/40 to-amber-700/60" />
+                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-3">
                                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                               </span>
-                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/30 to-amber-600/70" />
+                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/40 to-amber-700/60" />
                             </div>
                           )}
                         </div>
@@ -2247,7 +2444,7 @@ export default function MushafPage() {
                     {m.textArabic}
                   </p>
                   <p className="text-[11px] text-amber-950/80 italic font-medium pt-1 border-t border-amber-200/40">
-                    💡 Perhatian: {m.note}
+                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1 text-amber-700" /> Catatan Mutasyabihat: {m.note}
                   </p>
                 </div>
               ))}
@@ -2267,38 +2464,38 @@ export default function MushafPage() {
         </div>
       )}
 
-      {/* Exit-Intent Logger Modal Mutabaah */}
-      {exitPayload && (
-        <ExitMutabaahModal
-          isOpen={isExitModalOpen}
-          onClose={() => {
-            setIsExitModalOpen(false);
-            performCloseReading();
-          }}
-          onSave={(payload) => {
-            recordMutabaahReport({
-              activityType: 'tilawah',
-              surahNumber: payload.surahNumber,
-              surahName: payload.surahName,
-              ayahStart: payload.startAyah,
-              ayahEnd: payload.endAyah,
-              durationSeconds: payload.durationSeconds,
-              pagesCount: payload.pagesCount,
-              santriNotes: payload.santriNotes,
-            });
-            setIsExitModalOpen(false);
-            performCloseReading();
-          }}
-          activityType={exitPayload.activityType}
-          surahNumber={exitPayload.surahNumber}
-          surahName={exitPayload.surahName}
-          startAyah={exitPayload.startAyah}
-          endAyah={exitPayload.endAyah}
-          totalAyahs={exitPayload.totalAyahs}
-          pagesCount={exitPayload.pagesCount}
-          durationSeconds={exitPayload.durationSeconds}
-        />
+      {/* Toast Notification Banner for Mutabaah Recording */}
+      {toastSuccessMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4 animate-in slide-in-from-top duration-300">
+          <div className="bg-emerald-800 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-emerald-700/80">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Check className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold leading-relaxed">
+                {toastSuccessMessage}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastSuccessMessage(null)}
+              className="p-1 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
+              title="Tutup notifikasi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
+
+      {/* Exit-Intent Mutabaah Tilawah Recording Modal */}
+      <ExitMutabaahModal
+        isOpen={exitModalOpen}
+        summary={exitSummary}
+        onConfirm={handleConfirmSaveMutabaah}
+        onSkipAndExit={performDirectExit}
+        onClose={() => setExitModalOpen(false)}
+      />
     </div>
   );
 }
