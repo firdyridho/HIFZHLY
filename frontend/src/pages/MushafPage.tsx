@@ -457,19 +457,23 @@ export default function MushafPage() {
   }, [pageVerses, surahs]);
 
   // 5. Compute actual Surah Name for current page
-  // Starting surahs on current mushaf page (for Ornate Surah Heading Frame)
-  const startingSurahsOnPage = useMemo(() => {
-    const list: SurahSummary[] = [];
-    pageVerses.forEach((v) => {
-      if (v.verse_key?.endsWith(':1')) {
-        const sNum = parseInt(v.verse_key.split(':')[0], 10);
+  // Map starting line to surah metadata for exact inline placement before each surah
+  const surahsStartingByLine = useMemo(() => {
+    const map: Record<number, SurahSummary> = {};
+    pageVerses.forEach((verse: any) => {
+      if (verse.verse_key?.endsWith(':1')) {
+        const parts = verse.verse_key.split(':');
+        const sNum = parseInt(parts[0], 10);
         const sMeta = surahs.find((s) => s.number === sNum);
-        if (sMeta && !list.some((item) => item.number === sMeta.number)) {
-          list.push(sMeta);
+        if (sMeta) {
+          const minLine = Math.min(
+            ...(verse.words?.map((w: any) => w.line_number || 1) || [1])
+          );
+          map[minLine] = sMeta;
         }
       }
     });
-    return list;
+    return map;
   }, [pageVerses, surahs]);
 
   const currentMushafSurahName = useMemo(() => {
@@ -1124,68 +1128,70 @@ export default function MushafPage() {
               </div>
             ) : Object.keys(pageLines).length > 0 ? (
               <div className="space-y-0.5 sm:space-y-1 py-1" onMouseMove={handleTajweedPointerMove} onMouseLeave={() => setHoveredTajweed(null)} onClick={handleTajweedClick}>
-                {/* Awal Surat: Kepala Surat Ornamen Islami Klasik & Bismillah dengan Garis Ornamen */}
-                {startingSurahsOnPage.map((sMeta) => (
-                  <div key={sMeta.number} className="space-y-2 mb-3">
-                    {/* Kepala Surat: Ornate Islamic Frame Box */}
-                    <div className="rounded-2xl border-2 border-amber-600/40 bg-gradient-to-r from-amber-50/80 via-emerald-50/40 to-amber-50/80 p-2.5 sm:p-3 shadow-xs">
-                      <div className="flex items-center justify-between text-xs font-semibold px-2">
-                        {/* Right: Info Jumlah Ayat */}
-                        <div className="text-left text-amber-900 font-sans">
-                          <span className="block text-[11px] sm:text-xs font-bold text-amber-900">
-                            {sMeta.numberOfAyahs} Ayat
-                          </span>
-                          <span className="text-[10px] text-amber-700/80 font-quran">
-                            {sMeta.numberOfAyahs.toLocaleString('ar-EG')} آية
-                          </span>
-                        </div>
-
-                        {/* Center: Nama Surat Calligraphy & Latin */}
-                        <div className="text-center">
-                          <div className="font-quran text-xl sm:text-2xl font-bold text-emerald-950 tracking-wider">
-                            سُورَةُ {sMeta.nameArabic.replace('سورة ', '')}
-                          </div>
-                          <div className="text-[11px] font-sans font-medium text-slate-600 -mt-0.5">
-                            Surat {sMeta.nameLatin}
-                          </div>
-                        </div>
-
-                        {/* Left: Tempat Turun */}
-                        <div className="text-right text-amber-900 font-sans">
-                          <span className="block text-[11px] sm:text-xs font-bold text-amber-900">
-                            {getNormRevelation(sMeta.revelationType)}
-                          </span>
-                          <span className="text-[10px] text-amber-700/80 font-quran">
-                            {sMeta.revelationType?.toLowerCase() === 'makiyyah' || sMeta.revelationType === 'Mekah' ? 'مَكِّيَّةٌ' : 'مَدَنِيَّةٌ'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bismillah Header Flanked with Ornamental Lines (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
-                    {sMeta.number !== 9 && sMeta.number !== 1 && (
-                      <div className="flex items-center justify-center my-2.5 px-4 text-center">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/30 to-amber-600/70" />
-                        <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                        <span className="font-quran text-xl sm:text-2xl text-emerald-950 tracking-wider px-2">
-                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                        </span>
-                        <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
-                        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/30 to-amber-600/70" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Exact 15 Lines: Full Width Responsive Alignment (Posisi Baris Tetap 100% Mushaf Asli) */}
+                {/* Exact 15 Lines: Full Width Responsive Alignment with Inline Surah Headers */}
                 {Object.entries(pageLines).map(([lineStr, words]) => {
                   const lineNum = parseInt(lineStr, 10);
                   const totalLines = Object.keys(pageLines).length;
                   const isShortLine = words.length <= 4 || (lineNum === totalLines && words.length <= 8);
+                  const startingSurah = surahsStartingByLine[lineNum];
 
                   return (
-                    <div
-                      key={lineNum}
+                    <div key={lineNum} className="space-y-1">
+                      {/* Kepala Surat & Bismillah diletakkan tepat di baris awal surat tersebut */}
+                      {startingSurah && (
+                        <div className="space-y-1.5 my-2 sm:my-3">
+                          {/* Kepala Surat: Ornate Islamic Frame Box */}
+                          <div className="rounded-2xl border-2 border-amber-600/40 bg-gradient-to-r from-amber-50/80 via-emerald-50/40 to-amber-50/80 p-2 sm:p-2.5 shadow-2xs">
+                            <div className="flex items-center justify-between text-xs font-semibold px-2">
+                              {/* Left: Info Jumlah Ayat */}
+                              <div className="text-left text-amber-950 font-sans">
+                                <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
+                                  {startingSurah.numberOfAyahs} Ayat
+                                </span>
+                                <span className="text-[10px] text-amber-800/80 font-quran">
+                                  {startingSurah.numberOfAyahs.toLocaleString('ar-EG')} آية
+                                </span>
+                              </div>
+
+                              {/* Center: Nama Surat Calligraphy & Latin */}
+                              <div className="text-center">
+                                <div className="font-quran text-lg sm:text-xl font-bold text-emerald-950 tracking-wider leading-tight">
+                                  سُورَةُ {startingSurah.nameArabic.replace('سورة ', '')}
+                                </div>
+                                <div className="text-[10px] sm:text-[11px] font-sans font-medium text-slate-600 -mt-0.5">
+                                  Surat {startingSurah.nameLatin}
+                                </div>
+                              </div>
+
+                              {/* Right: Tempat Turun */}
+                              <div className="text-right text-amber-950 font-sans">
+                                <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
+                                  {getNormRevelation(startingSurah.revelationType)}
+                                </span>
+                                <span className="text-[10px] text-amber-800/80 font-quran">
+                                  {startingSurah.revelationType?.toLowerCase() === 'makiyyah' || startingSurah.revelationType === 'Mekah' ? 'مَكِّيَّةٌ' : 'مَدَنِيَّةٌ'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bismillah Header Flanked with Ornamental Lines (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
+                          {startingSurah.number !== 9 && startingSurah.number !== 1 && (
+                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/30 to-amber-600/70" />
+                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
+                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-2">
+                                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                              </span>
+                              <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
+                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/30 to-amber-600/70" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 15-Lines Standard Mushaf Line Words */}
+                      <div
                       dir="rtl"
                       style={{
                         fontSize: `clamp(13px, calc(10px + 1.2vw), ${fontSize}px)`,
@@ -1228,6 +1234,7 @@ export default function MushafPage() {
                           </span>
                         );
                       })}
+                      </div>
                     </div>
                   );
                 })}
