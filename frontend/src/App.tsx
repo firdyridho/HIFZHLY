@@ -19,9 +19,28 @@ export default function App() {
     }
     const rafId = requestAnimationFrame(raf);
 
+    // Global Auth Navigation Guard: Mencegah back-navigation ke dashboard setelah logout
+    const checkAuthOnNavigation = () => {
+      const path = window.location.pathname;
+      const isProtected =
+        path.startsWith('/app') ||
+        path.startsWith('/admin') ||
+        ['/murojaah', '/mushaf', '/tajwid', '/mutabaah'].includes(path);
+
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      if (isProtected && !token) {
+        window.location.replace('/login');
+      }
+    };
+
+    window.addEventListener('popstate', checkAuthOnNavigation);
+    window.addEventListener('pageshow', checkAuthOnNavigation);
+
     return () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
+      window.removeEventListener('popstate', checkAuthOnNavigation);
+      window.removeEventListener('pageshow', checkAuthOnNavigation);
     };
   }, []);
 

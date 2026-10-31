@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Lock,
@@ -20,6 +20,23 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+    if (token) {
+      try {
+        const cached = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
+        const role = cached ? (JSON.parse(cached).role || '').toLowerCase() : '';
+        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
+          window.location.replace('/admin');
+        } else {
+          window.location.replace('/app');
+        }
+      } catch {
+        window.location.replace('/app');
+      }
+    }
+  }, []);
 
   const executeLogin = async (userIdentifier: string, userPass: string) => {
     setErrorMessage('');

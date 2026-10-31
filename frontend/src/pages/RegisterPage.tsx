@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   User,
   AtSign,
@@ -12,14 +12,9 @@ import {
   EyeOff,
   CheckCircle2,
   Circle,
-  ShieldCheck,
 } from 'lucide-react';
 
 export default function RegisterPage() {
-    const [searchParams] = useSearchParams();
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>(() => {
-    return searchParams.get('role') === 'admin' ? 'admin' : 'user';
-  });
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -31,7 +26,25 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Password validation rules requested by user:
+  // Jika sudah memiliki sesi aktif, langsung arahkan ke dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+    if (token) {
+      try {
+        const cached = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
+        const role = cached ? (JSON.parse(cached).role || '').toLowerCase() : '';
+        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
+          window.location.replace('/admin');
+        } else {
+          window.location.replace('/app');
+        }
+      } catch {
+        window.location.replace('/app');
+      }
+    }
+  }, []);
+
+  // Password validation rules:
   // 1. Minimal 6 karakter
   // 2. Kombinasi huruf besar & kecil
   // 3. Mengandung angka
@@ -65,11 +78,10 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const effectiveRole = (
-      selectedRole === 'admin' ||
-      username.trim().toLowerCase() === 'admin' ||
-      email.trim().toLowerCase() === 'admin@hifzhly.id'
-    ) ? 'admin' : selectedRole;
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+    const effectiveRole =
+      cleanUsername === 'admin' || cleanEmail === 'admin@hifzhly.id' ? 'admin' : 'user';
 
     try {
       let registeredUser: any = null;
@@ -123,8 +135,8 @@ export default function RegisterPage() {
       try {
         const dbRaw = localStorage.getItem('hifzhly_users_db') || '{}';
         const db = JSON.parse(dbRaw);
-        db[username.trim().toLowerCase()] = registeredUser;
-        db[email.trim().toLowerCase()] = registeredUser;
+        db[cleanUsername] = registeredUser;
+        db[cleanEmail] = registeredUser;
         localStorage.setItem('hifzhly_users_db', JSON.stringify(db));
       } catch {}
 
@@ -168,35 +180,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Role Selector (Santri vs Asatidz/Musyrif) */}
-        <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center border border-slate-200/80 max-w-xs mx-auto">
-          <button
-            type="button"
-            onClick={() => setSelectedRole('user')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              selectedRole === 'user'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Akun Santri</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedRole('admin')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              selectedRole === 'admin'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Asatidz / Musyrif</span>
-          </button>
-        </div>
-
-        {/* Direct Form without outer card container */}
+        {/* Direct Form without outer card container & without role switch tabs */}
         <form onSubmit={handleRegister} className="space-y-4 pt-1">
           {/* Nama Lengkap */}
           <div className="space-y-1.5">
@@ -226,13 +210,7 @@ export default function RegisterPage() {
                 type="text"
                 required
                 value={username}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setUsername(val);
-                  if (val.trim().toLowerCase() === 'admin') {
-                    setSelectedRole('admin');
-                  }
-                }}
+                onChange={(e) => setUsername(e.target.value)}
                 placeholder="ahmad_hifzh"
                 className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
               />

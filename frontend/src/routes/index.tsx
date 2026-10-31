@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 import MainLayout from '../components/layout/MainLayout';
 import LandingPage from '../pages/LandingPage';
 import DashboardPage from '../pages/DashboardPage';
@@ -21,11 +22,25 @@ export default function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/terms" element={<TermsPage />} />
 
-      {/* 2. Admin / Musyrif Portal */}
-      <Route path="/admin" element={<AdminDashboardPage />} />
+      {/* 2. Admin / Musyrif Portal (Protected) */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminDashboardPage />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* 3. Murojaah App (Santri Portal with Nested MainLayout) */}
-      <Route path="/app" element={<MainLayout />}>
+      {/* 3. Murojaah App (Santri Portal with Nested MainLayout, Protected) */}
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute allowedRole="user">
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="murojaah" element={<MurojaahPage />} />

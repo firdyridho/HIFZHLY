@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useSearchParams, Navigate } from 'react-router-dom';
 import {
   BookOpen,
   Mic,
@@ -28,11 +28,11 @@ export default function MainLayout() {
   // Active reading check to replace double header
   const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz'));
 
-  // Auth Guard: Jika tidak ada token (misal setelah logout), dilarang masuk dan replace ke landing page
+  // Auth Guard: Jika tidak ada token (misal setelah logout), dilarang masuk dan wajib login
   const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
   useEffect(() => {
     if (!token) {
-      window.location.replace('/');
+      window.location.replace('/login');
     }
   }, [token, location.pathname]);
 
@@ -96,12 +96,17 @@ export default function MainLayout() {
     localStorage.removeItem('hifzhly_user_profile');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    sessionStorage.clear();
     // Replace URL ke landing page agar history browser tidak bisa di-back
     window.location.replace('/');
   };
 
-  if (!token || isAdmin) {
-    return null;
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
   }
 
   return (
