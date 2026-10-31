@@ -162,3 +162,4 @@ CREATE TABLE IF NOT EXISTS user_commitments (
 ### Fase 4: Dashboard Ustadz / Musyrif (`AdminDashboardPage.tsx`)
 - [ ] Buat tabel Live Monitoring Kepatuhan Santri (Status hari ini: Tilawah, Setoran, Target Tercapai).
 - [ ] Buat drawer detail inspeksi aktivitas santri & form kirim Catatan Evaluasi Musyrif.
+
