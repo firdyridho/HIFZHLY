@@ -26,6 +26,7 @@ import {
   Quote,
   Table,
   Check,
+  Upload,
 } from 'lucide-react';
 import type { TajwidModule } from '../../types';
 
@@ -77,8 +78,67 @@ export default function TajwidCurriculumEditor({
     return '';
   });
   const [thumbnailUrl, setThumbnailUrl] = useState(initialModule?.thumbnailUrl || '');
+  const [thumbnailFileName, setThumbnailFileName] = useState('');
+  const [thumbnailSourceMode, setThumbnailSourceMode] = useState<'upload' | 'url'>('upload');
+  const [isProcessingThumbnail, setIsProcessingThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
   const [pdfUrl, setPdfUrl] = useState(initialModule?.pdfUrl || '');
   const [pdfFileName, setPdfFileName] = useState(initialModule?.pdfUrl ? 'Dokumen_Panduan_Tajwid.pdf' : '');
+  const [pdfSourceMode, setPdfSourceMode] = useState<'upload' | 'url'>('upload');
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  // Client-side image optimizer & converter to DataURL
+  const compressAndSetThumbnail = async (file: File) => {
+    setIsProcessingThumbnail(true);
+    setThumbnailFileName(file.name);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const scale = Math.min(1, MAX_WIDTH / img.width);
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            } else {
+              resolve(e.target?.result as string);
+            }
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setThumbnailUrl(dataUrl);
+    } catch (err) {
+      console.error('Gagal memproses gambar thumbnail:', err);
+    } finally {
+      setIsProcessingThumbnail(false);
+    }
+  };
+
+  const handlePdfUpload = (file: File) => {
+    setIsProcessingPdf(true);
+    setPdfFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPdfUrl(reader.result as string);
+      setIsProcessingPdf(false);
+    };
+    reader.onerror = () => {
+      setIsProcessingPdf(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Step 2: Lembar Kerja Word
   const [contentBody, setContentBody] = useState(
@@ -623,30 +683,141 @@ export default function TajwidCurriculumEditor({
                 </div>
 
                 {/* Thumbnail Gambar */}
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>Thumbnail Modul (Gambar)</span>
-                    <span className="text-[11px] font-normal text-slate-400">Rekomendasi 16:9</span>
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={thumbnailUrl}
-                      onChange={(e) => setThumbnailUrl(e.target.value)}
-                      placeholder="https://... atau /images/tajwid-thumb.jpg"
-                      className="flex-1 bg-white border border-slate-300 rounded-2xl px-3.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-600 transition-all"
-                    />
+                <div className="space-y-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Thumbnail Modul (Gambar)
+                    </label>
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setThumbnailSourceMode('upload')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          thumbnailSourceMode === 'upload'
+                            ? 'bg-white text-emerald-800 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Unggah Berkas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setThumbnailSourceMode('url')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          thumbnailSourceMode === 'url'
+                            ? 'bg-white text-emerald-800 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Tautan URL
+                      </button>
+                    </div>
                   </div>
-                  {thumbnailUrl && (
-                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 h-32 bg-slate-100 flex items-center justify-center">
-                      <img
-                        src={thumbnailUrl}
-                        alt="Thumbnail Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
+
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={thumbnailInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) compressAndSetThumbnail(file);
+                    }}
+                  />
+
+                  {thumbnailSourceMode === 'upload' ? (
+                    !thumbnailUrl ? (
+                      <div
+                        onClick={() => thumbnailInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) compressAndSetThumbnail(file);
                         }}
-                      />
+                        className="border-2 border-dashed border-slate-300 hover:border-emerald-600 rounded-2xl p-6 text-center cursor-pointer bg-slate-50/50 hover:bg-emerald-50/30 transition-all group"
+                      >
+                        {isProcessingThumbnail ? (
+                          <div className="space-y-2">
+                            <Loader2 className="w-7 h-7 animate-spin mx-auto text-emerald-600" />
+                            <p className="text-xs font-semibold text-emerald-800">
+                              Mengompresi dan mengunggah gambar...
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border border-emerald-100 group-hover:scale-105 transition-transform">
+                              <Upload className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-800">
+                              Pilih berkas gambar atau seret ke sini
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              Mendukung PNG, JPG, JPEG, WEBP (Otomatis dioptimasi tajam &amp; ringan)
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video max-h-48 bg-slate-100 flex items-center justify-center shadow-xs">
+                          <img
+                            src={thumbnailUrl}
+                            alt="Thumbnail Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 right-2 flex items-center space-x-1.5 bg-slate-900/70 backdrop-blur-xs p-1 rounded-xl">
+                            <button
+                              type="button"
+                              onClick={() => thumbnailInputRef.current?.click()}
+                              className="px-2.5 py-1 text-[11px] font-bold text-white hover:text-emerald-300 transition-colors cursor-pointer"
+                            >
+                              Ganti Gambar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setThumbnailUrl('');
+                                setThumbnailFileName('');
+                              }}
+                              className="p-1 text-white/70 hover:text-rose-400 transition-colors cursor-pointer"
+                              title="Hapus gambar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        {thumbnailFileName && (
+                          <p className="text-[11px] text-slate-500 truncate">
+                            Berkas terpilih: <span className="font-semibold text-slate-700">{thumbnailFileName}</span>
+                          </p>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={thumbnailUrl}
+                          onChange={(e) => setThumbnailUrl(e.target.value)}
+                          placeholder="https://example.com/thumbnail-tajwid.jpg"
+                          className="flex-1 bg-white border border-slate-300 rounded-2xl px-3.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-600 transition-all"
+                        />
+                      </div>
+                      {thumbnailUrl && (
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video max-h-44 bg-slate-100 flex items-center justify-center">
+                          <img
+                            src={thumbnailUrl}
+                            alt="Thumbnail Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -686,49 +857,149 @@ export default function TajwidCurriculumEditor({
 
                 {/* PDF Berkas Panduan / Kitab */}
                 <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
-                  <div className="flex items-center space-x-2 text-emerald-800">
-                    <FileCheck className="w-4 h-4" />
-                    <span className="text-xs font-bold">Berkas / Dokumen PDF Materi</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-emerald-800">
+                      <FileCheck className="w-4 h-4" />
+                      <span className="text-xs font-bold">Berkas / Dokumen PDF Materi</span>
+                    </div>
+                    <div className="flex items-center bg-white p-0.5 rounded-xl border border-slate-200 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setPdfSourceMode('upload')}
+                        className={`px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                          pdfSourceMode === 'upload'
+                            ? 'bg-emerald-50 text-emerald-800'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Unggah File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPdfSourceMode('url')}
+                        className={`px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                          pdfSourceMode === 'url'
+                            ? 'bg-emerald-50 text-emerald-800'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Tautan URL
+                      </button>
+                    </div>
                   </div>
+
                   <p className="text-[11px] text-slate-500">
                     Tautkan modul rujukan PDF (misal: Matan Jazariyyah / Tuhfatul Athfal) agar santri dapat mengunduh materi.
                   </p>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={pdfUrl}
-                      onChange={(e) => {
-                        setPdfUrl(e.target.value);
-                        if (e.target.value && !pdfFileName) {
-                          setPdfFileName('Panduan_Tajwid.pdf');
-                        }
-                      }}
-                      placeholder="https://... atau tautan berkas PDF"
-                      className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-600 transition-all"
-                    />
-                  </div>
 
-                  {pdfUrl ? (
-                    <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <FileCheck className="w-4 h-4 text-emerald-700" />
-                        <span className="text-xs font-bold text-slate-800 truncate max-w-[200px]">
-                          {pdfFileName || 'Dokumen PDF Tersemat'}
-                        </span>
-                      </div>
-                      <a
-                        href={pdfUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center space-x-1"
+                  {/* Hidden PDF Input */}
+                  <input
+                    type="file"
+                    ref={pdfInputRef}
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePdfUpload(file);
+                    }}
+                  />
+
+                  {pdfSourceMode === 'upload' ? (
+                    !pdfUrl ? (
+                      <div
+                        onClick={() => pdfInputRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) handlePdfUpload(file);
+                        }}
+                        className="border-2 border-dashed border-slate-300 hover:border-emerald-600 rounded-2xl p-5 text-center cursor-pointer bg-white hover:bg-emerald-50/20 transition-all group"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Lihat PDF</span>
-                      </a>
-                    </div>
+                        {isProcessingPdf ? (
+                          <div className="space-y-1.5">
+                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600" />
+                            <p className="text-xs font-semibold text-emerald-800">
+                              Memuat berkas PDF...
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <Upload className="w-5 h-5 mx-auto text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                            <p className="text-xs font-bold text-slate-800">
+                              Pilih berkas PDF dari komputer atau seret ke sini
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              Format dokumen PDF (Maks. 15MB)
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between">
+                        <div className="flex items-center space-x-2 truncate">
+                          <FileCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                          <span className="text-xs font-bold text-slate-800 truncate max-w-[180px]">
+                            {pdfFileName || 'Dokumen PDF Terunggah'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => pdfInputRef.current?.click()}
+                            className="text-[11px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                          >
+                            Ganti
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPdfUrl('');
+                              setPdfFileName('');
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus PDF"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400 bg-white">
-                      Belum ada berkas PDF tersemat. Masukkan URL PDF di atas.
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={pdfUrl}
+                          onChange={(e) => {
+                            setPdfUrl(e.target.value);
+                            if (e.target.value && !pdfFileName) {
+                              setPdfFileName('Panduan_Tajwid.pdf');
+                            }
+                          }}
+                          placeholder="https://example.com/kitab-tajwid.pdf"
+                          className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-600 transition-all"
+                        />
+                      </div>
+                      {pdfUrl && (
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2 truncate">
+                            <FileCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span className="font-semibold text-slate-800 truncate max-w-[200px]">
+                              {pdfFileName || pdfUrl}
+                            </span>
+                          </div>
+                          <a
+                            href={pdfUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-bold text-emerald-700 hover:underline flex items-center space-x-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Lihat PDF</span>
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

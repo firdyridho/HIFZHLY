@@ -82,3 +82,4 @@
 - [ ] Jalankan `go build ./...` di folder `backend`.
 - [ ] Commit perubahan dan push ke GitHub repository (`staging` dan `main`).
 - [ ] Uji coba langsung di browser untuk memastikan tampilan lembar dokumen Word, preview YouTube, PDF, dan generator kuis Gemini AI berjalan mulus.
+
