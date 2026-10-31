@@ -17,7 +17,7 @@ export default function MainLayout() {
   const [searchParams] = useSearchParams();
 
   // Active reading check to replace double header
-  const isQuranReading = location.pathname.startsWith('/app/mushaf') && searchParams.has('surah');
+  const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz'));
 
   useEffect(() => {
     // 1. Load cached profile from localStorage

@@ -32,6 +32,40 @@ interface JuzInfo {
   endAyah: number;
 }
 
+// Mapping Page Ranges for 30 Juz in Madinah Mushaf (20 pages per Juz)
+const JUZ_PAGE_RANGES: Record<number, { startPage: number; endPage: number }> = {
+  1: { startPage: 1, endPage: 21 },
+  2: { startPage: 22, endPage: 41 },
+  3: { startPage: 42, endPage: 61 },
+  4: { startPage: 62, endPage: 81 },
+  5: { startPage: 82, endPage: 101 },
+  6: { startPage: 102, endPage: 121 },
+  7: { startPage: 122, endPage: 141 },
+  8: { startPage: 142, endPage: 161 },
+  9: { startPage: 162, endPage: 181 },
+  10: { startPage: 182, endPage: 201 },
+  11: { startPage: 202, endPage: 221 },
+  12: { startPage: 222, endPage: 241 },
+  13: { startPage: 242, endPage: 261 },
+  14: { startPage: 262, endPage: 281 },
+  15: { startPage: 282, endPage: 301 },
+  16: { startPage: 302, endPage: 321 },
+  17: { startPage: 322, endPage: 341 },
+  18: { startPage: 342, endPage: 361 },
+  19: { startPage: 362, endPage: 381 },
+  20: { startPage: 382, endPage: 401 },
+  21: { startPage: 402, endPage: 421 },
+  22: { startPage: 422, endPage: 441 },
+  23: { startPage: 442, endPage: 461 },
+  24: { startPage: 462, endPage: 481 },
+  25: { startPage: 482, endPage: 501 },
+  26: { startPage: 502, endPage: 521 },
+  27: { startPage: 522, endPage: 541 },
+  28: { startPage: 542, endPage: 561 },
+  29: { startPage: 562, endPage: 581 },
+  30: { startPage: 582, endPage: 604 },
+};
+
 const JUZ_LIST: JuzInfo[] = [
   { number: 1, nameArabic: 'الجزء ١', startSurahNumber: 1, startSurahName: 'Al-Fatihah', startAyah: 1, endSurahName: 'Al-Baqarah', endAyah: 141 },
   { number: 2, nameArabic: 'الجزء ٢', startSurahNumber: 2, startSurahName: 'Al-Baqarah', startAyah: 142, endSurahName: 'Al-Baqarah', endAyah: 252 },
@@ -122,6 +156,7 @@ export default function MushafPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const surahParam = searchParams.get('surah');
+  const juzParam = searchParams.get('juz');
   const pageParam = searchParams.get('page');
   const modeParam = searchParams.get('mode');
 
@@ -131,19 +166,41 @@ export default function MushafPage() {
   const [surahs, setSurahs] = useState<SurahSummary[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
-  // Active Reading View State (Persisted across refreshes via URL Query & localStorage)
+  // Active Reading View State (Surah or Juz, Persisted across refreshes via URL Query & localStorage)
   const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | null>(() => {
     if (surahParam) {
       const num = parseInt(surahParam, 10);
       if (!isNaN(num) && num >= 1 && num <= 114) return num;
     }
-    const saved = localStorage.getItem('hifzhly_active_surah');
-    if (saved) {
-      const num = parseInt(saved, 10);
-      if (!isNaN(num) && num >= 1 && num <= 114) return num;
+    if (!juzParam) {
+      const saved = localStorage.getItem('hifzhly_active_surah');
+      if (saved) {
+        const num = parseInt(saved, 10);
+        if (!isNaN(num) && num >= 1 && num <= 114) return num;
+      }
     }
     return null;
   });
+
+  const [selectedJuzNumber, setSelectedJuzNumber] = useState<number | null>(() => {
+    if (juzParam) {
+      const num = parseInt(juzParam, 10);
+      if (!isNaN(num) && num >= 1 && num <= 30) return num;
+    }
+    if (!surahParam) {
+      const saved = localStorage.getItem('hifzhly_active_juz');
+      if (saved) {
+        const num = parseInt(saved, 10);
+        if (!isNaN(num) && num >= 1 && num <= 30) return num;
+      }
+    }
+    return null;
+  });
+
+  // Juz Reading State
+  const [juzVerses, setJuzVerses] = useState<any[]>([]);
+  const [juzTajweedMap, setJuzTajweedMap] = useState<Record<string, string>>({});
+  const [loadingJuz, setLoadingJuz] = useState<boolean>(false);
 
   const [currentSurah, setCurrentSurah] = useState<SurahDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -282,10 +339,11 @@ export default function MushafPage() {
     };
   });
 
-  // Synchronize active surah, page, and mode with URL search params and localStorage so refreshing never loses position
+  // Synchronize active surah / juz, page, and mode with URL search params and localStorage
   useEffect(() => {
     if (selectedSurahNumber !== null) {
       localStorage.setItem('hifzhly_active_surah', selectedSurahNumber.toString());
+      localStorage.removeItem('hifzhly_active_juz');
       const newParams: Record<string, string> = {
         surah: selectedSurahNumber.toString(),
         mode: readingMode,
@@ -294,11 +352,23 @@ export default function MushafPage() {
         newParams.page = currentPage.toString();
       }
       setSearchParams(newParams, { replace: true });
+    } else if (selectedJuzNumber !== null) {
+      localStorage.setItem('hifzhly_active_juz', selectedJuzNumber.toString());
+      localStorage.removeItem('hifzhly_active_surah');
+      const newParams: Record<string, string> = {
+        juz: selectedJuzNumber.toString(),
+        mode: readingMode,
+      };
+      if (readingMode === 'mushaf') {
+        newParams.page = currentPage.toString();
+      }
+      setSearchParams(newParams, { replace: true });
     } else {
       localStorage.removeItem('hifzhly_active_surah');
+      localStorage.removeItem('hifzhly_active_juz');
       setSearchParams({}, { replace: true });
     }
-  }, [selectedSurahNumber, readingMode, currentPage, setSearchParams]);
+  }, [selectedSurahNumber, selectedJuzNumber, readingMode, currentPage, setSearchParams]);
 
   // 1. Fetch 114 Surahs from EQuran.id API v2
   useEffect(() => {
@@ -415,6 +485,55 @@ export default function MushafPage() {
       .catch(() => {});
   }, [selectedSurahNumber]);
 
+  // 2b. Fetch Verses for Selected Juz in Ayat Mode (loads ONLY the ayahs of that Juz)
+  useEffect(() => {
+    if (!selectedJuzNumber || readingMode !== 'ayat') return;
+
+    setLoadingJuz(true);
+    // Fetch all verses of this Juz (max 600 covers up to Juz 30 which has 564 verses)
+    fetch(`https://api.quran.com/api/v4/verses/by_juz/${selectedJuzNumber}?per_page=600&words=false&translations=33&fields=text_uthmani,chapter_id`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.verses && Array.isArray(data.verses)) {
+          const mapped = data.verses.map((v: any) => {
+            const parts = v.verse_key?.split(':') || [];
+            const surahNum = parseInt(parts[0], 10);
+            const ayahNum = parseInt(parts[1], 10);
+            const sPad = String(surahNum).padStart(3, '0');
+            const aPad = String(ayahNum).padStart(3, '0');
+            const surahName = surahs.find((s) => s.number === surahNum)?.nameLatin || `Surah ${surahNum}`;
+
+            return {
+              verseKey: v.verse_key,
+              surahNumber: surahNum,
+              surahName: surahName,
+              ayahNumber: ayahNum,
+              textArabic: v.text_uthmani,
+              translation: cleanTranslationText(v.translations?.[0]?.text || ''),
+              audioUrl: `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`,
+            };
+          });
+          setJuzVerses(mapped);
+        }
+      })
+      .catch((err) => console.error('Gagal memuat ayat Juz:', err))
+      .finally(() => setLoadingJuz(false));
+
+    // Fetch tajweed markup for Juz
+    fetch(`https://api.quran.com/api/v4/quran/verses/uthmani_tajweed?juz_number=${selectedJuzNumber}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.verses && Array.isArray(data.verses)) {
+          const tMap: Record<string, string> = {};
+          data.verses.forEach((v: any) => {
+            tMap[v.verse_key] = formatTajweedHtml(v.text_uthmani_tajweed, true);
+          });
+          setJuzTajweedMap(tMap);
+        }
+      })
+      .catch(() => {});
+  }, [selectedJuzNumber, readingMode, surahs]);
+
   // 3. Fetch Verses by Page for Mushaf Mode (with words and exact line numbers)
   useEffect(() => {
     if (readingMode !== 'mushaf' || !currentPage) return;
@@ -484,6 +603,13 @@ export default function MushafPage() {
     });
     return map;
   }, [pageVerses, surahs]);
+
+  const currentJuzInfo = useMemo(() => {
+    if (selectedJuzNumber) {
+      return JUZ_LIST.find((j) => j.number === selectedJuzNumber) || null;
+    }
+    return null;
+  }, [selectedJuzNumber]);
 
   const currentMushafSurahName = useMemo(() => {
     if (pageVerses.length > 0 && pageVerses[0].chapter_id) {
@@ -674,7 +800,7 @@ export default function MushafPage() {
       `}</style>
 
       {/* 1. DEDICATED IN-QURAN READING HEADER & TOOLBAR (Replaces Standard Header at top-0, Single Line on Mobile) */}
-      {selectedSurahNumber !== null && (
+      {(selectedSurahNumber !== null || selectedJuzNumber !== null) && (
         <div className="w-full sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs px-4 sm:px-8 py-2.5">
           <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3">
             {/* Left: Back Arrow + Surah Name & Metadata */}
@@ -683,6 +809,7 @@ export default function MushafPage() {
                 type="button"
                 onClick={() => {
                   setSelectedSurahNumber(null);
+                  setSelectedJuzNumber(null);
                   setTargetAyahToScroll(null);
                   if (audioRef.current) audioRef.current.pause();
                   if (fullAudioRef.current) fullAudioRef.current.pause();
@@ -695,13 +822,19 @@ export default function MushafPage() {
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <div className="min-w-0">
-                <h2 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate max-w-[120px] sm:max-w-none">
-                  {readingMode === 'mushaf' ? currentMushafSurahName : (currentSurah?.nameLatin || "Al-Qur'an")}
+                <h2 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate max-w-[140px] sm:max-w-none">
+                  {selectedJuzNumber
+                    ? `Juz ${selectedJuzNumber} ${currentJuzInfo ? '(' + currentJuzInfo.nameArabic + ')' : ''}`
+                    : (readingMode === 'mushaf' ? currentMushafSurahName : (currentSurah?.nameLatin || "Al-Qur'an"))}
                 </h2>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium block truncate max-w-[120px] sm:max-w-none">
-                  {readingMode === 'mushaf'
-                    ? `Hal. ${currentPage} • Juz ${pageVerses[0]?.juz_number || 1}`
-                    : `${currentSurah?.numberOfAyahs || 0} Ayat • ${getNormRevelation(currentSurah?.revelationType)}`}
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium block truncate max-w-[160px] sm:max-w-none">
+                  {selectedJuzNumber
+                    ? (readingMode === 'mushaf'
+                        ? `Hal. ${currentPage} (Juz ${selectedJuzNumber}: Hal. ${JUZ_PAGE_RANGES[selectedJuzNumber]?.startPage}-${JUZ_PAGE_RANGES[selectedJuzNumber]?.endPage})`
+                        : `${juzVerses.length} Ayat • QS. ${currentJuzInfo?.startSurahName}:${currentJuzInfo?.startAyah} s.d. ${currentJuzInfo?.endSurahName}:${currentJuzInfo?.endAyah}`)
+                    : (readingMode === 'mushaf'
+                        ? `Hal. ${currentPage} • Juz ${pageVerses[0]?.juz_number || 1}`
+                        : `${currentSurah?.numberOfAyahs || 0} Ayat • ${getNormRevelation(currentSurah?.revelationType)}`)}
                 </span>
               </div>
             </div>
@@ -727,7 +860,10 @@ export default function MushafPage() {
                   type="button"
                   onClick={() => {
                     setReadingMode('mushaf');
-                    if (currentSurah) {
+                    if (selectedJuzNumber) {
+                      const jRange = JUZ_PAGE_RANGES[selectedJuzNumber];
+                      if (jRange) setCurrentPage(jRange.startPage);
+                    } else if (currentSurah) {
                       const startPg = SURAH_START_PAGES[currentSurah.number] || 1;
                       setCurrentPage(startPg);
                     }
@@ -851,8 +987,199 @@ export default function MushafPage() {
 
       {/* 2. MAIN CONTENT AREA */}
       <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
-      {selectedSurahNumber !== null ? (
+      {(selectedSurahNumber !== null || selectedJuzNumber !== null) ? (
         readingMode === 'ayat' ? (
+          selectedJuzNumber !== null ? (
+            /* ======================================================== */
+            /* MODE 1B: JUZ ONLY VIEW (Menampilkan Ayat-Ayat Khusus Juz) */
+            /* ======================================================== */
+            <div className="space-y-6">
+              {loadingJuz ? (
+                <div className="flex items-center justify-center py-24 text-emerald-700 space-x-2">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="text-sm font-semibold">Memuat ayat-ayat Juz {selectedJuzNumber}...</span>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Juz Hero Banner */}
+                  <div className="bg-gradient-to-br from-[#064e3b] via-[#06543c] to-[#043629] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                    <div className="relative z-10 flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-widest block">
+                          JUZ KE-{selectedJuzNumber} • {juzVerses.length} AYAT
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                          Juz {selectedJuzNumber}
+                        </h2>
+                        <p className="text-xs sm:text-sm text-emerald-100/90 font-medium">
+                          Mulai: QS. {currentJuzInfo?.startSurahName}:{currentJuzInfo?.startAyah} s.d. QS. {currentJuzInfo?.endSurahName}:{currentJuzInfo?.endAyah}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-quran text-3xl sm:text-4xl text-white block leading-none font-normal">
+                          {currentJuzInfo?.nameArabic}
+                        </span>
+                        <span className="text-[11px] text-emerald-200/80 font-mono block mt-1">
+                          Hal. {JUZ_PAGE_RANGES[selectedJuzNumber]?.startPage} - {JUZ_PAGE_RANGES[selectedJuzNumber]?.endPage}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ayat List khusus Juz tersebut */}
+                  <div className="space-y-4" onClick={handleTajweedClick}>
+                    {juzVerses.map((ayah) => {
+                      const isCurrentPlaying = playingAyah === ayah.ayahNumber;
+                      const isLastReadAyah =
+                        lastRead.surahNumber === ayah.surahNumber &&
+                        lastRead.ayahNumber === ayah.ayahNumber;
+                      const isTafsirOpen = !!expandedTafsir[ayah.ayahNumber];
+                      const isLoadingTafsirThis = loadingTafsirAyah === ayah.ayahNumber;
+                      const tajweedHtml = juzTajweedMap[ayah.verseKey];
+
+                      return (
+                        <div
+                          key={ayah.verseKey}
+                          className={`p-4 sm:p-6 rounded-3xl bg-white border transition-all ${
+                            isCurrentPlaying
+                              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md bg-emerald-50/20'
+                              : isLastReadAyah
+                              ? 'border-amber-300 bg-amber-50/10'
+                              : 'border-slate-200/90 hover:border-slate-300 shadow-2xs'
+                          }`}
+                        >
+                          {/* Ayat Card Header */}
+                          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center space-x-2">
+                              <span className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-bold text-xs text-emerald-800">
+                                {ayah.ayahNumber}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-600">
+                                QS. {ayah.surahName} : Ayat {ayah.ayahNumber}
+                              </span>
+                              {isLastReadAyah && (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  Terakhir Dibaca
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-1 sm:space-x-1.5">
+                              {/* Audio */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAudio(ayah.ayahNumber, ayah.audioUrl)}
+                                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                                  isCurrentPlaying
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
+                                }`}
+                                title={isCurrentPlaying ? 'Hentikan Audio' : 'Putar Audio Ayat'}
+                              >
+                                {isCurrentPlaying ? (
+                                  <Pause className="w-4 h-4 fill-current" />
+                                ) : (
+                                  <Play className="w-4 h-4 fill-current" />
+                                )}
+                              </button>
+
+                              {/* Bookmark */}
+                              <button
+                                type="button"
+                                onClick={() => handleSetLastRead(ayah.surahNumber, ayah.surahName, ayah.ayahNumber)}
+                                className="p-2 rounded-xl text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"
+                                title="Tandai Terakhir Baca"
+                              >
+                                <Bookmark className="w-4 h-4" />
+                              </button>
+
+                              {/* Tafsir */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTafsir(ayah.ayahNumber, ayah.surahNumber)}
+                                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                                  isTafsirOpen
+                                    ? 'bg-emerald-50 text-emerald-800 font-bold'
+                                    : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
+                                }`}
+                                title="Buka Tafsir Kemenag RI"
+                              >
+                                <BookOpen className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Arabic Text */}
+                          <div className="py-4 sm:py-5">
+                            {showTajwid && tajweedHtml ? (
+                              <div
+                                dir="rtl"
+                                style={{ fontSize: `${fontSize}px`, lineHeight: '2.4' }}
+                                className="font-quran text-right select-text leading-loose"
+                                dangerouslySetInnerHTML={{ __html: tajweedHtml }}
+                              />
+                            ) : (
+                              <p
+                                dir="rtl"
+                                style={{ fontSize: `${fontSize}px`, lineHeight: '2.4' }}
+                                className="font-quran text-right text-slate-900 select-text leading-loose"
+                              >
+                                {ayah.textArabic}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Translation */}
+                          {showTranslation && (
+                            <div className="space-y-1.5 pt-2.5 text-left border-t border-slate-100">
+                              <p className="font-sans text-xs sm:text-sm text-slate-700 leading-relaxed">
+                                {ayah.translation}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Tafsir Drawer */}
+                          {isTafsirOpen && (
+                            <div className="mt-4 pt-4 border-t border-emerald-100 bg-emerald-50/50 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                              <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                                <span className="text-xs font-bold text-emerald-900 flex items-center space-x-1.5">
+                                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Tafsir Kemenag RI • QS. {ayah.surahName} Ayat {ayah.ayahNumber}</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTafsir(ayah.ayahNumber, ayah.surahNumber)}
+                                  className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 cursor-pointer"
+                                >
+                                  Tutup Tafsir
+                                </button>
+                              </div>
+
+                              {isLoadingTafsirThis ? (
+                                <div className="flex items-center space-x-2 py-4 text-emerald-700 text-xs font-semibold">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Memuat tafsir...</span>
+                                </div>
+                              ) : tafsirCache[ayah.surahNumber]?.[ayah.ayahNumber] ? (
+                                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line font-sans">
+                                  {tafsirCache[ayah.surahNumber][ayah.ayahNumber]}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-slate-500 italic">
+                                  Tafsir untuk ayat ini sedang diproses atau tidak tersedia.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
           /* ======================================================== */
           /* MODE 1: TAMPILAN PER AYAT (Card View dengan Tafsir Kemenag) */
           /* ======================================================== */
@@ -1077,6 +1404,7 @@ export default function MushafPage() {
               </div>
             ) : null}
           </div>
+          )
         ) : (
           /* ======================================================== */
           /* MODE 2: MUSHAF PER HALAMAN (Madinah Mushaf 604 Halaman)  */
@@ -1586,8 +1914,10 @@ export default function MushafPage() {
                 <div
                   key={juz.number}
                   onClick={() => {
-                    setSelectedSurahNumber(juz.startSurahNumber);
-                    setTargetAyahToScroll(juz.startAyah);
+                    setSelectedJuzNumber(juz.number);
+                    setSelectedSurahNumber(null);
+                    const range = JUZ_PAGE_RANGES[juz.number];
+                    if (range) setCurrentPage(range.startPage);
                   }}
                   className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-emerald-300 transition-all flex items-center justify-between cursor-pointer group"
                 >
