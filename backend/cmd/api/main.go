@@ -42,12 +42,15 @@ func main() {
 	mutashabihatService := service.NewMutashabihatService()
 	quranService := service.NewQuranService(mutashabihatService)
 	murojaahService := service.NewMurojaahService(quranService)
+	tajwidRepo := repository.NewTajwidRepository(pgPool)
+	tajwidService := service.NewTajwidService(tajwidRepo)
 
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
 	authMiddleware := appMiddleware.NewAuthMiddleware(authService)
 	quranHandler := handler.NewQuranHandler(quranService)
 	murojaahHandler := handler.NewMurojaahHandler(murojaahService)
+	tajwidHandler := handler.NewTajwidHandler(tajwidService)
 
 	r := chi.NewRouter()
 
@@ -142,28 +145,10 @@ func main() {
 			})
 		})
 
-		// Tajwid Modules
-		r.Get("/tajwid/modules", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]map[string]interface{}{
-				{
-					"id":             "1d8b5a04-9426-47b8-b4b3-d2a93ff7ef21",
-					"title":          "Hukum Nun Sukun dan Tanwin",
-					"slug":           "hukum-nun-sukun-dan-tanwin",
-					"summary":        "Mempelajari 4 kaidah hukum: Idzhar Halqi, Idgham, Ikhfa Haqiqi, dan Iqlab.",
-					"youtubeVideoId": "7kK84x4_uY8",
-					"orderIndex":     1,
-				},
-				{
-					"id":             "2e9c6b15-0537-58c9-c5c4-e3b04aa8fa32",
-					"title":          "Hukum Mim Sukun",
-					"slug":           "hukum-mim-sukun",
-					"summary":        "Mempelajari kaidah Ikhfa Syafawi, Idgham Mimi, dan Idzhar Syafawi.",
-					"youtubeVideoId": "W2b8G4kK9x1",
-					"orderIndex":     2,
-				},
-			})
-		})
+		// Tajwid Modules & Quizzes
+		r.Get("/tajwid/modules", tajwidHandler.GetModules)
+		r.Get("/tajwid/modules/{slug}", tajwidHandler.GetModuleDetail)
+		r.Post("/tajwid/quizzes/{quizId}/submit", tajwidHandler.SubmitQuiz)
 	})
 
 	serverAddr := fmt.Sprintf(":%s", cfg.AppPort)
