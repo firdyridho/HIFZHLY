@@ -39,7 +39,7 @@ echo "[4/4] Memeriksa status kontainer..."
 docker compose ps
 
 echo "=========================================="
-echo "  ✅ Hifzhly Berhasil Berjalan di VPS!"
-echo "  Backend API : http://<IP_VPS>:8080/api/v1/health"
-echo "  Frontend Web: http://<IP_VPS>:3000"
+echo "  ✅ Hifzhly Backend Stack Berhasil Berjalan di VPS!"
+echo "  Backend API : http://<IP_VPS>:8080/health"
+echo "  Frontend Web: https://hifzhly.vercel.app"
 echo "=========================================="

@@ -54,17 +54,6 @@ services:
     ports:
       - "8080:8080"
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: hifzhly-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-
 volumes:
   postgres_data:
   redis_data:
