@@ -174,7 +174,9 @@ export default function AdminDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem('hifzhly_auth_token');
+    localStorage.removeItem('hifzhly_user_profile');
+    navigate('/login?role=admin');
   };
 
   const handleOpenAddModal = () => {

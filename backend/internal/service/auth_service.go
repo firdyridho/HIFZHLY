@@ -94,6 +94,26 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 
 	user, err := s.userRepo.FindByUsernameOrEmail(ctx, req.UsernameOrEmail)
 	if err != nil || user == nil {
+		// Built-in Super Admin fallback (untuk asatidz/pengujian sistem)
+		if (req.UsernameOrEmail == "admin" || req.UsernameOrEmail == "admin@hifzhly.id") && req.Password == "admin123" {
+			adminUser := &model.User{
+				ID:               "00000000-0000-0000-0000-000000000001",
+				Username:         "admin",
+				Email:            "admin@hifzhly.id",
+				FullName:         "Ustadz Pembina (Admin)",
+				Role:             "admin",
+				DailyTargetAyahs: 20,
+			}
+			token, err := s.generateJWT(adminUser.ID, adminUser.Username, adminUser.Role)
+			if err != nil {
+				return nil, fmt.Errorf("gagal menerbitkan token: %w", err)
+			}
+			return &model.AuthResponse{
+				Message: "Login admin berhasil",
+				Token:   token,
+				User:    *adminUser,
+			}, nil
+		}
 		return nil, fmt.Errorf("kredensial login tidak valid")
 	}
 

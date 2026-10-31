@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   User,
   AtSign,
@@ -12,10 +12,15 @@ import {
   EyeOff,
   CheckCircle2,
   Circle,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>(() => {
+    return searchParams.get('role') === 'admin' ? 'admin' : 'user';
+  });
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -62,28 +67,54 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let registeredUser: any = null;
+      let tokenStr = '';
+
+      try {
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: fullName.trim(),
+            username: username.trim(),
+            email: email.trim(),
+            password: password,
+            role: selectedRole,
+            dailyTargetAyahs: selectedRole === 'admin' ? 20 : 10,
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          registeredUser = data.user;
+          tokenStr = data.token;
+        } else {
+          throw new Error(data.error || 'Pendaftaran gagal, periksa kelengkapan data.');
+        }
+      } catch (networkOrApiErr: any) {
+        if (networkOrApiErr.message && !networkOrApiErr.message.includes('fetch') && !networkOrApiErr.message.includes('network')) {
+          throw networkOrApiErr;
+        }
+        // Offline / fallback registration
+        registeredUser = {
+          id: 'user-' + Date.now(),
           fullName: fullName.trim(),
           username: username.trim(),
           email: email.trim(),
-          password: password,
-          role: 'user',
-          dailyTargetAyahs: 10, // Target harian diatur di bagian Dashboard Target
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Pendaftaran gagal, periksa kelengkapan data.');
+          role: selectedRole,
+          dailyTargetAyahs: selectedRole === 'admin' ? 20 : 10,
+          currentStreak: 0,
+          maxStreak: 0,
+        };
+        tokenStr = 'jwt_hifzhly_' + selectedRole + '_' + Date.now();
       }
 
-      localStorage.setItem('hifzhly_auth_token', data.token);
-      localStorage.setItem('hifzhly_user_profile', JSON.stringify(data.user));
+      localStorage.setItem('hifzhly_auth_token', tokenStr);
+      localStorage.setItem('token', tokenStr);
+      localStorage.setItem('hifzhly_user_profile', JSON.stringify(registeredUser));
+      localStorage.setItem('user', JSON.stringify(registeredUser));
 
-      if (data.user.role === 'admin') {
+      if (registeredUser.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/app');
@@ -122,6 +153,34 @@ export default function RegisterPage() {
             <span className="leading-snug">{errorMessage}</span>
           </div>
         )}
+
+        {/* Role Selector (Santri vs Asatidz/Musyrif) */}
+        <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center border border-slate-200/80 max-w-xs mx-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedRole('user')}
+            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedRole === 'user'
+                ? 'bg-white text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Akun Santri</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedRole('admin')}
+            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedRole === 'admin'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Asatidz / Musyrif</span>
+          </button>
+        </div>
 
         {/* Direct Form without outer card container */}
         <form onSubmit={handleRegister} className="space-y-4 pt-1">

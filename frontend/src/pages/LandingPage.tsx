@@ -196,7 +196,7 @@ export default function LandingPage() {
               Ketentuan Layanan &amp; Privasi Suara
             </Link>
             <span className="text-slate-300">|</span>
-            <Link to="/login" className="hover:text-emerald-700 hover:underline">
+            <Link to="/login?role=admin" className="hover:text-emerald-700 hover:underline">
               Portal Admin / Musyrif
             </Link>
           </div>
