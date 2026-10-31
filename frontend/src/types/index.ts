@@ -102,3 +102,62 @@ export interface QuizSubmitResponse {
   completedAt: string;
   review: QuizQuestionReview[];
 }
+
+export interface WordDiffItem {
+  index: number;
+  word: string;
+  status: 'correct' | 'substituted' | 'deleted' | 'inserted';
+  userSaid?: string;
+  mistakeType?: string;
+}
+
+export interface EvaluationResult {
+  evaluationId: string;
+  surahNumber: number;
+  ayahNumber: number;
+  score: number;
+  transcribedText: string;
+  referenceText: string;
+  audioDurationMs: number;
+  substitutions: number;
+  deletions: number;
+  insertions: number;
+  wordDiff: WordDiffItem[];
+  srsUpdate: {
+    qualityRating: number;
+    repetitionCount: number;
+    intervalDays: number;
+    easeFactor: number;
+    nextReviewAt: string;
+  };
+}
+
+export interface MutabaahWeeklyDay {
+  date: string;
+  ayahs: number;
+  targetMet: boolean;
+}
+
+export interface MutabaahSummary {
+  currentStreak: number;
+  maxStreak: number;
+  todayReviewedAyahs: number;
+  dailyTarget: number;
+  targetMetToday: boolean;
+  totalAyahsMemorized: number;
+  weeklyActivity: MutabaahWeeklyDay[];
+}
+
+export interface HeatmapAyahItem {
+  ayahNumber: number;
+  status: 'strong' | 'reviewing' | 'learning';
+  lastScore: number;
+  intervalDays: number;
+}
+
+export interface SurahHeatmap {
+  surahNumber: number;
+  surahName: string;
+  totalAyahs: number;
+  ayahs: HeatmapAyahItem[];
+}
