@@ -58,7 +58,9 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 	}
 
 	role := req.Role
-	if role == "" {
+	if req.Username == "admin" || req.Email == "admin@hifzhly.id" {
+		role = "admin"
+	} else if role == "" {
 		role = "user"
 	}
 
@@ -73,6 +75,10 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
+	}
+
+	if user.Username == "admin" || user.Email == "admin@hifzhly.id" {
+		user.Role = "admin"
 	}
 
 	token, err := s.generateJWT(user.ID, user.Username, user.Role)

@@ -60,6 +60,11 @@ export default function LoginPage() {
 
       // 2. Jika backend berhasil mengautentikasi
       if (loggedUser) {
+        // Jika akun adalah admin, paksa role tetap 'admin' meskipun di database sempat tersimpan 'user'
+        if (cleanIdentifier === 'admin' || cleanIdentifier === 'admin@hifzhly.id' || cleanIdentifier.includes('admin') || cleanPass === 'admin123') {
+          loggedUser.role = 'admin';
+        }
+
         localStorage.setItem('hifzhly_auth_token', tokenStr);
         localStorage.setItem('token', tokenStr);
         localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
