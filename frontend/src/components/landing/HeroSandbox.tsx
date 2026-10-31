@@ -99,7 +99,7 @@ export default function HeroSandbox() {
           <span className="text-xs font-semibold text-slate-800 tracking-tight">
             {isPlaying ? 'Sedang Mengevaluasi Suara...' : isCompleted ? 'Evaluasi AI Selesai' : 'Simulasi Dijeda'}
           </span>
-          <span className="text-[11px] text-slate-400 font-mono">
+          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
             16 kHz Mono
           </span>
         </div>
@@ -121,7 +121,7 @@ export default function HeroSandbox() {
       </div>
 
       {/* Recitation Info Header */}
-      <div className="flex items-center justify-between mb-4 text-xs text-slate-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2 text-xs text-slate-500">
         <div className="flex items-center space-x-1.5">
           <span className="font-semibold text-slate-800">QS. An-Naba' [78: 1-2]</span>
           <span className="text-slate-300">•</span>
@@ -129,7 +129,7 @@ export default function HeroSandbox() {
         </div>
 
         {/* Simulation Scenario Switcher */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => toggleMode('accurate')}

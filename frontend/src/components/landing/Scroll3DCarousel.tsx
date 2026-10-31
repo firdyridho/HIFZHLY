@@ -74,7 +74,7 @@ export default function Scroll3DCarousel() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between h-12 px-2 gap-1.5">
+            <div className="flex items-center justify-between h-12 px-1 sm:px-2 gap-1 sm:gap-1.5">
               {[35, 65, 45, 95, 75, 40, 85, 100, 60, 50, 75, 85, 55, 70, 45, 90, 70, 50, 80, 60].map(
                 (h, i) => (
                   <span
@@ -301,7 +301,7 @@ export default function Scroll3DCarousel() {
         </div>
 
         {/* 3D Stack Carousel Container */}
-        <div className="relative w-full max-w-3xl h-[490px] sm:h-[470px] perspective-1000 flex items-center justify-center">
+        <div className="relative w-full max-w-3xl h-[530px] sm:h-[480px] perspective-1000 flex items-center justify-center">
           {CARDS.map((card, index) => {
             // Calculate scroll thresholds for this card
             const startP = index * 0.25;
@@ -355,7 +355,7 @@ export default function Scroll3DCarousel() {
                   InteractiveColor={card.interactiveColor}
                   borderRadius="28px"
                   rotationFactor={0.2}
-                  className="p-7 sm:p-9 flex flex-col justify-between h-full w-full"
+                  className="p-4 sm:p-7 md:p-9 flex flex-col justify-between h-full w-full"
                   containerClassName="w-full h-full shadow-2xl shadow-slate-200/70"
                 >
                   <div>
@@ -369,7 +369,7 @@ export default function Scroll3DCarousel() {
                       </span>
                     </div>
 
-                    <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2">
                       {card.title}
                     </h3>
 

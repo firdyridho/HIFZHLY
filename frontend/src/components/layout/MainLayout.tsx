@@ -103,11 +103,11 @@ export default function MainLayout() {
 
             {/* Streak Counter (Lucide Flame SVG, No Emojis) */}
             <div
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-amber-50/90 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold"
+              className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 bg-amber-50/90 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold shrink-0"
               title="Konsistensi Murojaah Berturut-turut"
             >
               <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500/20" />
-              <span>{streak} Hari Streak</span>
+              <span>{streak} Hari <span className="hidden sm:inline">Streak</span></span>
             </div>
 
             {/* Back to Public Landing Page */}
@@ -134,7 +134,7 @@ export default function MainLayout() {
       {/* Main Content Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
         {/* Navigation Tabs Bar with Active State */}
-        <nav className="grid grid-cols-4 gap-1.5 p-1 bg-slate-200/70 rounded-2xl mb-6 text-sm font-medium">
+        <nav className="grid grid-cols-4 gap-1 p-1 bg-slate-200/70 rounded-2xl mb-6 text-xs sm:text-sm font-medium">
           <NavLink
             to="/app"
             end
