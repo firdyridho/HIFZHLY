@@ -37,7 +37,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		tokenString := parts[1]
-		userID, err := m.authService.ValidateToken(tokenString)
+		userID, role, err := m.authService.ValidateToken(tokenString)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
@@ -46,7 +46,21 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx = context.WithValue(ctx, "role", role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
+// RequireAdmin middleware untuk membatasi endpoint khusus role admin/ustaz
+func (m *AuthMiddleware) RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, _ := r.Context().Value("role").(string)
+		if role != "admin" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(model.ErrorResponse{Error: "Akses ditolak: Hanya admin atau ustaz yang dapat mengakses rute ini"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

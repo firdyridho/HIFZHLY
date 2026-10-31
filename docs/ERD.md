@@ -37,6 +37,7 @@ erDiagram
         string username UK "Username unik pengguna"
         string full_name "Nama lengkap pengguna"
         string password_hash "Bcrypt hash password aman"
+        string role "Peran akun (user / admin)"
         int daily_target_ayahs "Target murojaah ayat per hari (default: 10)"
         int current_streak "Jumlah hari berturut-turut murojaah"
         int max_streak "Rekor streak tertinggi"

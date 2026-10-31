@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(100) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'user', -- 'user' (santri) atau 'admin' (ustaz)
     daily_target_ayahs INT NOT NULL DEFAULT 10,
     current_streak INT NOT NULL DEFAULT 0,
     max_streak INT NOT NULL DEFAULT 0,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- 2. Tabel Murojaah Sessions
 CREATE TABLE IF NOT EXISTS murojaah_sessions (
@@ -163,4 +165,3 @@ VALUES
     2
 )
 ON CONFLICT (slug) DO NOTHING;
-

@@ -1,13 +1,19 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { BookOpen, Mic, Award, BarChart3 } from 'lucide-react';
+import { BookOpen, Mic, Award, BarChart3, Home, LogOut } from 'lucide-react';
 
 export default function MainLayout() {
+  const handleLogout = () => {
+    localStorage.removeItem('hifzhly_auth_token');
+    localStorage.removeItem('hifzhly_user_profile');
+    window.location.href = '/login';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-emerald-100 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3">
+          <Link to="/app" className="flex items-center space-x-3">
             <img src="/logo saja.png" alt="Hifzhly Logo" className="w-10 h-10 object-contain drop-shadow-xs" />
             <div>
               <div className="flex items-center space-x-2">
@@ -20,10 +26,26 @@ export default function MainLayout() {
             </div>
           </Link>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="flex items-center space-x-1.5 px-3 py-1 bg-amber-50 border border-amber-200/80 rounded-full text-amber-800 text-xs font-bold">
               <span>🔥 3 Hari Streak</span>
             </div>
+
+            <Link
+              to="/"
+              className="text-xs text-slate-500 hover:text-slate-800 p-2 rounded-lg hover:bg-slate-100 transition-all hidden sm:flex items-center space-x-1"
+              title="Ke Landing Page"
+            >
+              <Home className="w-4 h-4" />
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="text-xs text-slate-500 hover:text-red-700 p-2 rounded-lg hover:bg-slate-100 transition-all flex items-center space-x-1"
+              title="Keluar Akun"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -33,7 +55,7 @@ export default function MainLayout() {
         {/* Navigation Tabs Bar */}
         <nav className="grid grid-cols-4 gap-2 p-1.5 bg-slate-200/70 rounded-2xl mb-6 text-sm font-semibold">
           <NavLink
-            to="/"
+            to="/app"
             end
             className={({ isActive }) =>
               `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
@@ -49,7 +71,7 @@ export default function MainLayout() {
           </NavLink>
 
           <NavLink
-            to="/mushaf"
+            to="/app/mushaf"
             className={({ isActive }) =>
               `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
                 isActive
@@ -64,7 +86,7 @@ export default function MainLayout() {
           </NavLink>
 
           <NavLink
-            to="/tajwid"
+            to="/app/tajwid"
             className={({ isActive }) =>
               `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
                 isActive
@@ -79,7 +101,7 @@ export default function MainLayout() {
           </NavLink>
 
           <NavLink
-            to="/mutabaah"
+            to="/app/mutabaah"
             className={({ isActive }) =>
               `flex items-center justify-center space-x-2 py-2.5 rounded-xl transition-all ${
                 isActive
@@ -106,10 +128,15 @@ export default function MainLayout() {
             <span className="text-slate-400">|</span>
             <span>Platform Murojaah Al-Qur'an Berbasis AI & Spaced Repetition</span>
           </div>
-          <p>© 2026 Tim FIFA - Universitas Sultan Ageng Tirtayasa.</p>
+          <div className="flex items-center space-x-3">
+            <Link to="/terms" className="hover:underline hover:text-emerald-700">
+              Ketentuan & Privasi
+            </Link>
+            <span>•</span>
+            <p>© 2026 Tim FIFA - Untirta</p>
+          </div>
         </div>
       </footer>
     </div>
   );
 }
-

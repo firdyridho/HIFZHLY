@@ -14,7 +14,7 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, req model.RegisterRequest) (*model.AuthResponse, error)
 	Login(ctx context.Context, req model.LoginRequest) (*model.AuthResponse, error)
-	ValidateToken(tokenString string) (string, error)
+	ValidateToken(tokenString string) (string, string, error) // returns userID, role, error
 	GetProfile(ctx context.Context, userID string) (*model.User, error)
 }
 
@@ -38,7 +38,6 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 		return nil, fmt.Errorf("username, email, dan password wajib diisi")
 	}
 
-	// Check if already exists
 	existing, _ := s.userRepo.FindByUsernameOrEmail(ctx, req.Username)
 	if existing != nil {
 		return nil, fmt.Errorf("username sudah digunakan")
@@ -58,11 +57,17 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 		dailyTarget = 10
 	}
 
+	role := req.Role
+	if role == "" {
+		role = "user"
+	}
+
 	user := &model.User{
 		Email:            req.Email,
 		Username:         req.Username,
 		FullName:         req.FullName,
 		PasswordHash:     string(hashedPassword),
+		Role:             role,
 		DailyTargetAyahs: dailyTarget,
 	}
 
@@ -70,7 +75,7 @@ func (s *authServiceImpl) Register(ctx context.Context, req model.RegisterReques
 		return nil, err
 	}
 
-	token, err := s.generateJWT(user.ID, user.Username)
+	token, err := s.generateJWT(user.ID, user.Username, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("gagal menerbitkan token: %w", err)
 	}
@@ -96,7 +101,12 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 		return nil, fmt.Errorf("kredensial login tidak valid")
 	}
 
-	token, err := s.generateJWT(user.ID, user.Username)
+	// Validasi expected role jika dikirim (misal login lewat portal admin)
+	if req.ExpectedRole != "" && user.Role != req.ExpectedRole {
+		return nil, fmt.Errorf("akun ini tidak memiliki akses sebagai %s", req.ExpectedRole)
+	}
+
+	token, err := s.generateJWT(user.ID, user.Username, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("gagal menerbitkan token: %w", err)
 	}
@@ -108,10 +118,11 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 	}, nil
 }
 
-func (s *authServiceImpl) generateJWT(userID, username string) (string, error) {
+func (s *authServiceImpl) generateJWT(userID, username, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"userId":   userID,
 		"username": username,
+		"role":     role,
 		"exp":      time.Now().Add(72 * time.Hour).Unix(),
 		"iat":      time.Now().Unix(),
 	}
@@ -120,7 +131,7 @@ func (s *authServiceImpl) generateJWT(userID, username string) (string, error) {
 	return token.SignedString(s.jwtSecret)
 }
 
-func (s *authServiceImpl) ValidateToken(tokenString string) (string, error) {
+func (s *authServiceImpl) ValidateToken(tokenString string) (string, string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("metode signing tidak valid")
@@ -129,19 +140,23 @@ func (s *authServiceImpl) ValidateToken(tokenString string) (string, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return "", fmt.Errorf("token tidak valid atau telah kedaluwarsa")
+		return "", "", fmt.Errorf("token tidak valid atau telah kedaluwarsa")
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		if userID, ok := claims["userId"].(string); ok {
-			return userID, nil
+		userID, _ := claims["userId"].(string)
+		role, _ := claims["role"].(string)
+		if role == "" {
+			role = "user"
+		}
+		if userID != "" {
+			return userID, role, nil
 		}
 	}
 
-	return "", fmt.Errorf("isi token tidak valid")
+	return "", "", fmt.Errorf("isi token tidak valid")
 }
 
 func (s *authServiceImpl) GetProfile(ctx context.Context, userID string) (*model.User, error) {
 	return s.userRepo.FindByID(ctx, userID)
 }
-

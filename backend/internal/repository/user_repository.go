@@ -30,10 +30,14 @@ func (r *userRepositoryImpl) Create(ctx context.Context, user *model.User) error
 	}
 
 	query := `
-		INSERT INTO users (email, username, full_name, password_hash, daily_target_ayahs, current_streak, max_streak, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO users (email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 	`
+
+	if user.Role == "" {
+		user.Role = "user"
+	}
 
 	now := time.Now().UTC()
 	err := r.pool.QueryRow(ctx, query,
@@ -41,6 +45,7 @@ func (r *userRepositoryImpl) Create(ctx context.Context, user *model.User) error
 		user.Username,
 		user.FullName,
 		user.PasswordHash,
+		user.Role,
 		user.DailyTargetAyahs,
 		0,
 		0,
@@ -63,7 +68,7 @@ func (r *userRepositoryImpl) FindByUsernameOrEmail(ctx context.Context, identifi
 	}
 
 	query := `
-		SELECT id, email, username, full_name, password_hash, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
+		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
 		FROM users
 		WHERE username = $1 OR email = $1
 		LIMIT 1
@@ -76,6 +81,7 @@ func (r *userRepositoryImpl) FindByUsernameOrEmail(ctx context.Context, identifi
 		&user.Username,
 		&user.FullName,
 		&user.PasswordHash,
+		&user.Role,
 		&user.DailyTargetAyahs,
 		&user.CurrentStreak,
 		&user.MaxStreak,
@@ -96,7 +102,7 @@ func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*model.Us
 	}
 
 	query := `
-		SELECT id, email, username, full_name, password_hash, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
+		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
 		FROM users
 		WHERE id = $1
 		LIMIT 1
@@ -109,6 +115,7 @@ func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*model.Us
 		&user.Username,
 		&user.FullName,
 		&user.PasswordHash,
+		&user.Role,
 		&user.DailyTargetAyahs,
 		&user.CurrentStreak,
 		&user.MaxStreak,
@@ -137,4 +144,3 @@ func (r *userRepositoryImpl) UpdateStreak(ctx context.Context, userID string, cu
 	_, err := r.pool.Exec(ctx, query, currentStreak, maxStreak, time.Now().UTC(), userID)
 	return err
 }
-
