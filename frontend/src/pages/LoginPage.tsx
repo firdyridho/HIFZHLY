@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Lock,
@@ -15,42 +15,27 @@ import type { UserProfile } from '../types';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
-  const [loginPortal, setLoginPortal] = useState<'user' | 'admin'>(() => {
-    return searchParams.get('role') === 'admin' ? 'admin' : 'user';
-  });
-
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Sinkronkan input demo saat ganti tab jika form masih kosong
-  useEffect(() => {
-    if (loginPortal === 'admin') {
-      if (!identifier || identifier === 'ahmad_hifzh') setIdentifier('admin');
-      if (!password || password === 'santri123') setPassword('admin123');
-    } else {
-      if (identifier === 'admin') setIdentifier('');
-      if (password === 'admin123') setPassword('');
-    }
-    setErrorMessage('');
-  }, [loginPortal]);
-
-  const executeLogin = async (userIdentifier: string, userPass: string, portal: 'user' | 'admin') => {
+  const executeLogin = async (userIdentifier: string, userPass: string) => {
     setErrorMessage('');
     setLoading(true);
 
     const cleanIdentifier = userIdentifier.trim().toLowerCase();
+    const cleanPass = userPass.trim();
 
     try {
       let loggedUser: UserProfile | null = null;
       let tokenStr: string = '';
 
-      // 1. Coba hubungi backend API dengan timeout cepat 800ms
+      // 1. Coba hubungi backend API dengan batas waktu 1 detik
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 800);
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
 
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
@@ -70,14 +55,57 @@ export default function LoginPage() {
           tokenStr = data.token;
         }
       } catch {
-        // Backend offline / timeout: lanjut ke penyimpanan lokal
+        // Backend offline / timeout: lanjut ke auto-deteksi lokal
       }
 
-      // 2. Jika Portal ADMIN yang dipilih
-      if (portal === 'admin') {
-        const adminProfile: UserProfile = loggedUser || {
+      // 2. Jika backend berhasil mengautentikasi
+      if (loggedUser) {
+        localStorage.setItem('hifzhly_auth_token', tokenStr);
+        localStorage.setItem('token', tokenStr);
+        localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
+        localStorage.setItem('user', JSON.stringify(loggedUser));
+
+        const role = (loggedUser.role || '').toLowerCase();
+        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/app';
+        }
+        return;
+      }
+
+      // 3. Auto-Deteksi Akun Admin / Musyrif secara Lokal
+      let isLocalAdmin =
+        cleanIdentifier === 'admin' ||
+        cleanIdentifier === 'admin@hifzhly.id' ||
+        cleanIdentifier.includes('admin') ||
+        cleanIdentifier.includes('musyrif') ||
+        cleanIdentifier.includes('ustadz') ||
+        cleanIdentifier.includes('ustaz') ||
+        cleanIdentifier.includes('pengelola') ||
+        cleanIdentifier.includes('pembina') ||
+        cleanPass === 'admin123' ||
+        searchParams.get('role') === 'admin';
+
+      // Cek Database Pengguna Lokal (Akun yang didaftarkan di RegisterPage)
+      try {
+        const dbRaw = localStorage.getItem('hifzhly_users_db');
+        if (dbRaw) {
+          const db = JSON.parse(dbRaw);
+          if (db[cleanIdentifier]) {
+            const r = (db[cleanIdentifier].role || '').toLowerCase();
+            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
+              isLocalAdmin = true;
+            }
+          }
+        }
+      } catch {}
+
+      // Jika Terdeteksi sebagai Admin
+      if (isLocalAdmin) {
+        const adminProfile: UserProfile = {
           id: '00000000-0000-0000-0000-000000000001',
-          username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier || 'admin',
+          username: cleanIdentifier === 'admin' || !cleanIdentifier ? 'admin' : cleanIdentifier,
           email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
           fullName: 'Ustadz Pembina (Admin)',
           role: 'admin',
@@ -91,13 +119,13 @@ export default function LoginPage() {
         localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminProfile));
         localStorage.setItem('user', JSON.stringify(adminProfile));
 
-        // Redirect langsung ke Dashboard Admin
+        // Langsung arahkan ke Dashboard Admin
         window.location.href = '/admin';
         return;
       }
 
-      // 3. Jika Portal SANTRI yang dipilih
-      const santriProfile: UserProfile = loggedUser || {
+      // 4. Jika Akun Santri / Pengguna Biasa
+      const santriProfile: UserProfile = {
         id: '1',
         username: cleanIdentifier || 'ahmad_hifzh',
         email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier || 'ahmad_hifzh'}@santri.hifzhly.id`,
@@ -113,7 +141,7 @@ export default function LoginPage() {
       localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriProfile));
       localStorage.setItem('user', JSON.stringify(santriProfile));
 
-      // Redirect langsung ke Aplikasi Santri
+      // Langsung arahkan ke Aplikasi Santri
       window.location.href = '/app';
       return;
     } catch (err: any) {
@@ -125,19 +153,19 @@ export default function LoginPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    executeLogin(identifier, password, loginPortal);
+    executeLogin(identifier, password);
   };
 
-  const handleFillDemo = () => {
-    if (loginPortal === 'admin') {
-      setIdentifier('admin');
-      setPassword('admin123');
-      executeLogin('admin', 'admin123', 'admin');
-    } else {
-      setIdentifier('ahmad_hifzh');
-      setPassword('santri123');
-      executeLogin('ahmad_hifzh', 'santri123', 'user');
-    }
+  const handleQuickLoginAdmin = () => {
+    setIdentifier('admin');
+    setPassword('admin123');
+    executeLogin('admin', 'admin123');
+  };
+
+  const handleQuickLoginSantri = () => {
+    setIdentifier('ahmad_hifzh');
+    setPassword('santri123');
+    executeLogin('ahmad_hifzh', 'santri123');
   };
 
   return (
@@ -156,38 +184,8 @@ export default function LoginPage() {
             Masuk ke Hifzhly
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            {loginPortal === 'admin'
-              ? 'Portal Khusus Asatidz & Musyrif Pembina'
-              : 'Portal Murojaah & Hafalan Santri'}
+            Sistem otomatis mendeteksi peran akun Santri maupun Asatidz / Admin
           </p>
-        </div>
-
-        {/* 2-Role Tab Switcher: Santri vs Admin */}
-        <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center border border-slate-200/80 max-w-xs mx-auto">
-          <button
-            type="button"
-            onClick={() => setLoginPortal('user')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              loginPortal === 'user'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span>Santri</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLoginPortal('admin')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              loginPortal === 'admin'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Asatidz / Admin</span>
-          </button>
         </div>
 
         {/* Error Alert */}
@@ -198,36 +196,13 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Login Form Card */}
+        {/* Unified Direct Login Form Card */}
         <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <span className="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
-              {loginPortal === 'admin' ? (
-                <>
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Login Dashboard Admin</span>
-                </>
-              ) : (
-                <>
-                  <GraduationCap className="w-4 h-4 text-emerald-600" />
-                  <span>Login Aplikasi Santri</span>
-                </>
-              )}
-            </span>
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold hover:underline cursor-pointer"
-            >
-              Isi Demo {loginPortal === 'admin' ? 'Admin' : 'Santri'}
-            </button>
-          </div>
-
           <form onSubmit={handleFormSubmit} className="space-y-4">
             {/* Username or Email Input */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">
-                {loginPortal === 'admin' ? 'Username Admin / Asatidz' : 'Username Santri atau Email'}
+                Username atau Alamat Email
               </label>
               <div className="relative">
                 <input
@@ -235,11 +210,7 @@ export default function LoginPage() {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={
-                    loginPortal === 'admin'
-                      ? 'admin atau admin@hifzhly.id'
-                      : 'ahmad_hifzh atau email santri'
-                  }
+                  placeholder="Masukkan username atau email Anda"
                   className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -259,7 +230,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan kata sandi"
+                  placeholder="Masukkan kata sandi akunmu"
                   className="w-full pl-10 pr-11 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -274,16 +245,34 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Quick 1-Click Demo Testing Buttons */}
+            <div className="pt-1 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleQuickLoginAdmin}
+                className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                title="Masuk langsung sebagai Admin / Musyrif"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Masuk Demo Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickLoginSantri}
+                className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                title="Masuk langsung sebagai Santri"
+              >
+                <GraduationCap className="w-4 h-4 text-slate-500" />
+                <span>Masuk Demo Santri</span>
+              </button>
+            </div>
+
             {/* Submit Action Button */}
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3.5 px-4 rounded-2xl text-sm font-bold text-white shadow-md active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer ${
-                  loginPortal === 'admin'
-                    ? 'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/25'
-                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
-                }`}
+                className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -292,11 +281,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <span>
-                      {loginPortal === 'admin'
-                        ? 'Masuk ke Dashboard Admin'
-                        : 'Masuk ke Aplikasi Santri'}
-                    </span>
+                    <span>Masuk ke Hifzhly</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -309,11 +294,8 @@ export default function LoginPage() {
         <div className="pt-2 text-center text-xs text-slate-500 space-y-2">
           <p>
             Belum memiliki akun Hifzhly?{' '}
-            <Link
-              to={loginPortal === 'admin' ? '/register?role=admin' : '/register?role=user'}
-              className="font-bold text-emerald-700 hover:underline"
-            >
-              Daftar sebagai {loginPortal === 'admin' ? 'Asatidz / Musyrif' : 'Santri Baru'}
+            <Link to="/register" className="font-bold text-emerald-700 hover:underline">
+              Daftar Akun Baru
             </Link>
           </p>
           <p className="text-[11px] text-slate-400">
