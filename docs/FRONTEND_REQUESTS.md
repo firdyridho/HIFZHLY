@@ -44,41 +44,37 @@
 
 ## Daftar Permintaan Aktif (Active Inbox)
 
-* [ ] **REQ-FE-03: Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard)**
-  * Tanggal Diminta: 2026-10-31 (Jam 04:30)
-  * Diminta Oleh: Backend Team (Firdy)
-  * Latar Belakang / Endpoint Aktif: Endpoint `GET /api/v1/quran/surahs/{number}` dan `GET /api/v1/quran/mutashabihat/{surah}/{ayah}` kini telah mengembalikan data array `mutashabihat` (pemetaan ayat-ayat serupa).
-  * Kebutuhan Tampilan:
-    1. Jika suatu ayat memiliki `mutashabihat.length > 0`, tampilkan badge kuning kecil di samping nomor ayat (misal: `⚠️ Ayat Mutasyabih`).
-    2. Saat badge diklik/di-hover, tampilkan tooltip atau popup info: menampilkan surah & ayat pembanding, bunyi ayat yang mirip, dan catatan perbedaannya agar hafalan santri tidak tertukar.
-  * Status: Menunggu Dikerjakan
-
-* [ ] **REQ-FE-02: Integrasi State Autentikasi Pengguna (Login & Register)**
-  * Tanggal Diminta: 2026-10-31 (Jam 03:00)
-  * Diminta Oleh: Backend Team (Firdy)
-  * Latar Belakang / Endpoint Aktif: Endpoint backend Go untuk autentikasi telah aktif:
-    - `POST /api/v1/auth/register` (body: `email`, `username`, `fullName`, `password`, `dailyTargetAyahs`)
-    - `POST /api/v1/auth/login` (body: `usernameOrEmail`, `password`)
-    - `GET /api/v1/auth/me` (header: `Authorization: Bearer <token>`)
-  * Kebutuhan Tampilan:
-    1. Modal/Form login & register di sudut kanan atas header.
-    2. Simpan token JWT yang diterima ke dalam `localStorage.setItem('hifzhly_auth_token', token)`.
-    3. Tampilkan nama user dan target ayat harian secara dinamis di header aplikasi.
-  * Status: Menunggu Dikerjakan
-
-* [ ] **REQ-FE-01: Implementasi Layar Review Pembahasan Kuis Pasca Submit Jawaban**
-  * Tanggal Diminta: 2026-10-31 (Jam 01:45)
-  * Diminta Oleh: Backend Team (Firdy)
-  * Latar Belakang / Endpoint Aktif: Endpoint `POST /api/v1/tajwid/quizzes/{quizId}/submit` telah dirancang untuk mengembalikan skor, status kelulusan, dan array `review` berisi penjelasan kaidah tajwid per pertanyaan (lihat [`API.md`](./API.md) Bagian 6.3).
-  * Kebutuhan Tampilan:
-    1. Card rekapitulasi nilai di bagian atas (skor numerik besar, badge hijau "Lulus" jika $\ge 70$, badge kuning "Coba Lagi" jika $< 70$).
-    2. Daftar review per butir soal: menampilkan teks pertanyaan, pilihan pengguna, kunci jawaban, dan kotak berlatar belakang toska lembut yang menampilkan teks `explanation`.
-    3. Tombol aksi: "Ulangi Kuis" dan "Lanjut ke Modul Berikutnya".
-  * Status: Menunggu Dikerjakan
+*Tidak ada permintaan aktif yang tertunda saat ini. Seluruh permintaan telah diselesaikan.*
 
 ---
 
 ## Riwayat Permintaan Selesai (Archive)
 
-*Belum ada riwayat permintaan selesai.*
+* [x] **REQ-FE-03: Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard)**
+  * Tanggal Diminta: 2026-10-31 (Jam 04:30)
+  * Tanggal Selesai: 2026-10-31 (Jam 15:35)
+  * Diselesaikan Oleh: Faeyza (Frontend Team)
+  * Implementasi Tampilan:
+    1. Tombol indikator amber dengan ikon `AlertTriangle` (`lucide-react`, Zero Emojis) di samping nomor ayat pada `MushafPage.tsx` bila `ayah.mutashabihat.length > 0`.
+    2. Slide-over drawer / modal informatif perbandingan ayat mutasyabihat: menampilkan ayat aktif, surah & ayat pembanding, teks Arab berharakat (`font-quran text-2xl`), label kesamaan wazan/irama, dan catatan tajwid pembeda agar hafalan tidak tertukar.
+  * Status: **SELESAI**
 
+* [x] **REQ-FE-02: Integrasi State Autentikasi Pengguna (Login & Register) & Header Aplikasi**
+  * Tanggal Diminta: 2026-10-31 (Jam 03:00)
+  * Tanggal Selesai: 2026-10-31 (Jam 15:35)
+  * Diselesaikan Oleh: Faeyza (Frontend Team)
+  * Implementasi Tampilan:
+    1. Form login & register terhubung ke `POST /api/v1/auth/login` dan `POST /api/v1/auth/register`.
+    2. Token disimpan ke `localStorage.setItem('hifzhly_auth_token', token)` dan profil ke `localStorage.setItem('hifzhly_user_profile', JSON.stringify(user))`.
+    3. Pemisahan total antara header landing page (`TubelightNavbar`) dan header aplikasi santri (`MainLayout.tsx`) yang menampilkan nama santri dinamis, target ayat harian (`dailyTargetAyahs`), streak api konsistensi (`Flame` Lucide SVG), dan tombol logout.
+  * Status: **SELESAI**
+
+* [x] **REQ-FE-01: Implementasi Layar Review Pembahasan Kuis Pasca Submit Jawaban**
+  * Tanggal Diminta: 2026-10-31 (Jam 01:45)
+  * Tanggal Selesai: 2026-10-31 (Jam 15:35)
+  * Diselesaikan Oleh: Faeyza (Frontend Team)
+  * Implementasi Tampilan:
+    1. Card rekapitulasi nilai tajwid di `TajwidPage.tsx`: skor numerik besar (`score`), status kelulusan hijau "Lulus" ($\ge 70$) dengan `CheckCircle2` atau kuning "Coba Lagi" ($< 70$) dengan `RotateCcw` tanpa emoji.
+    2. Daftar ulasan butir soal: menampilkan pertanyaan, opsi pilihan santri (berpenanda hijau jika benar, merah jika salah), kunci jawaban resmi, dan kotak penjelasan kaidah tajwid toska lembut (`bg-teal-50 border-teal-200 text-teal-950`).
+    3. Tombol aksi responsif: "Ulangi Kuis Ini" dan "Lanjut ke Modul Berikutnya".
+  * Status: **SELESAI**

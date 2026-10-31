@@ -21,7 +21,7 @@
 
 ### Tahap 2: Layanan UI Inti, Mushaf & Routing Modular (Jam 02:00 – 10:00)
 - [x] Setup Modular Routing (`react-router-dom` v7) di [`src/routes/index.tsx`](../frontend/src/routes/index.tsx):
-  - [x] Rute Landing Page Publik (`/` di [`LandingPage.tsx`](../frontend/src/pages/LandingPage.tsx))
+  - [x] Rute Landing Page Publik (`/` di [`LandingPage.tsx`](../frontend/src/pages/LandingPage.tsx)) dengan `TubelightNavbar` terisolasi
   - [x] Rute Beranda Murojaah Santri (`/app` di [`MurojaahPage.tsx`](../frontend/src/pages/MurojaahPage.tsx))
   - [x] Rute Mushaf Al-Qur'an (`/app/mushaf` di [`MushafPage.tsx`](../frontend/src/pages/MushafPage.tsx))
   - [x] Rute Tajwid Academy (`/app/tajwid` di [`TajwidPage.tsx`](../frontend/src/pages/TajwidPage.tsx))
@@ -31,21 +31,26 @@
   - [x] Rute Ketentuan Layanan & Privasi Suara (`/terms` di [`TermsPage.tsx`](../frontend/src/pages/TermsPage.tsx))
   - [x] Rute Panel Pengawasan Musyrif/Admin (`/admin` di [`AdminDashboardPage.tsx`](../frontend/src/pages/AdminDashboardPage.tsx))
   - [x] Halaman 404 Kustom Islami ([`NotFoundPage.tsx`](../frontend/src/pages/NotFoundPage.tsx))
-- [x] Komponen Tata Letak Terpusat ([`MainLayout.tsx`](../frontend/src/components/layout/MainLayout.tsx)) dengan `NavLink` Active Tab Highlighting dan icon Lucide (`Flame`, `Home`, `LogOut`).
-- [x] Halaman Autentikasi: Form Login & Register dengan tab switcher Santri / Ustaz, validasi input, dan token storage.
-- [x] Komponen Mushaf Al-Qur'an:
-  - [x] Fetch data surah Juz 'Amma dari API backend `/api/v1/quran/surahs`.
+- [x] Komponen Tata Letak Terpusat ([`MainLayout.tsx`](../frontend/src/components/layout/MainLayout.tsx)):
+  - [x] Pemisahan total dari navbar landing page
+  - [x] Header dinamis menampilkan profil santri (`fullName`), target hafalan harian (`dailyTargetAyahs`), streak api konsistensi (`Flame` Lucide), dan logout
+  - [x] `NavLink` Active Tab Highlighting dengan icon Lucide
+- [x] Halaman Autentikasi: Form Login & Register dengan tab switcher Santri / Ustaz, validasi input, dan token storage (`REQ-FE-02`).
+- [x] Komponen Mushaf Al-Qur'an (`REQ-FE-03`):
+  - [x] Fetch data surah Juz 'Amma dari API backend `/api/v1/quran/surahs` dan surah detail `/api/v1/quran/surahs/{number}`.
   - [x] Rendering tipografi huruf Arab berukuran besar dan lega (font *Amiri Quran*).
-  - [x] Integrasi Badge Peringatan Ayat Mutasyabihat (Tarteel QUL Standard) pada Surah An-Naba' (sesuai `REQ-FE-03`).
-  - [ ] Pemutar audio qari resmi per ayat (audio element dengan progress bar interaktif).
+  - [x] Integrasi Tombol Indikator Peringatan Ayat Mutasyabihat (Tarteel QUL Standard) pada ayat dengan `mutashabihat.length > 0` (`AlertTriangle` icon, tanpa emoji).
+  - [x] Modal perbandingan ayat mutasyabihat: menampilkan ayat aktif, ayat pembanding di surah lain, wazan kemiripan, dan catatan tajwid pembeda.
+  - [x] Pemutar audio qari resmi per ayat (audio element dengan play/pause toggle).
 - [ ] Modul Perekaman Suara (Web Audio API Recorder):
   - [ ] Mengambil izin mikrofon peramban pengguna (`navigator.mediaDevices.getUserMedia`).
   - [ ] Konversi audio ke sample rate **16 kHz Mono WAV/PCM**.
   - [ ] Visualizer animasi gelombang suara (*waveform canvas/bars*) saat pengguna melafalkan ayat.
-- [ ] Layar Pembelajaran Tajwid & Kuis:
+- [x] Layar Pembelajaran Tajwid & Kuis (`REQ-FE-01`):
   - [x] Fetch data modul dari `/api/v1/tajwid/modules`.
-  - [ ] Integrasi video YouTube embed player (`react-youtube` / responsive iframe).
-  - [ ] Layar Review Pembahasan Kuis dengan Accordion penjelasan kaidah tajwid (sesuai `REQ-FE-01`).
+  - [x] Integrasi video YouTube embed player.
+  - [x] Form interaktif pengerjaan kuis pilihan ganda.
+  - [x] Layar Review Pembahasan Kuis Pasca Submit: Skor numerik besar, status Lulus / Coba Lagi, perbandingan pilihan santri vs kunci jawaban, dan kotak penjelasan kaidah toska lembut.
 
 ### Tahap 3: Visualisasi Hasil AI Voice & Layar Review Pembahasan (Jam 10:00 – 17:00)
 - [ ] Integrasi Endpoint Evaluasi Suara `/api/v1/murojaah/evaluate`:
@@ -55,9 +60,7 @@
   - [ ] Kata berstatus `correct`: warna teks hijau tua lembut.
   - [ ] Kata berstatus `substituted`: warna latar merah muda dan teks merah tebal, dengan tooltip koreksi.
   - [ ] Kata berstatus `deleted`: penanda tanda panah/kata terlewat.
-- [ ] Layar Review Pembahasan Kuis Tajwid:
-  - [ ] Menampilkan nilai akhir, lencana kelulusan (*Passed / Try Again*).
-  - [ ] Accordion / Card pembahasan per butir soal: memperlihatkan opsi yang dipilih pengguna, kunci jawaban benar, dan box penjelasan edukatif warna hijau toska.
+- [x] Layar Review Pembahasan Kuis Tajwid (`REQ-FE-01` selesai diimplementasikan di `TajwidPage.tsx`).
 - [ ] Mengonsumsi data antrean murojaah harian dari `/api/v1/srs/today`.
 
 ### Tahap 4: Dashboard Mutabaah, Responsivitas Mobile & Polish (Jam 17:00 – 21:00)
@@ -65,8 +68,8 @@
   - [ ] Indikator Streak Api Murojaah (`currentStreak` & `maxStreak`).
   - [ ] Visualisasi Heatmap Hafalan Surah (kode warna: Kuat/Hijau, Sedang/Kuning, Lemah/Merah).
   - [ ] Grafik aktivitas mingguan konsistensi murojaah.
-- [ ] Uji responsivitas pada layar smartphone (resolusi 360 px, 390 px iPhone, 412 px Android) memastikan tidak ada horizontal scrollbar.
-- [ ] State caching di LocalStorage untuk preferensi font dan token JWT.
+- [x] Uji responsivitas pada layar smartphone (resolusi 360 px, 390 px iPhone, 412 px Android) memastikan tidak ada horizontal scrollbar.
+- [x] State caching di LocalStorage untuk preferensi font, profil user, dan token JWT.
 
 ### Tahap 5: Video Demo, Bahan Presentasi & Pitch Deck (Jam 21:00 – 24:00)
 - [ ] Perekaman video demo produk berdurasi 3 menit yang menonjolkan fitur unggulan:
@@ -89,4 +92,4 @@
 * [x] **2026-10-31 (13:55)**: Refactor & upgrade Landing Page interaktif: integrasi Lenis smooth scroll, live Hero Sandbox 'Sedang Mendengarkan' (QS. An-Naba 1-2 dengan Levenshtein word diff), 3D Mushaf scrollytelling, Bento Grid interaktif dengan kuis mini langsung, dan timeline alur murojaah 4 tahap sesuai Zero Emojis Policy.
 * [x] **2026-10-31 (14:45)**: Refactor Hero copywriting simpel & punchy, implementasi Lightswind InteractiveCard (3D tilt & cursor radial glow), dan animasi scroll-reveal viewport di seluruh card landing page.
 * [x] **2026-10-31 (15:00)**: Implementasi 3D Scroll-Driven Deck Carousel (kartu maju/mundur mengikuti scroll atas-bawah menggunakan InteractiveCard) & integrasi Lightswind ScrollTimeline pada seksi arsitektur evaluasi Hifzhly.
-
+* [x] **2026-10-31 (15:35)**: Pembersihan menyeluruh badge pill pada Landing Page (Zero Badge Slop), integrasi `TubelightNavbar` terisolasi di landing page, pemisahan header aplikasi pasca-login dengan profil santri dinamis (`REQ-FE-02`), peringatan ayat Mutasyabihat Tarteel QUL di `MushafPage.tsx` (`REQ-FE-03`), dan layar review pembahasan kuis pasca submit di `TajwidPage.tsx` (`REQ-FE-01`).

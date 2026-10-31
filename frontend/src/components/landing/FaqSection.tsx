@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FaqItem {
   q: string;
@@ -39,10 +39,9 @@ export default function FaqSection() {
   return (
     <section className="py-20 max-w-4xl mx-auto px-4 w-full">
       <div className="text-center mb-12">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-700 mb-3">
-          <HelpCircle className="w-3.5 h-3.5 text-emerald-700" />
-          <span>Pertanyaan Umum</span>
-        </div>
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-2">
+          Pertanyaan Umum
+        </p>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
           Tanya Jawab Seputar Hifzhly
         </h2>
