@@ -118,6 +118,100 @@
   * **Kebutuhan UI**: Modal Doa Murojaah menampilkan doa-doa sebelum/sesudah hafalan lengkap dengan teks Arab, latin, terjemahan, dan keutamaan.
   * **Status**: Segera Dikerjakan Backend
 
+* [ ] **REQ-BE-07: Endpoint Mutabaah Calendar Heatmap Bulanan (`GET /api/v1/mutabaah/calendar?year=YYYY&month=MM`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam 00:25)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Mendukung kalender aktivitas Mutabaah Yaumi bergaya GitHub Contribution Heatmap per bulan. UI membutuhkan agregasi seluruh hari dalam bulan yang diminta untuk menentukan intensitas warna hijau (0-4) dan ringkasan bulanan.
+  * **Usulan Endpoint**: `GET /api/v1/mutabaah/calendar?year=2026&month=10`
+  * **Headers**: `Authorization: Bearer <jwt_token>`
+  * **Format Respons yang Diharapkan**:
+    ```json
+    {
+      "year": 2026,
+      "month": 10,
+      "monthName": "Oktober",
+      "totalAyahsMonth": 185,
+      "activeDaysCount": 18,
+      "averageScoreMonth": 94.8,
+      "targetMetDaysCount": 16,
+      "days": {
+        "2026-10-31": {
+          "date": "2026-10-31",
+          "ayahsReviewed": 15,
+          "targetAchieved": true,
+          "averageScore": 96.5,
+          "durationMinutes": 20,
+          "reportsCount": 2
+        }
+      }
+    }
+    ```
+  * **Status**: Menunggu Dikerjakan oleh Backend Engineer
+
+* [ ] **REQ-BE-08: Endpoint Detail Riwayat Laporan Mutabaah Harian (`GET /api/v1/mutabaah/logs?date=YYYY-MM-DD`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam 00:25)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Saat santri mengklik salah satu sel tanggal di GitHub calendar mutabaah, modal informasi riwayat laporan setoran akan menampilkan daftar sesi hafalan yang dilaporkan pada tanggal tersebut.
+  * **Usulan Endpoint**: `GET /api/v1/mutabaah/logs?date=2026-10-31`
+  * **Headers**: `Authorization: Bearer <jwt_token>`
+  * **Format Respons yang Diharapkan**:
+    ```json
+    {
+      "date": "2026-10-31",
+      "ayahsReviewed": 15,
+      "targetAchieved": true,
+      "averageScore": 96.5,
+      "durationMinutes": 20,
+      "reports": [
+        {
+          "id": "log-uuid-1",
+          "time": "05:30 WIB",
+          "surahNumber": 78,
+          "surahName": "An-Naba'",
+          "ayahStart": 1,
+          "ayahEnd": 10,
+          "totalAyahs": 10,
+          "score": 98.0,
+          "type": "murojaah_ai",
+          "verifier": "Hifzhly AI Voice Evaluator",
+          "notes": "Kelancaran makhraj dan harakat tervalidasi AI Levenshtein."
+        }
+      ]
+    }
+    ```
+  * **Status**: Menunggu Dikerjakan oleh Backend Engineer
+
+* [ ] **REQ-BE-09: Endpoint Pencatatan Setoran Mutabaah Baru (`POST /api/v1/mutabaah/logs`)**
+  * **Tanggal Diminta**: 2026-11-01 (Jam 00:25)
+  * **Diminta Oleh**: Frontend Team (Faeyza)
+  * **Latar Belakang / Kebutuhan UI**: Form "Catat Setoran Baru" di halaman Mutabaah memungkinkan santri mencatat setoran hafalan offline dengan ustadz atau tilawah mandiri ke database PostgreSQL `mutabaah_logs`.
+  * **Usulan Endpoint**: `POST /api/v1/mutabaah/logs`
+  * **Headers**: `Authorization: Bearer <jwt_token>`, `Content-Type: application/json`
+  * **Payload Request**:
+    ```json
+    {
+      "date": "2026-10-31",
+      "surahNumber": 78,
+      "ayahStart": 1,
+      "ayahEnd": 10,
+      "score": 95.0,
+      "durationMinutes": 15,
+      "type": "setoran_mandiri",
+      "verifier": "Ustadz Ahmad, Lc.",
+      "notes": "Bacaan lancar, mad thabi'i konsisten 2 harakat."
+    }
+    ```
+  * **Format Respons yang Diharapkan**:
+    ```json
+    {
+      "status": "success",
+      "message": "Laporan mutabaah berhasil disimpan",
+      "logId": "new-uuid-1234"
+    }
+    ```
+  * **Status**: Menunggu Dikerjakan oleh Backend Engineer
+
+
 ---
 
 ## Riwayat Permintaan Selesai (Archive)

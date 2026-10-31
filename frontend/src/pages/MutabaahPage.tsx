@@ -1,36 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Flame,
   Target,
   BookOpen,
   CheckCircle2,
-  Loader2,
   Award,
   Settings2,
   Minus,
   Plus,
   Save,
   X,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Mic,
+  FileText,
+  UserCheck,
+  Sparkles,
 } from 'lucide-react';
 import type { MutabaahSummary, SurahHeatmap } from '../types';
-
-const FALLBACK_SUMMARY: MutabaahSummary = {
-  currentStreak: 5,
-  maxStreak: 14,
-  todayReviewedAyahs: 10,
-  dailyTarget: 10,
-  targetMetToday: true,
-  totalAyahsMemorized: 78,
-  weeklyActivity: [
-    { date: '2026-10-25', ayahs: 12, targetMet: true },
-    { date: '2026-10-26', ayahs: 10, targetMet: true },
-    { date: '2026-10-27', ayahs: 5, targetMet: false },
-    { date: '2026-10-28', ayahs: 15, targetMet: true },
-    { date: '2026-10-29', ayahs: 10, targetMet: true },
-    { date: '2026-10-30', ayahs: 10, targetMet: true },
-    { date: '2026-10-31', ayahs: 10, targetMet: true },
-  ],
-};
+import {
+  DayMutabaahData,
+  MutabaahReportItem,
+  INDONESIAN_MONTHS,
+  INDONESIAN_DAYS_SHORT,
+  INDONESIAN_DAYS_FULL,
+  formatDateKey,
+  getStoredMutabaahLogs,
+  recordMutabaahReport,
+  getGithubIntensityLevel,
+  getGithubTileClasses,
+} from '../lib/mutabaahService';
 
 const JUZ_AMMA_SURAHS = [
   { number: 78, name: "An-Naba'", ayahs: 40, status: 'strong' as const, pct: 92 },
@@ -73,75 +74,141 @@ const JUZ_AMMA_SURAHS = [
 ];
 
 export default function MutabaahPage() {
-  const [summary, setSummary] = useState<MutabaahSummary>(FALLBACK_SUMMARY);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [selectedSurah, setSelectedSurah] = useState<number>(78);
-  const [activeSurahHeatmap, setActiveSurahHeatmap] = useState<SurahHeatmap | null>(null);
+  // Calendar View Month & Year State
+  const today = useMemo(() => new Date(), []);
+  const todayKey = useMemo(() => formatDateKey(today), [today]);
+
+  const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth() + 1); // 1-12
+
+  // Stored Mutabaah Logs (Real persistent data)
+  const [logs, setLogs] = useState<Record<string, DayMutabaahData>>({});
+
+  // Summary Metrics
+  const [summary, setSummary] = useState<MutabaahSummary>({
+    currentStreak: 5,
+    maxStreak: 14,
+    todayReviewedAyahs: 10,
+    dailyTarget: 10,
+    targetMetToday: true,
+    totalAyahsMemorized: 78,
+    weeklyActivity: [],
+  });
+
+  // Daily target editor
   const [isEditingTarget, setIsEditingTarget] = useState<boolean>(false);
   const [customTarget, setCustomTarget] = useState<number>(10);
 
+  // Selected date details modal state
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [selectedDayData, setSelectedDayData] = useState<DayMutabaahData | null>(null);
+
+  // Manual Report Form Modal State
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
+  const [formDate, setFormDate] = useState<string>(todayKey);
+  const [formSurahNumber, setFormSurahNumber] = useState<number>(78);
+  const [formAyahStart, setFormAyahStart] = useState<number>(1);
+  const [formAyahEnd, setFormAyahEnd] = useState<number>(10);
+  const [formScore, setFormScore] = useState<number>(95);
+  const [formType, setFormType] = useState<'murojaah_ai' | 'setoran_mandiri' | 'tilawah'>('setoran_mandiri');
+  const [formVerifier, setFormVerifier] = useState<string>('Ustadz Pembimbing');
+  const [formNotes, setFormNotes] = useState<string>('');
+
+  // Surah Heatmap State (Juz 'Amma)
+  const [selectedSurah, setSelectedSurah] = useState<number>(78);
+  const [activeSurahHeatmap, setActiveSurahHeatmap] = useState<SurahHeatmap | null>(null);
+
+  // 1. Refresh stored logs & sync with backend summary
+  const refreshData = () => {
+    const stored = getStoredMutabaahLogs();
+    setLogs(stored);
+
+    // Update today's metric
+    const todayLog = stored[todayKey];
+    let dailyTarget = 10;
+    const cachedProfile = localStorage.getItem('hifzhly_user_profile');
+    if (cachedProfile) {
+      try {
+        const p = JSON.parse(cachedProfile);
+        if (p.dailyTargetAyahs) dailyTarget = p.dailyTargetAyahs;
+      } catch {}
+    }
+    setCustomTarget(dailyTarget);
+
+    const todayReviewed = todayLog ? todayLog.ayahsReviewed : 0;
+    const isTargetMet = todayReviewed >= dailyTarget;
+
+    // Calculate real streak from stored logs
+    let calcStreak = 0;
+    const checkDate = new Date(today);
+    while (true) {
+      const key = formatDateKey(checkDate);
+      const dLog = stored[key];
+      if (dLog && dLog.ayahsReviewed > 0) {
+        calcStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    const finalStreak = Math.max(calcStreak, 1);
+
+    setSummary((prev) => ({
+      ...prev,
+      todayReviewedAyahs: todayReviewed,
+      dailyTarget,
+      targetMetToday: isTargetMet,
+      currentStreak: finalStreak,
+    }));
+  };
+
+  useEffect(() => {
+    refreshData();
+
+    // Listen to real-time events across the app
+    const handleUpdate = () => refreshData();
+    window.addEventListener('hifzhly_mutabaah_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('hifzhly_mutabaah_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [todayKey]);
+
+  // Sync with backend API GET /api/v1/mutabaah/summary if available
   useEffect(() => {
     const token = localStorage.getItem('hifzhly_auth_token');
     fetch('/api/v1/mutabaah/summary', {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch summary');
-        return res.json();
-      })
-      .then((data: MutabaahSummary) => {
-        const cached = localStorage.getItem('hifzhly_user_profile');
-        let target = data.dailyTarget;
-        if (cached) {
-          try {
-            const p = JSON.parse(cached);
-            if (p.dailyTargetAyahs) target = p.dailyTargetAyahs;
-          } catch(e) {}
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: MutabaahSummary | null) => {
+        if (data) {
+          setSummary((prev) => ({
+            ...prev,
+            maxStreak: data.maxStreak || prev.maxStreak,
+            totalAyahsMemorized: data.totalAyahsMemorized || prev.totalAyahsMemorized,
+          }));
         }
-        setSummary({ ...data, dailyTarget: target });
-        setCustomTarget(target);
       })
-      .catch((err) => {
-        console.warn('Using fallback mutabaah summary:', err);
-      })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
-  const handleSaveTarget = () => {
-    const newTarget = customTarget;
-    setSummary((prev) => ({
-      ...prev,
-      dailyTarget: newTarget,
-      targetMetToday: prev.todayReviewedAyahs >= newTarget,
-    }));
-
-    const cached = localStorage.getItem('hifzhly_user_profile');
-    let profile = cached ? JSON.parse(cached) : {};
-    profile.dailyTargetAyahs = newTarget;
-    localStorage.setItem('hifzhly_user_profile', JSON.stringify(profile));
-
-    window.dispatchEvent(new Event('hifzhly_profile_updated'));
-    window.dispatchEvent(new Event('storage'));
-    setIsEditingTarget(false);
-  };
-
-  // Fetch or generate heatmap for selected surah
+  // 2. Fetch or compute Surah Heatmap
   useEffect(() => {
     const token = localStorage.getItem('hifzhly_auth_token');
     fetch(`/api/v1/mutabaah/heatmap/${selectedSurah}`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch surah heatmap');
-        return res.json();
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: SurahHeatmap | null) => {
+        if (data) {
+          setActiveSurahHeatmap(data);
+        } else {
+          throw new Error('No backend data');
+        }
       })
-      .then((data: SurahHeatmap) => setActiveSurahHeatmap(data))
       .catch(() => {
-        // Fallback realistic ayah heatmap
         const surahObj = JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah) || JUZ_AMMA_SURAHS[0];
         const ayahsList = Array.from({ length: surahObj.ayahs }, (_, i) => {
           const ayahNum = i + 1;
@@ -168,32 +235,216 @@ export default function MutabaahPage() {
       });
   }, [selectedSurah]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16 text-emerald-700 space-x-2">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm font-semibold">Memuat analitik Mutabaah Yaumi...</span>
-      </div>
-    );
-  }
+  // Handle Save Target
+  const handleSaveTarget = () => {
+    const newTarget = customTarget;
+    setSummary((prev) => ({
+      ...prev,
+      dailyTarget: newTarget,
+      targetMetToday: prev.todayReviewedAyahs >= newTarget,
+    }));
 
-  const selectedSurahMeta = JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah);
+    const cached = localStorage.getItem('hifzhly_user_profile');
+    const profile = cached ? JSON.parse(cached) : {};
+    profile.dailyTargetAyahs = newTarget;
+    localStorage.setItem('hifzhly_user_profile', JSON.stringify(profile));
+
+    window.dispatchEvent(new Event('hifzhly_profile_updated'));
+    window.dispatchEvent(new Event('storage'));
+    setIsEditingTarget(false);
+  };
+
+  // Calendar Month Navigation
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentMonth(12);
+      setCurrentYear((prev) => prev - 1);
+    } else {
+      setCurrentMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentMonth(1);
+      setCurrentYear((prev) => prev + 1);
+    } else {
+      setCurrentMonth((prev) => prev + 1);
+    }
+  };
+
+  const handleJumpToToday = () => {
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth() + 1);
+  };
+
+  // Build Calendar Grid for Current Month
+  const calendarCells = useMemo(() => {
+    const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 = Ahad/Min
+    const totalDaysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    const totalDaysInPrevMonth = new Date(currentYear, currentMonth - 1, 0).getDate();
+
+    const cells: {
+      dateKey: string;
+      dayNumber: number;
+      isCurrentMonth: boolean;
+      data?: DayMutabaahData;
+      isToday: boolean;
+    }[] = [];
+
+    // Ghost padding cells from previous month
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = totalDaysInPrevMonth - i;
+      const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+      const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+      const key = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      cells.push({
+        dateKey: key,
+        dayNumber: dayNum,
+        isCurrentMonth: false,
+        data: logs[key],
+        isToday: key === todayKey,
+      });
+    }
+
+    // Days in current month
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const key = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({
+        dateKey: key,
+        dayNumber: d,
+        isCurrentMonth: true,
+        data: logs[key],
+        isToday: key === todayKey,
+      });
+    }
+
+    // Padding cells for next month to complete the last week row
+    const remaining = 7 - (cells.length % 7);
+    if (remaining < 7) {
+      for (let n = 1; n <= remaining; n++) {
+        const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+        const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+        const key = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+        cells.push({
+          dateKey: key,
+          dayNumber: n,
+          isCurrentMonth: false,
+          data: logs[key],
+          isToday: key === todayKey,
+        });
+      }
+    }
+
+    return cells;
+  }, [currentYear, currentMonth, logs, todayKey]);
+
+  // Month Statistics
+  const monthStats = useMemo(() => {
+    let totalAyahs = 0;
+    let activeDays = 0;
+    let scoreSum = 0;
+    let targetMetDays = 0;
+
+    const prefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    Object.entries(logs).forEach(([k, d]) => {
+      if (k.startsWith(prefix) && d.ayahsReviewed > 0) {
+        totalAyahs += d.ayahsReviewed;
+        activeDays += 1;
+        scoreSum += d.averageScore;
+        if (d.targetAchieved) targetMetDays += 1;
+      }
+    });
+
+    const avgScore = activeDays > 0 ? Math.round((scoreSum / activeDays) * 10) / 10 : 0;
+    return {
+      totalAyahs,
+      activeDays,
+      targetMetDays,
+      avgScore,
+    };
+  }, [currentYear, currentMonth, logs]);
+
+  // Open Date Detail Modal on click
+  const handleCellClick = (cellDateKey: string) => {
+    setSelectedDateKey(cellDateKey);
+    setSelectedDayData(logs[cellDateKey] || null);
+  };
+
+  // Close Date Detail Modal
+  const handleCloseDetailModal = () => {
+    setSelectedDateKey(null);
+    setSelectedDayData(null);
+  };
+
+  // Open Manual Report Modal
+  const handleOpenReportModal = (dateStr?: string) => {
+    setFormDate(dateStr || todayKey);
+    setIsReportModalOpen(true);
+  };
+
+  // Submit Manual Report Form
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const surahMeta = JUZ_AMMA_SURAHS.find((s) => s.number === formSurahNumber);
+    const surahName = surahMeta ? surahMeta.name : `Surah ${formSurahNumber}`;
+
+    await recordMutabaahReport({
+      date: formDate,
+      surahNumber: formSurahNumber,
+      surahName,
+      ayahStart: formAyahStart,
+      ayahEnd: formAyahEnd,
+      score: formScore,
+      type: formType,
+      verifier: formVerifier,
+      notes: formNotes || undefined,
+    });
+
+    setIsReportModalOpen(false);
+    refreshData();
+
+    // If detail modal is open for this date, refresh it
+    if (selectedDateKey === formDate) {
+      const updated = getStoredMutabaahLogs();
+      setSelectedDayData(updated[formDate] || null);
+    }
+  };
+
+  // Format Indonesian date for detail modal
+  const formattedSelectedDate = useMemo(() => {
+    if (!selectedDateKey) return '';
+    const [y, m, d] = selectedDateKey.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayName = INDONESIAN_DAYS_FULL[dateObj.getDay()];
+    const monthName = INDONESIAN_MONTHS[m - 1];
+    return `${dayName}, ${d} ${monthName} ${y}`;
+  }, [selectedDateKey]);
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-200">
+    <div className="space-y-6 pb-28 font-sans">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Dashboard Mutabaah Digital &amp; Analitik Retensi
-          </h2>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Mutabaah Yaumi &amp; Analitik Retensi
+          </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Pencatatan murojaah otomatis, kurva daya ingat ilmiah, dan pemetaan ayat Mutqin di Juz 'Amma.
+            Pencatatan konsistensi murojaah santri, heatmap bergaya GitHub, dan ketahanan memori Juz 'Amma.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => handleOpenReportModal()}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Catat Setoran Baru</span>
+        </button>
       </div>
 
-      {/* 1. 4 Metric Cards */}
+      {/* 2. Metric Cards (4 Kolom) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Streak Murojaah */}
         <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex items-center space-x-4">
@@ -213,7 +464,7 @@ export default function MutabaahPage() {
           </div>
         </div>
 
-        {/* Daily Target Progress (Interactive Target Manager) */}
+        {/* Daily Target Progress */}
         <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between relative">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-3.5">
@@ -248,7 +499,7 @@ export default function MutabaahPage() {
               </span>
             ) : (
               <span className="font-medium text-slate-500">
-                Sisa {summary.dailyTarget - summary.todayReviewedAyahs} ayat lagi
+                Sisa {Math.max(0, summary.dailyTarget - summary.todayReviewedAyahs)} ayat lagi
               </span>
             )}
             <button
@@ -274,7 +525,6 @@ export default function MutabaahPage() {
                 </button>
               </div>
 
-              {/* Preset buttons */}
               <div className="grid grid-cols-4 gap-1">
                 {[5, 10, 15, 20].map((preset) => (
                   <button
@@ -292,7 +542,6 @@ export default function MutabaahPage() {
                 ))}
               </div>
 
-              {/* Stepper & Save */}
               <div className="flex items-center space-x-1.5 pt-1">
                 <div className="flex items-center border border-slate-200 bg-white rounded-xl overflow-hidden shrink-0">
                   <button
@@ -357,10 +606,10 @@ export default function MutabaahPage() {
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Tingkat Retensi
+              Rata-rata Skor Bulan Ini
             </span>
             <span className="text-2xl font-black text-sky-800 font-mono tabular-nums block">
-              91.4%
+              {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '95.0%'}
             </span>
             <span className="text-[10px] text-slate-500">
               Evaluasi Speech Levenshtein
@@ -369,63 +618,527 @@ export default function MutabaahPage() {
         </div>
       </div>
 
-      {/* 2. Weekly Activity Consistency Chart */}
-      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+      {/* 3. GITHUB-STYLE CONTRIBUTION HEATMAP CALENDAR (Per-Bulan, Grid Hari & Tanggal) */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+        {/* Top Controls: Month Selector & Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">
-              Konsistensi Murojaah Mingguan
-            </h3>
-            <p className="text-xs text-slate-500">
-              Rekam jejak ayat yang telah diulang selama 7 hari terakhir
+            <div className="flex items-center space-x-2">
+              <CalendarIcon className="w-5 h-5 text-emerald-700" />
+              <h2 className="text-lg font-bold text-slate-900">
+                Kalender Mutabaah Murojaah
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Warna hijau semakin pekat menandakan jumlah ayat yang dimurojaah semakin banyak. Klik tanggal untuk melihat rincian laporan.
             </p>
           </div>
-          <span className="text-xs font-mono font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-            Status: Konsisten
-          </span>
+
+          <div className="flex items-center space-x-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+              title="Bulan Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 min-w-[140px] text-center">
+              {INDONESIAN_MONTHS[currentMonth - 1]} {currentYear}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+              title="Bulan Berikutnya"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleJumpToToday}
+              className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Bulan Ini
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-2 pt-2">
-          {summary.weeklyActivity.map((day, idx) => {
-            const dateObj = new Date(day.date);
-            const dayName = ['Aha', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][
-              dateObj.getDay()
-            ];
+        {/* Month Summary Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
+          <div>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Total Bulan Ini</span>
+            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+              {monthStats.totalAyahs} Ayat
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Hari Aktif</span>
+            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+              {monthStats.activeDays} Hari
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Target Tercapai</span>
+            <span className="font-bold text-emerald-800 font-mono text-sm sm:text-base">
+              {monthStats.targetMetDays} Hari
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Rata-rata Akurasi</span>
+            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+              {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '-'}
+            </span>
+          </div>
+        </div>
+
+        {/* Day-of-Week Column Headers (Min, Sen, Sel, Rab, Kam, Jum, Sab) */}
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center">
+          {INDONESIAN_DAYS_SHORT.map((dayName, idx) => (
+            <div
+              key={idx}
+              className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-400 py-1"
+            >
+              {dayName}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Grid of Day Tiles */}
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+          {calendarCells.map((cell, idx) => {
+            const ayahsCount = cell.data ? cell.data.ayahsReviewed : 0;
+            const level = cell.isCurrentMonth ? getGithubIntensityLevel(ayahsCount) : 0;
+            const tileColorClass = cell.isCurrentMonth
+              ? getGithubTileClasses(level, cell.isToday)
+              : 'bg-slate-50/50 border-slate-100 text-slate-300 opacity-40';
+
+            const isSelected = selectedDateKey === cell.dateKey;
 
             return (
-              <div key={idx} className="flex flex-col items-center space-y-2">
-                <div
-                  className={`w-full h-24 rounded-2xl flex flex-col items-center justify-end p-2 transition-all border ${
-                    day.targetMet
-                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
-                      : day.ayahs > 0
-                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                      : 'bg-slate-100 text-slate-400 border-slate-200'
-                  }`}
-                >
-                  <span className="text-sm font-black font-mono">
-                    {day.ayahs}
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleCellClick(cell.dateKey)}
+                className={`relative aspect-square sm:aspect-auto sm:h-20 rounded-2xl border p-1.5 sm:p-2.5 flex flex-col justify-between transition-all cursor-pointer text-left ${tileColorClass} ${
+                  isSelected ? 'ring-2 ring-emerald-700 shadow-md scale-102 z-10' : ''
+                }`}
+                title={`${cell.dateKey}: ${ayahsCount} ayat dimurojaah`}
+              >
+                {/* Header: Date Number & Today Dot */}
+                <div className="flex items-center justify-between w-full">
+                  <span
+                    className={`text-xs sm:text-sm font-bold font-mono ${
+                      cell.isCurrentMonth
+                        ? level >= 3
+                          ? 'text-white'
+                          : 'text-slate-800'
+                        : 'text-slate-300'
+                    }`}
+                  >
+                    {cell.dayNumber}
                   </span>
-                  <span className="text-[9px] uppercase font-bold opacity-80">
-                    Ayat
-                  </span>
+
+                  {cell.isToday && (
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        level >= 3 ? 'bg-amber-300' : 'bg-emerald-600'
+                      }`}
+                      title="Hari Ini"
+                    />
+                  )}
                 </div>
 
-                <div className="text-center">
-                  <span className="text-xs font-bold text-slate-700 block">
-                    {dayName}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    {day.date.slice(8, 10)}/{day.date.slice(5, 7)}
-                  </span>
-                </div>
-              </div>
+                {/* Footer on desktop: Total Ayats Reviewed */}
+                {cell.isCurrentMonth && ayahsCount > 0 ? (
+                  <div className="hidden sm:flex flex-col">
+                    <span
+                      className={`text-xs font-black font-mono leading-none ${
+                        level >= 3 ? 'text-white' : 'text-emerald-950'
+                      }`}
+                    >
+                      {ayahsCount}
+                    </span>
+                    <span
+                      className={`text-[9px] uppercase font-bold tracking-tight opacity-80 ${
+                        level >= 3 ? 'text-emerald-100' : 'text-emerald-800'
+                      }`}
+                    >
+                      Ayat
+                    </span>
+                  </div>
+                ) : (
+                  cell.isCurrentMonth && (
+                    <span className="hidden sm:block text-[9px] text-slate-300 font-mono">-</span>
+                  )
+                )}
+
+                {/* Mobile Dot Indicator if active */}
+                {cell.isCurrentMonth && ayahsCount > 0 && (
+                  <div className="sm:hidden self-end w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                )}
+              </button>
             );
           })}
         </div>
+
+        {/* GitHub Heatmap Intensity Legend */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          <span className="text-slate-500 text-[11px]">
+            * Klik salah satu kotak tanggal untuk membaca riwayat laporan setoran santri.
+          </span>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] text-slate-400 font-semibold">Sedikit (0 Ayat)</span>
+            <div className="flex items-center space-x-1">
+              <span className="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200" title="0 Ayat" />
+              <span className="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-200" title="1-4 Ayat" />
+              <span className="w-3.5 h-3.5 rounded bg-emerald-300 border border-emerald-400" title="5-9 Ayat" />
+              <span className="w-3.5 h-3.5 rounded bg-emerald-500 border border-emerald-600" title="10-19 Ayat" />
+              <span className="w-3.5 h-3.5 rounded bg-emerald-700 border border-emerald-800" title=">= 20 Ayat" />
+            </div>
+            <span className="text-[11px] text-slate-600 font-bold">Banyak (20+ Ayat)</span>
+          </div>
+        </div>
       </div>
 
-      {/* 3. Heatmap Hafalan Surah (Juz 'Amma 37 Surahs) */}
+      {/* 4. MODAL DETAIL LAPORAN TANGGAL (Informasi riwayat laporan setoran) */}
+      {selectedDateKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Laporan Mutabaah
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {formattedSelectedDate}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCloseDetailModal}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Metrics of the Day */}
+            <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-center">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Ayat</span>
+                <span className="text-lg font-black text-slate-900 font-mono">
+                  {selectedDayData ? selectedDayData.ayahsReviewed : 0}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Status Target</span>
+                <span
+                  className={`text-xs font-bold block mt-1 ${
+                    selectedDayData?.targetAchieved
+                      ? 'text-emerald-700'
+                      : 'text-amber-700'
+                  }`}
+                >
+                  {selectedDayData?.targetAchieved ? 'Tercapai' : 'Belum'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Rata-rata Skor</span>
+                <span className="text-lg font-black text-slate-900 font-mono">
+                  {selectedDayData && selectedDayData.ayahsReviewed > 0
+                    ? `${selectedDayData.averageScore}%`
+                    : '-'}
+                </span>
+              </div>
+            </div>
+
+            {/* Reports List */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Rincian Sesi Laporan ({selectedDayData?.reports?.length || 0})
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenReportModal(selectedDateKey)}
+                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center space-x-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Laporan</span>
+                </button>
+              </div>
+
+              {selectedDayData && selectedDayData.reports && selectedDayData.reports.length > 0 ? (
+                <div className="space-y-2.5">
+                  {selectedDayData.reports.map((report: MutabaahReportItem) => {
+                    const isAi = report.type === 'murojaah_ai';
+                    return (
+                      <div
+                        key={report.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2 hover:border-emerald-300 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`p-1.5 rounded-lg text-xs ${
+                                isAi
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-teal-50 text-teal-700 border border-teal-200'
+                              }`}
+                            >
+                              {isAi ? <Mic className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                            </span>
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block">
+                                QS. {report.surahName} : Ayat {report.ayahStart} - {report.ayahEnd}
+                              </span>
+                              <span className="text-[10px] text-slate-500">
+                                {report.totalAyahs} Ayat • {report.time}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-xs font-bold font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Skor {report.score}%
+                            </span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              {report.score >= 90 ? 'Mutqin' : 'Jayyid'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {report.notes && (
+                          <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                            {report.notes}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                          <span className="flex items-center space-x-1">
+                            <UserCheck className="w-3 h-3 text-emerald-600" />
+                            <span>Penguji: {report.verifier || 'Mandiri'}</span>
+                          </span>
+                          <span className="capitalize">{report.type.replace('_', ' ')}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center p-8 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm">
+                      Belum Ada Catatan Murojaah
+                    </h5>
+                    <p className="text-xs text-slate-500 max-w-xs mx-auto mt-0.5">
+                      Belum ada ayat yang dilaporkan untuk tanggal ini. Mulai murojaah sekarang atau catat setoran mandiri.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex items-center justify-center space-x-2">
+                    <Link
+                      to="/app/murojaah"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Mulai Murojaah AI</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReportModal(selectedDateKey)}
+                      className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Catat Manual
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleCloseDetailModal}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL FORM TAMBAH LAPORAN SETORAN MANDIRI / USTADZ */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <form
+            onSubmit={handleSubmitReport}
+            className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-emerald-700" />
+                <h3 className="font-bold text-slate-900 text-base">
+                  Catat Laporan Mutabaah
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {/* Tanggal */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Tanggal Setoran</label>
+                <input
+                  type="date"
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              {/* Surah */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Pilih Surah (Juz 'Amma)</label>
+                <select
+                  value={formSurahNumber}
+                  onChange={(e) => setFormSurahNumber(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                >
+                  {JUZ_AMMA_SURAHS.map((s) => (
+                    <option key={s.number} value={s.number}>
+                      {s.number}. {s.name} ({s.ayahs} Ayat)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Rentang Ayat */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Ayat Mulai</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formAyahStart}
+                    onChange={(e) => setFormAyahStart(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Ayat Akhir</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formAyahEnd}
+                    onChange={(e) => setFormAyahEnd(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Jenis Kegiatan & Penguji */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Jenis Aktivitas</label>
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                  >
+                    <option value="setoran_mandiri">Setoran Mandiri</option>
+                    <option value="murojaah_ai">Murojaah Suara AI</option>
+                    <option value="tilawah">Tilawah Harian</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Nilai Evaluasi (%)</label>
+                  <input
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={formScore}
+                    onChange={(e) => setFormScore(Number(e.target.value))}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Penguji */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Nama Penguji / Pembimbing</label>
+                <input
+                  type="text"
+                  value={formVerifier}
+                  onChange={(e) => setFormVerifier(e.target.value)}
+                  placeholder="Contoh: Ustadz Ahmad, Lc. / Mandiri"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              {/* Catatan */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Catatan Tambahan (Opsional)</label>
+                <textarea
+                  rows={2}
+                  value={formNotes}
+                  onChange={(e) => setFormNotes(e.target.value)}
+                  placeholder="Contoh: Bacaan lancar, mad thabi'i konsisten 2 harakat."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center space-x-1"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan Laporan</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* 6. HEATMAP DAYA INGAT SURAH (Juz 'Amma 37 Surahs) */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
@@ -437,7 +1150,6 @@ export default function MutabaahPage() {
             </p>
           </div>
 
-          {/* Legend */}
           <div className="flex items-center space-x-4 text-xs font-medium">
             <span className="flex items-center space-x-1.5">
               <span className="w-3 h-3 rounded bg-emerald-500" />
@@ -498,11 +1210,10 @@ export default function MutabaahPage() {
                 </span>
               </div>
               <span className="text-[11px] font-mono text-emerald-700 font-semibold">
-                Daya Tahan Memori: {selectedSurahMeta?.pct}%
+                Daya Tahan Memori: {JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah)?.pct}%
               </span>
             </div>
 
-            {/* Ayah Grid */}
             <div className="flex flex-wrap gap-2">
               {activeSurahHeatmap.ayahs.map((ayah) => {
                 let colorClass = 'bg-emerald-500 text-white';

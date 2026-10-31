@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
+import { getStoredMutabaahLogs, formatDateKey } from '../lib/mutabaahService';
 
 interface PrayerSchedule {
   name: string;
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   const [prayerTimes, setPrayerTimes] = useState<PrayerSchedule[]>(DEFAULT_PRAYER_TIMES);
   const [cityName, setCityName] = useState('Serang, Banten');
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
+  const [todayReviewed, setTodayReviewed] = useState(10);
 
   // Load Real Prayer Times and Doa from Backend API
   useEffect(() => {
@@ -113,6 +115,19 @@ export default function DashboardPage() {
         })
         .catch(() => {});
     }
+
+    // 0. Sync Real Mutabaah Today Log
+    const syncTodayMutabaah = () => {
+      const logs = getStoredMutabaahLogs();
+      const todayK = formatDateKey(new Date());
+      const tLog = logs[todayK];
+      if (tLog) {
+        setTodayReviewed(tLog.ayahsReviewed);
+      }
+    };
+    syncTodayMutabaah();
+    window.addEventListener('hifzhly_mutabaah_updated', syncTodayMutabaah);
+    window.addEventListener('storage', syncTodayMutabaah);
 
     // 1. Fetch Real SRS Queue from Backend API
     fetch('/api/v1/srs/today', {
@@ -528,13 +543,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs mb-1.5 font-semibold">
                   <span className="text-slate-700">Target Ayat Hari Ini:</span>
                   <span className="text-emerald-800 font-mono font-bold">
-                    {dailyTarget} / {dailyTarget} Ayat
+                    {todayReviewed} / {dailyTarget} Ayat
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <div
                     className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500"
-                    style={{ width: '100%' }}
+                    style={{ width: `${Math.min(100, Math.round((todayReviewed / dailyTarget) * 100))}%` }}
                   />
                 </div>
               </div>

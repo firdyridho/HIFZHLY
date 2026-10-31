@@ -13,6 +13,7 @@ import {
   Layers
 } from 'lucide-react';
 import type { SrsDueItem, SurahSummary } from '../types';
+import { recordMurojaahSingleAyah } from '../lib/mutabaahService';
 
 interface AyahWord {
   raw: string;       // Lafal asli berharakat lengkap (contoh: ذَٰلِكَ)
@@ -247,6 +248,18 @@ export default function MurojaahPage() {
   const handleAyahCompleted = async (ayah: MushafAyah) => {
     setIsCompletedAyah(true);
     setScoreNotification(`Alhamdulillah! Ayat ${ayah.ayahNumber} Mutqin (Skor 100%)`);
+
+    // Rekam langsung ke Mutabaah Yaumi persistent storage
+    try {
+      recordMurojaahSingleAyah(
+        currentSurah.number,
+        currentSurah.name,
+        ayah.ayahNumber,
+        100
+      );
+    } catch (e) {
+      console.warn('Failed to record mutabaah locally:', e);
+    }
 
     try {
       const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
