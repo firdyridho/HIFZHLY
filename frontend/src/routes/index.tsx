@@ -44,13 +44,15 @@ export default function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="murojaah" element={<MurojaahPage />} />
+        <Route path="hafalan" element={<MurojaahPage />} />
         <Route path="mushaf" element={<MushafPage />} />
         <Route path="tajwid" element={<TajwidPage />} />
         <Route path="mutabaah" element={<MutabaahPage />} />
       </Route>
 
-      {/* 4. Legacy Redirects (agar /murojaah, /mushaf tetap jalan) */}
+      {/* 4. Legacy Redirects (agar /murojaah, /hafalan, /mushaf tetap jalan) */}
       <Route path="/murojaah" element={<Navigate to="/app/murojaah" replace />} />
+      <Route path="/hafalan" element={<Navigate to="/app/hafalan" replace />} />
       <Route path="/mushaf" element={<Navigate to="/app/mushaf" replace />} />
       <Route path="/tajwid" element={<Navigate to="/app/tajwid" replace />} />
       <Route path="/mutabaah" element={<Navigate to="/app/mutabaah" replace />} />

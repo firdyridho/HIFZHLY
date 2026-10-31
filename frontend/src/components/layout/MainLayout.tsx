@@ -169,7 +169,7 @@ export default function MainLayout() {
                 }
               >
                 <Mic className="w-4 h-4" />
-                <span>Murojaah</span>
+                <span>Hafalan</span>
               </NavLink>
 
               <NavLink
@@ -251,17 +251,17 @@ export default function MainLayout() {
             <span className="text-[10px] mt-1 font-medium">Qur'an</span>
           </NavLink>
 
-          {/* 2. Mutabaah */}
+          {/* 2. Hafalan */}
           <NavLink
-            to="/app/mutabaah"
+            to="/app/murojaah"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center py-1 transition-all ${
                 isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
               }`
             }
           >
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
+            <Mic className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Hafalan</span>
           </NavLink>
 
           {/* 3. Beranda (Center Elevated Green Floating Action Button) */}
@@ -280,7 +280,20 @@ export default function MainLayout() {
             <span className="text-[10px] font-bold mt-0.5">Beranda</span>
           </NavLink>
 
-          {/* 4. Tajwid */}
+          {/* 4. Mutabaah */}
+          <NavLink
+            to="/app/mutabaah"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 transition-all ${
+                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`
+            }
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
+          </NavLink>
+
+          {/* 5. Tajwid */}
           <NavLink
             to="/app/tajwid"
             className={({ isActive }) =>
@@ -292,16 +305,6 @@ export default function MainLayout() {
             <GraduationCap className="w-5 h-5" />
             <span className="text-[10px] mt-1 font-medium">Tajwid</span>
           </NavLink>
-
-          {/* 5. Keluar */}
-          <button
-            type="button"
-            onClick={() => setShowLogoutConfirm(true)}
-            className="flex flex-col items-center justify-center py-1 text-slate-500 hover:text-rose-600 transition-all cursor-pointer"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Keluar</span>
-          </button>
         </div>
       </nav>
 

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { SrsDueItem, SurahSummary } from '../types';
 import { recordMurojaahSingleAyah, recordMutabaahReport } from '../lib/mutabaahService';
+import { calculateAyahPage, getJuzFromPage, getSurahStartPage } from '../lib/quranMeta';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 
 interface AyahWord {
@@ -150,6 +151,14 @@ export default function MurojaahPage() {
   const [activeAyahIndex, setActiveAyahIndex] = useState(0);
   const activeAyah = currentSurah.ayahs[activeAyahIndex] || currentSurah.ayahs[0];
 
+  // Dynamic Madinah Mushaf Page & Juz calculation for the current active ayah
+  const activeAyahPage = calculateAyahPage(
+    currentSurah.number,
+    activeAyah ? activeAyah.ayahNumber : 1,
+    currentSurah.ayahs ? currentSurah.ayahs.length : 1
+  );
+  const activeAyahJuz = getJuzFromPage(activeAyahPage);
+
   // State Mode Ghaib (Tebak kata: kata tertutup '------' vs terbuka semua)
   const [isBlindMode, setIsBlindMode] = useState(true);
 
@@ -163,6 +172,39 @@ export default function MurojaahPage() {
   const [liveStatusText, setLiveStatusText] = useState('...Menunggu suara');
   const [isCompletedAyah, setIsCompletedAyah] = useState(false);
   const [scoreNotification, setScoreNotification] = useState<string | null>(null);
+
+  // Synchronized Refs to avoid stale closures in Web Speech API callbacks
+  const activeAyahRef = useRef<MushafAyah>(activeAyah);
+  const activeAyahIndexRef = useRef<number>(activeAyahIndex);
+  const currentSurahRef = useRef(currentSurah);
+  const isCompletedAyahRef = useRef<boolean>(false);
+  const isTransitioningRef = useRef<boolean>(false);
+  const revealedWordsRef = useRef<Set<number>>(new Set());
+  const isLiveListeningRef = useRef<boolean>(false);
+  const recognitionRef = useRef<any>(null);
+  const transitionTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    activeAyahRef.current = activeAyah;
+    activeAyahIndexRef.current = activeAyahIndex;
+  }, [activeAyah, activeAyahIndex]);
+
+  useEffect(() => {
+    currentSurahRef.current = currentSurah;
+  }, [currentSurah]);
+
+  useEffect(() => {
+    isLiveListeningRef.current = isLiveListening;
+  }, [isLiveListening]);
+
+  useEffect(() => {
+    isCompletedAyahRef.current = isCompletedAyah;
+  }, [isCompletedAyah]);
+
+  useEffect(() => {
+    revealedWordsRef.current = revealedWordIndices;
+  }, [revealedWordIndices]);
+
   // Mutabaah Session & Exit-Intent Modal
   const sessionStartTimeRef = useRef<number>(Date.now());
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -192,9 +234,6 @@ export default function MurojaahPage() {
   // Audio Qari player
   const [isPlayingQari, setIsPlayingQari] = useState(false);
   const qariAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Web Speech API recognition reference
-  const recognitionRef = useRef<any>(null);
 
   // Fetch SRS due items from PostgreSQL
   const fetchSrsQueue = async () => {
@@ -245,22 +284,26 @@ export default function MurojaahPage() {
             audioUrl: a.audioUrl,
             words: parseAyahWords(a.textArabic),
           }));
+          const startPage = getSurahStartPage(data.number);
+          const startJuz = getJuzFromPage(startPage);
           setCurrentSurah({
             number: data.number,
             name: data.nameLatin,
-            page: 1,
-            juz: 30,
+            page: startPage,
+            juz: startJuz,
             ayahs: parsed,
           });
+          setActiveAyahIndex(0);
         }
       })
-      .catch((err) => console.warn('Failed to load surah detail from backend:', err))
-;
+      .catch((err) => console.warn('Failed to load surah detail from backend:', err));
   }, [selectedSurahNumber]);
 
   // Reset kata terbuka setiap ganti ayat
   useEffect(() => {
+    revealedWordsRef.current = new Set();
     setRevealedWordIndices(new Set());
+    isCompletedAyahRef.current = false;
     setIsCompletedAyah(false);
     setLiveTranscript('');
     setLiveStatusText(isLiveListening ? '...Menunggu suara' : 'Tekan mikrofon untuk melafalkan');
@@ -269,13 +312,24 @@ export default function MurojaahPage() {
   // Sync selesai ayat ke backend SRS
   const handleAyahCompleted = async (ayah: MushafAyah) => {
     setIsCompletedAyah(true);
+    isCompletedAyahRef.current = true;
+    isTransitioningRef.current = true;
     setScoreNotification(`Alhamdulillah! Ayat ${ayah.ayahNumber} Mutqin (Skor 100%)`);
+
+    // Hentikan sejenak input mikrofon agar speech buffer browser bersih dari audio ayat sebelumnya
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
+    }
 
     // Rekam langsung ke Mutabaah Yaumi persistent storage
     try {
       recordMurojaahSingleAyah(
-        currentSurah.number,
-        currentSurah.name,
+        currentSurahRef.current.number,
+        currentSurahRef.current.name,
         ayah.ayahNumber,
         100
       );
@@ -292,7 +346,7 @@ export default function MurojaahPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          surahNumber: currentSurah.number,
+          surahNumber: currentSurahRef.current.number,
           ayahNumber: ayah.ayahNumber,
           userText: ayah.textArabic,
         }),
@@ -302,54 +356,116 @@ export default function MurojaahPage() {
       // background sync
     }
 
-    // Pindah ke ayat berikutnya otomatis setelah 1.8 detik
-    setTimeout(() => {
+    // Pindah ke ayat berikutnya otomatis setelah jeda jeda khusyu' 2 detik
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = setTimeout(() => {
       setScoreNotification(null);
-      if (activeAyahIndex < currentSurah.ayahs.length - 1) {
-        setActiveAyahIndex((prev) => prev + 1);
+      const curIndex = activeAyahIndexRef.current;
+      const totalAyahs = currentSurahRef.current.ayahs.length;
+
+      if (curIndex < totalAyahs - 1) {
+        setActiveAyahIndex(curIndex + 1);
+        revealedWordsRef.current = new Set();
+        setRevealedWordIndices(new Set());
+        setLiveTranscript('');
+        setLiveStatusText(isLiveListeningRef.current ? '...Menunggu suara' : 'Tekan mikrofon untuk melafalkan');
+
+        // Buka kembali listening setelah ayat berganti dan audio buffer bersih
+        setTimeout(() => {
+          isCompletedAyahRef.current = false;
+          setIsCompletedAyah(false);
+          isTransitioningRef.current = false;
+          if (isLiveListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch {
+              // ignore
+            }
+          }
+        }, 400);
+      } else {
+        isTransitioningRef.current = false;
+        setLiveStatusText('Alhamdulillah, seluruh surah telah selesai dimurojaah!');
       }
-    }, 1800);
+    }, 2000);
   };
 
-  // Algoritma Pencocokan Real-time Kata Suara vs Ayat
+  // Algoritma Pencocokan Real-time Kata Suara vs Ayat (Sequential Word-by-Word)
   const processSpokenArabic = (spokenText: string) => {
-    if (!spokenText || isCompletedAyah) return;
+    // Abaikan jika sedang jeda transisi antar ayat atau ayat sudah tuntas
+    if (!spokenText || isTransitioningRef.current || isCompletedAyahRef.current) return;
+
+    const targetAyah = activeAyahRef.current;
+    if (!targetAyah || !targetAyah.words || targetAyah.words.length === 0) return;
 
     const normalizedSpoken = normalizeArabic(spokenText);
-    const spokenTokens = normalizedSpoken.split(/\s+/).filter(Boolean);
+    if (!normalizedSpoken) return;
 
-    setRevealedWordIndices((prevSet) => {
-      const nextSet = new Set(prevSet);
-      let newlyFound = false;
+    // Filter token suara: hanya pertimbangkan token arab dengan panjang >= 2
+    const spokenTokens = normalizedSpoken.split(/\s+/).filter((t) => t.length >= 2);
+    if (spokenTokens.length === 0) return;
 
-      // Cari kecocokan kata demi kata
-      activeAyah.words.forEach((targetWord, wordIdx) => {
-        if (nextSet.has(wordIdx)) return;
+    const currentRevealed = revealedWordsRef.current;
+    const nextSet = new Set(currentRevealed);
+    let newlyFound = false;
 
-        // Cek apakah ada token suara yang cocok dengan targetWord.clean
-        const isMatched = spokenTokens.some((token) => {
-          if (token === targetWord.clean) return true;
-          // toleransi imbuhan wawu atau alif lam
-          if (token.startsWith('و') && token.slice(1) === targetWord.clean) return true;
-          if (token.startsWith('ف') && token.slice(1) === targetWord.clean) return true;
-          if (targetWord.clean.startsWith(token) && token.length >= 3) return true;
-          return false;
-        });
+    // Cari kata berikutnya yang belum terbuka (urutan sequential)
+    let firstUnrevealedIdx = -1;
+    for (let i = 0; i < targetAyah.words.length; i++) {
+      if (!nextSet.has(i)) {
+        firstUnrevealedIdx = i;
+        break;
+      }
+    }
 
-        if (isMatched) {
-          nextSet.add(wordIdx);
-          newlyFound = true;
-        }
-      });
+    if (firstUnrevealedIdx === -1) {
+      return;
+    }
 
-      // Cek apakah seluruh kata dalam ayat sudah terbuka
-      if (nextSet.size === activeAyah.words.length && !isCompletedAyah) {
-        handleAyahCompleted(activeAyah);
+    // Window pencocokan 2 kata ke depan agar toleran jika ada kata partikel kecil terlewat
+    const windowEnd = Math.min(targetAyah.words.length, firstUnrevealedIdx + 2);
+    for (let idx = firstUnrevealedIdx; idx < windowEnd; idx++) {
+      if (nextSet.has(idx)) continue;
+      const targetWord = targetAyah.words[idx];
+      if (!targetWord || !targetWord.clean || targetWord.clean.length < 2) {
+        nextSet.add(idx);
+        newlyFound = true;
+        continue;
       }
 
-      return newlyFound ? nextSet : prevSet;
-    });
+      const isMatched = spokenTokens.some((token) => {
+        if (token === targetWord.clean) return true;
+        // toleransi awalan wawu atau fa'
+        if ((token.startsWith('و') || token.startsWith('ف')) && token.slice(1) === targetWord.clean) return true;
+        if (targetWord.clean.startsWith(token) && token.length >= 3) return true;
+        if (token.startsWith(targetWord.clean) && targetWord.clean.length >= 3) return true;
+        return false;
+      });
+
+      if (isMatched) {
+        nextSet.add(idx);
+        newlyFound = true;
+        break; // Buka kata secara progresif per deteksi suara
+      }
+    }
+
+    if (newlyFound) {
+      revealedWordsRef.current = nextSet;
+      setRevealedWordIndices(new Set(nextSet));
+
+      // Cek apakah seluruh kata dalam ayat sudah terbuka sempurna
+      if (nextSet.size === targetAyah.words.length && targetAyah.words.length > 0 && !isCompletedAyahRef.current) {
+        isCompletedAyahRef.current = true;
+        isTransitioningRef.current = true;
+        handleAyahCompleted(targetAyah);
+      }
+    }
   };
+
+  const processSpokenArabicRef = useRef(processSpokenArabic);
+  useEffect(() => {
+    processSpokenArabicRef.current = processSpokenArabic;
+  });
 
   // Inisialisasi & Pengaturan Real-time Web Speech Recognition
   const startLiveListening = () => {
@@ -369,10 +485,13 @@ export default function MurojaahPage() {
 
       recognition.onstart = () => {
         setIsLiveListening(true);
+        isLiveListeningRef.current = true;
         setLiveStatusText('...Menunggu suara');
       };
 
       recognition.onresult = (event: any) => {
+        if (isTransitioningRef.current || isCompletedAyahRef.current) return;
+
         let interimText = '';
         let finalText = '';
 
@@ -389,7 +508,7 @@ export default function MurojaahPage() {
         if (currentSpoken) {
           setLiveTranscript(currentSpoken);
           setLiveStatusText(currentSpoken);
-          processSpokenArabic(currentSpoken);
+          processSpokenArabicRef.current(currentSpoken);
         }
       };
 
@@ -402,15 +521,17 @@ export default function MurojaahPage() {
       };
 
       recognition.onend = () => {
-        // Otomatis restart jika user masih dalam mode live listening
-        if (isLiveListening && !isCompletedAyah) {
+        // Otomatis restart hanya jika user masih mode mendengarkan dan tidak sedang transisi
+        if (isLiveListeningRef.current && !isTransitioningRef.current && !isCompletedAyahRef.current) {
           try {
             recognition.start();
           } catch {
             setIsLiveListening(false);
+            isLiveListeningRef.current = false;
           }
-        } else {
+        } else if (!isLiveListeningRef.current) {
           setIsLiveListening(false);
+          isLiveListeningRef.current = false;
           setLiveStatusText('Tekan mikrofon untuk melafalkan');
         }
       };
@@ -420,14 +541,16 @@ export default function MurojaahPage() {
     } catch (err) {
       console.error('Error starting live speech recognition:', err);
       setIsLiveListening(false);
+      isLiveListeningRef.current = false;
     }
   };
 
   const stopLiveListening = () => {
     setIsLiveListening(false);
+    isLiveListeningRef.current = false;
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current.abort();
       } catch {
         // ignore
       }
@@ -443,6 +566,27 @@ export default function MurojaahPage() {
       startLiveListening();
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // ignore
+        }
+      }
+      if (qariAudioRef.current) {
+        try {
+          qariAudioRef.current.pause();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   // Play audio qari resmi
   const handleToggleQari = () => {
@@ -559,8 +703,8 @@ export default function MurojaahPage() {
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">
               {currentSurah.name}
             </h2>
-            <p className="text-xs text-slate-400 font-medium">
-              Halaman {currentSurah.page} | Juz {currentSurah.juz}
+            <p className="text-xs text-slate-500 font-medium">
+              Halaman {activeAyahPage} • Juz {activeAyahJuz}
             </p>
           </div>
 
@@ -672,8 +816,8 @@ export default function MurojaahPage() {
         </div>
       </div>
 
-      {/* Floating Bottom Live Dock (Persis seperti screenshot aplikasi) */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 px-4">
+      {/* Floating Bottom Live Dock (Responsive bottom spacing to avoid bottom nav overlap on mobile) */}
+      <div className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 px-4">
         <div className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3 shadow-2xl shadow-slate-950/15 flex flex-col items-center space-y-3">
           {/* Status Bar Suara Real-time: "...Menunggu suara" */}
           <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-4 text-center">
