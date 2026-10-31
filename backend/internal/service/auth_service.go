@@ -178,5 +178,15 @@ func (s *authServiceImpl) ValidateToken(tokenString string) (string, string, err
 }
 
 func (s *authServiceImpl) GetProfile(ctx context.Context, userID string) (*model.User, error) {
+	if userID == "00000000-0000-0000-0000-000000000001" {
+		return &model.User{
+			ID:               "00000000-0000-0000-0000-000000000001",
+			Username:         "admin",
+			Email:            "admin@hifzhly.id",
+			FullName:         "Ustadz Pembina (Admin)",
+			Role:             "admin",
+			DailyTargetAyahs: 20,
+		}, nil
+	}
 	return s.userRepo.FindByID(ctx, userID)
 }

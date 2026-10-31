@@ -19,19 +19,8 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    try {
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const profileRaw = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
-      if (token && profileRaw) {
-        const p = JSON.parse(profileRaw);
-        const role = (p.role || '').toLowerCase();
-        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
-          window.location.replace('/admin');
-        } else {
-          window.location.replace('/app');
-        }
-      }
-    } catch {}
+    // Jangan pernah redirect otomatis ke /app saat membuka halaman login,
+    // agar pengguna bisa bebas memilih akun admin maupun santri.
   }, []);
 
     const executeLogin = async (userIdentifier: string, userPass: string) => {
