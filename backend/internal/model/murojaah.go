@@ -39,6 +39,22 @@ type EvaluateTextRequest struct {
 	UserText    string `json:"userText"` // Teks yang dilafalkan
 }
 
+type SrsDueItem struct {
+	SurahNumber     int     `json:"surahNumber"`
+	SurahName       string  `json:"surahName"`
+	AyahNumber      int     `json:"ayahNumber"`
+	RepetitionCount int     `json:"repetitionCount"`
+	IntervalDays    int     `json:"intervalDays"`
+	LastScore       float64 `json:"lastScore"`
+	QualityRating   int     `json:"qualityRating"`
+	NextReviewAt    string  `json:"nextReviewAt"`
+}
+
+type SrsTodayResponse struct {
+	TotalDue int          `json:"totalDue"`
+	Items    []SrsDueItem `json:"items"`
+}
+
 type MurojaahSession struct {
 	ID          string     `json:"id"`
 	UserID      string     `json:"userId"`

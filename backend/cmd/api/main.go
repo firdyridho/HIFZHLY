@@ -41,8 +41,9 @@ func main() {
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	mutashabihatService := service.NewMutashabihatService()
 	quranService := service.NewQuranService(mutashabihatService)
-	murojaahService := service.NewMurojaahService(quranService)
 	geminiService := service.NewGeminiService(cfg.GeminiAPIKey)
+	murojaahRepo := repository.NewMurojaahRepository(pgPool)
+	murojaahService := service.NewMurojaahService(quranService, geminiService, murojaahRepo)
 	tajwidRepo := repository.NewTajwidRepository(pgPool)
 	tajwidService := service.NewTajwidService(tajwidRepo, geminiService)
 
@@ -113,38 +114,11 @@ func main() {
 			})
 		})
 
-		// Murojaah AI Voice Evaluator (Word Diff & Scoring)
+		// Murojaah AI Voice Evaluator (Word Diff & Scoring via Multipart or JSON)
 		r.Post("/murojaah/evaluate", murojaahHandler.Evaluate)
 
-		// Spaced Repetition (SRS)
-		r.Get("/srs/today", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"totalDue": 2,
-				"items": []map[string]interface{}{
-					{
-						"surahNumber":     78,
-						"surahName":       "An-Naba'",
-						"ayahNumber":      1,
-						"repetitionCount": 1,
-						"intervalDays":    1,
-						"lastScore":       65.0,
-						"qualityRating":   2,
-						"nextReviewAt":    "2026-10-31",
-					},
-					{
-						"surahNumber":     78,
-						"surahName":       "An-Naba'",
-						"ayahNumber":      5,
-						"repetitionCount": 3,
-						"intervalDays":    7,
-						"lastScore":       90.0,
-						"qualityRating":   4,
-						"nextReviewAt":    "2026-10-31",
-					},
-				},
-			})
-		})
+		// Spaced Repetition (SRS Due Today from PostgreSQL)
+		r.Get("/srs/today", murojaahHandler.GetDueToday)
 
 		// Tajwid Modules & Quizzes
 		r.Get("/tajwid/modules", tajwidHandler.GetModules)
