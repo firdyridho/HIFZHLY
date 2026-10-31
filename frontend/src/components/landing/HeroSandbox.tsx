@@ -99,7 +99,7 @@ export default function HeroSandbox() {
           <span className="text-xs font-semibold text-slate-800 tracking-tight">
             {isPlaying ? 'Sedang Mengevaluasi Suara...' : isCompleted ? 'Evaluasi AI Selesai' : 'Simulasi Dijeda'}
           </span>
-          <span className="text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md font-mono border border-slate-200">
+          <span className="text-[11px] text-slate-400 font-mono">
             16 kHz Mono
           </span>
         </div>

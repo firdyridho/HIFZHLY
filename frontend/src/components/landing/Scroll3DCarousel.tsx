@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  BookOpen,
   Check,
   ChevronDown,
 } from "lucide-react";
@@ -273,10 +272,9 @@ export default function Scroll3DCarousel() {
       <div className="sticky top-20 min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center px-4 overflow-hidden py-12">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-8 z-30">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-700 mb-3">
-            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-            <span>3D Scroll-Driven Carousel</span>
-          </div>
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-2">
+            Pilar Fitur Utama • 3D Scroll Carousel
+          </p>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Semua yang Kamu Butuhkan untuk Menjaga Hafalan
@@ -363,9 +361,7 @@ export default function Scroll3DCarousel() {
                   <div>
                     {/* Card Top Meta */}
                     <div className="flex items-center justify-between mb-4">
-                      <span
-                        className={`text-[11px] font-semibold px-3 py-1 rounded-md border ${card.badgeColor}`}
-                      >
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
                         {card.badge}
                       </span>
                       <span className="text-[11px] font-mono text-slate-400 font-semibold">

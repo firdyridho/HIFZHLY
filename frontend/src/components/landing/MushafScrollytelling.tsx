@@ -78,7 +78,7 @@ export default function MushafScrollytelling() {
       customContent: (
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans">
           <span className="text-slate-600">Status Retensi Ayat:</span>
-          <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-md border border-emerald-300">
+          <span className="font-bold text-emerald-700">
             Terkonfirmasi Mutqin
           </span>
         </div>
@@ -93,7 +93,7 @@ export default function MushafScrollytelling() {
         subtitle="Bagaimana Speech Recognition, Pemetaan Mutasyabihat, dan Algoritma SRS bekerja bersama dalam satu garis waktu interaktif."
         events={TIMELINE_EVENTS}
         cardAlignment="alternating"
-        dateFormat="badge"
+        dateFormat="text"
         revealAnimation="slide"
         lineColor="bg-slate-200"
         activeColor="bg-emerald-600"

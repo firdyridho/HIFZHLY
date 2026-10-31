@@ -18,3 +18,4 @@ export const CardContent = ({ className, children, ...props }: React.HTMLAttribu
     {children}
   </div>
 );
+
