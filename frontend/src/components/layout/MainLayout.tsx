@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   Mic,
@@ -13,6 +13,11 @@ import type { UserProfile } from '../../types';
 
 export default function MainLayout() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Active reading check to replace double header
+  const isQuranReading = location.pathname.startsWith('/app/mushaf') && searchParams.has('surah');
 
   useEffect(() => {
     // 1. Load cached profile from localStorage
@@ -74,8 +79,9 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Clean Minimalist Header (Anti-AI-Slop, Emerald Green Islamic Aesthetic) */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+      {/* Clean Minimalist Header (Hidden when actively reading Quran to prevent double headers) */}
+      {!isQuranReading && (
+        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Brand Logo & Name */}
           <Link to="/app" className="flex items-center space-x-2.5 group shrink-0">
@@ -206,9 +212,10 @@ export default function MainLayout() {
           </div>
         </div>
       </header>
+      )}
 
       {/* Main Content Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
+      <main className={isQuranReading ? "flex-1 w-full mx-auto p-0 pb-20 md:pb-6" : "flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8"}>
         {/* Dynamic Nested Page Content */}
         <Outlet />
       </main>

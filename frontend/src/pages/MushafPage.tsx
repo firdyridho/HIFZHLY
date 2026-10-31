@@ -12,7 +12,6 @@ import {
   X,
   Check,
   AlignJustify,
-  Type,
   Languages,
   Highlighter,
   Palette,
@@ -168,6 +167,77 @@ export default function MushafPage() {
   const [pageVerses, setPageVerses] = useState<any[]>([]);
   const [loadingPage, setLoadingPage] = useState<boolean>(false);
   const [selectedMushafAyah, setSelectedMushafAyah] = useState<any | null>(null);
+
+  // Interactive Tajweed Hover (Desktop) & Bottom Sheet (Mobile)
+  const [hoveredTajweed, setHoveredTajweed] = useState<{
+    ruleKey: string;
+    rule: { label: string; desc: string; color: string; example: string };
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const [bottomSheetTajweed, setBottomSheetTajweed] = useState<{
+    ruleKey: string;
+    rule: { label: string; desc: string; color: string; example: string };
+  } | null>(null);
+
+  // Mobile Touch Gesture for Page Swapping / Flipping
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Detect horizontal swipe intent (minimum 45px movement, dominant horizontal direction)
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX < 0) {
+        // Swiped left -> in Quran RTL layout, flipping left goes to Next Page
+        if (currentPage < 604) setCurrentPage((p) => p + 1);
+      } else {
+        // Swiped right -> flipping right goes to Previous Page
+        if (currentPage > 1) setCurrentPage((p) => p - 1);
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  const handleTajweedPointerMove = (e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('[data-rule]') as HTMLElement | null;
+    if (target) {
+      const ruleKey = target.getAttribute('data-rule');
+      if (ruleKey && TAJWEED_RULES[ruleKey]) {
+        setHoveredTajweed({
+          ruleKey,
+          rule: TAJWEED_RULES[ruleKey],
+          x: e.clientX,
+          y: e.clientY,
+        });
+        return;
+      }
+    }
+    if (hoveredTajweed) setHoveredTajweed(null);
+  };
+
+  const handleTajweedClick = (e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('[data-rule]') as HTMLElement | null;
+    if (target) {
+      const ruleKey = target.getAttribute('data-rule');
+      if (ruleKey && TAJWEED_RULES[ruleKey]) {
+        setBottomSheetTajweed({
+          ruleKey,
+          rule: TAJWEED_RULES[ruleKey],
+        });
+      }
+    }
+  };
 
   // Tafsir State (EQuran.id API v2 Tafsir Kemenag RI)
   const [expandedTafsir, setExpandedTafsir] = useState<Record<number, boolean>>({});
@@ -387,6 +457,21 @@ export default function MushafPage() {
   }, [pageVerses, surahs]);
 
   // 5. Compute actual Surah Name for current page
+  // Starting surahs on current mushaf page (for Ornate Surah Heading Frame)
+  const startingSurahsOnPage = useMemo(() => {
+    const list: SurahSummary[] = [];
+    pageVerses.forEach((v) => {
+      if (v.verse_key?.endsWith(':1')) {
+        const sNum = parseInt(v.verse_key.split(':')[0], 10);
+        const sMeta = surahs.find((s) => s.number === sNum);
+        if (sMeta && !list.some((item) => item.number === sMeta.number)) {
+          list.push(sMeta);
+        }
+      }
+    });
+    return list;
+  }, [pageVerses, surahs]);
+
   const currentMushafSurahName = useMemo(() => {
     if (pageVerses.length > 0 && pageVerses[0].chapter_id) {
       const s = surahs.find((item) => item.number === pageVerses[0].chapter_id);
@@ -574,12 +659,12 @@ export default function MushafPage() {
         .tajweed-madda_obligatory { color: #991B1B; font-weight: 700; }
       `}</style>
 
-      {/* 1. DEDICATED IN-QURAN READING HEADER & TOOLBAR (When Surah is Selected) */}
+      {/* 1. DEDICATED IN-QURAN READING HEADER & TOOLBAR (Replaces Standard Header at top-0, Single Line on Mobile) */}
       {selectedSurahNumber !== null && (
-        <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 -mx-4 px-4 sm:px-6 py-2.5 shadow-xs">
-          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            {/* Left: Back Arrow + Surah Name */}
-            <div className="flex items-center space-x-2.5">
+        <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs px-3 sm:px-6 py-2 sm:py-2.5">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+            {/* Left: Back Arrow + Surah Name & Metadata */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2.5 min-w-0 shrink">
               <button
                 type="button"
                 onClick={() => {
@@ -590,36 +675,39 @@ export default function MushafPage() {
                   setIsPlayingFull(false);
                   setPlayingAyah(null);
                 }}
-                className="p-1.5 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                 title="Kembali ke Daftar Surah / Juz"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-              <div>
-                <h2 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight flex items-center space-x-1.5">
-                  <span>{readingMode === 'mushaf' ? currentMushafSurahName : (currentSurah?.nameLatin || 'Al-Qur\'an')}</span>
+              <div className="min-w-0">
+                <h2 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate max-w-[120px] sm:max-w-none">
+                  {readingMode === 'mushaf' ? currentMushafSurahName : (currentSurah?.nameLatin || "Al-Qur'an")}
                 </h2>
-                <span className="text-[11px] text-slate-500 font-medium">
-                  {currentSurah?.numberOfAyahs} Ayat • {getNormRevelation(currentSurah?.revelationType)}
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium block truncate max-w-[120px] sm:max-w-none">
+                  {readingMode === 'mushaf'
+                    ? `Hal. ${currentPage} • Juz ${pageVerses[0]?.juz_number || 1}`
+                    : `${currentSurah?.numberOfAyahs || 0} Ayat • ${getNormRevelation(currentSurah?.revelationType)}`}
                 </span>
               </div>
             </div>
 
-            {/* Right: Controls Toolbar */}
-            <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
-              {/* 1. View Switcher Pill: [ Ayat ] | [ Mushaf ] */}
+            {/* Right: Controls Toolbar - Strictly Single Row Without Wrapping */}
+            <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
+              {/* 1. Mode Switcher: [ Ayat ] | [ Mushaf ] */}
               <div className="bg-slate-100 p-0.5 rounded-xl flex items-center border border-slate-200/80">
                 <button
                   type="button"
                   onClick={() => setReadingMode('ayat')}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center space-x-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     readingMode === 'ayat'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Tampilan Per Ayat"
                 >
                   <AlignJustify className="w-3.5 h-3.5" />
-                  <span>Ayat</span>
+                  <span className="hidden sm:inline">Ayat</span>
                 </button>
                 <button
                   type="button"
@@ -630,14 +718,15 @@ export default function MushafPage() {
                       setCurrentPage(startPg);
                     }
                   }}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center space-x-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     readingMode === 'mushaf'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Tampilan Mushaf Per Halaman"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Mushaf</span>
+                  <span className="hidden sm:inline">Mushaf</span>
                 </button>
               </div>
 
@@ -647,90 +736,91 @@ export default function MushafPage() {
                   type="button"
                   onClick={() => setFontSize((prev) => Math.max(18, prev - 2))}
                   disabled={fontSize <= 18}
-                  className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                  className="px-1.5 py-0.5 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
                   title="Perkecil Ukuran Huruf Arab"
                 >
                   -
                 </button>
-                <span className="text-xs font-bold text-slate-700 px-1 select-none flex items-center space-x-0.5">
-                  <Type className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Aa</span>
-                </span>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-700 px-0.5 select-none">Aa</span>
                 <button
                   type="button"
-                  onClick={() => setFontSize((prev) => Math.min(44, prev + 2))}
-                  disabled={fontSize >= 44}
-                  className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                  onClick={() => setFontSize((prev) => Math.min(48, prev + 2))}
+                  disabled={fontSize >= 48}
+                  className="px-1.5 py-0.5 text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
                   title="Perbesar Ukuran Huruf Arab"
                 >
                   +
                 </button>
               </div>
 
-              {/* 3. On/Off Terjemah [ Languages / A-Z ] */}
-              <button
-                type="button"
-                onClick={() => setShowTranslation((prev) => !prev)}
-                className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                  showTranslation
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700'
-                }`}
-                title={showTranslation ? 'Sembunyikan Terjemahan' : 'Tampilkan Terjemahan'}
-              >
-                <Languages className="w-4 h-4" />
-              </button>
+              {/* 3. On/Off Terjemahan (Ayat view only) */}
+              {readingMode === 'ayat' && (
+                <button
+                  type="button"
+                  onClick={() => setShowTranslation((prev) => !prev)}
+                  className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer ${
+                    showTranslation
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                      : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700'
+                  }`}
+                  title={showTranslation ? 'Sembunyikan Terjemahan' : 'Tampilkan Terjemahan'}
+                >
+                  <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              )}
 
-              {/* 4. On/Off Tajwid Interaktif [ Highlighter ] */}
+              {/* 4. On/Off Tajwid Interaktif */}
               <button
                 type="button"
                 onClick={() => setShowTajwid((prev) => !prev)}
-                className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer ${
                   showTajwid
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
                     : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700'
                 }`}
                 title={showTajwid ? 'Nonaktifkan Warna Tajwid' : 'Aktifkan Warna Tajwid Interaktif'}
               >
-                <Highlighter className="w-4 h-4" />
+                <Highlighter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
 
-              {/* 5. Panduan Warna Tajwid [ Palette ] */}
+              {/* 5. Panduan Warna Tajwid */}
               <button
                 type="button"
                 onClick={() => setShowTajwidGuide(true)}
-                className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 transition-all cursor-pointer"
-                title="Buka Panduan Warna Tajwid"
+                className="p-1.5 sm:p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 transition-all cursor-pointer"
+                title="Panduan Warna Tajwid"
               >
-                <Palette className="w-4 h-4" />
+                <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
 
-              {/* 6. Play All Full Surah [ Play / Pause ] */}
-              <button
-                type="button"
-                onClick={handleToggleFullAudio}
-                className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                  isPlayingFull
-                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                    : 'bg-white border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300'
-                }`}
-                title={isPlayingFull ? 'Jeda Audio Murottal Full' : 'Putar Murottal Full Surah (Misyari Rasyid)'}
-              >
-                {isPlayingFull ? (
-                  <Pause className="w-4 h-4 fill-current" />
-                ) : (
-                  <Play className="w-4 h-4 fill-current" />
-                )}
-              </button>
+              {/* 6. Play All Full Surah (Ayat view only) */}
+              {readingMode === 'ayat' && (
+                <button
+                  type="button"
+                  onClick={handleToggleFullAudio}
+                  className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer ${
+                    isPlayingFull
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300'
+                  }`}
+                  title={isPlayingFull ? 'Jeda Audio Murottal Full' : 'Putar Murottal Full Surah'}
+                >
+                  {isPlayingFull ? (
+                    <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                  )}
+                </button>
+              )}
 
-              {/* 7. Info Surah & Asbabun Nuzul [ Info ] */}
+              {/* 7. Info Surah & Asbabun Nuzul */}
               <button
                 type="button"
                 onClick={handleOpenInfoModal}
-                className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 transition-all cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 transition-all cursor-pointer"
                 title="Info Surah & Asbabun Nuzul"
               >
-                <Info className="w-4 h-4" />
+                <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>
@@ -759,18 +849,23 @@ export default function MushafPage() {
               </div>
             ) : currentSurah ? (
               <div className="space-y-6">
-                {/* Surah Hero Banner */}
-                <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 sm:p-8 rounded-3xl shadow-md border border-emerald-700/60 relative overflow-hidden">
-                  <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-8 translate-y-8">
-                    <BookOpen className="w-56 h-56" />
+                {/* Surah Hero Banner (Deep Emerald Islamic Aesthetic per reference) */}
+                <div className="bg-[#064e3b] text-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-emerald-700/60 relative overflow-hidden">
+                  {/* Subtle Islamic Arabesque Watermark */}
+                  <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none translate-x-6 flex items-center">
+                    <svg className="w-56 h-56 text-emerald-200" viewBox="0 0 100 100" fill="currentColor">
+                      <polygon points="50,5 64,36 98,36 71,56 82,90 50,70 18,90 29,56 2,36 36,36" opacity="0.5" />
+                      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="2" />
+                    </svg>
                   </div>
 
-                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+                  <div className="relative z-10 flex items-center justify-between gap-4">
+                    {/* Left: Metadata, Latin Name, Indonesian Meaning */}
                     <div className="space-y-1">
                       <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-widest block">
-                        Surah Ke-{currentSurah.number} • {getNormRevelation(currentSurah.revelationType)}
+                        SURAH KE-{currentSurah.number} • {getNormRevelation(currentSurah.revelationType).toUpperCase()}
                       </span>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                         {currentSurah.nameLatin}
                       </h2>
                       <p className="text-xs sm:text-sm text-emerald-100/90 font-medium">
@@ -778,17 +873,18 @@ export default function MushafPage() {
                       </p>
                     </div>
 
-                    <div className="text-center sm:text-right space-y-2">
-                      <span className="font-quran text-4xl sm:text-5xl text-emerald-200 block leading-tight">
+                    {/* Right: Large White Arabic Calligraphy */}
+                    <div className="text-right shrink-0">
+                      <span className="font-quran text-4xl sm:text-5xl text-white block leading-none font-normal">
                         {currentSurah.nameArabic}
                       </span>
                     </div>
                   </div>
 
-                  {/* Bismillah Header (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
+                  {/* Bismillah Divider (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
                   {currentSurah.number !== 9 && currentSurah.number !== 1 && (
-                    <div className="mt-6 pt-6 border-t border-emerald-700/60 text-center">
-                      <span className="font-quran text-3xl sm:text-4xl text-emerald-100 tracking-wider">
+                    <div className="mt-5 pt-5 border-t border-emerald-600/50 text-center">
+                      <span className="font-quran text-2xl sm:text-3xl text-white tracking-wider block">
                         بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                       </span>
                     </div>
@@ -796,7 +892,7 @@ export default function MushafPage() {
                 </div>
 
                 {/* Ayat Cards List */}
-                <div className="space-y-4">
+                <div className="space-y-4" onMouseMove={handleTajweedPointerMove} onMouseLeave={() => setHoveredTajweed(null)} onClick={handleTajweedClick}>
                   {currentSurah.ayahs.map((ayah) => {
                     const isCurrentPlaying = playingAyah === ayah.ayahNumber;
                     const isLastReadAyah =
@@ -905,13 +1001,13 @@ export default function MushafPage() {
 
                         {/* Transliteration & Indonesian Translation (Toggleable) */}
                         {showTranslation && (
-                          <div className="space-y-1.5 pt-2 text-left">
+                          <div className="space-y-1.5 pt-2.5 text-left">
                             {ayah.textLatin && (
-                              <p className="text-xs sm:text-sm font-medium text-emerald-800 leading-relaxed">
+                              <p className="font-translit italic text-sm sm:text-base text-emerald-950/90 leading-relaxed tracking-wide">
                                 {ayah.textLatin}
                               </p>
                             )}
-                            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+                            <p className="font-sans text-xs sm:text-sm text-slate-700 leading-relaxed">
                               {ayah.translation}
                             </p>
                           </div>
@@ -977,7 +1073,7 @@ export default function MushafPage() {
           /* MODE 2: MUSHAF PER HALAMAN (Madinah Mushaf 604 Halaman)  */
           /* 15 Baris Presisi Mushaf Pojok, Bebas Kotak, Pas di HP    */
           /* ======================================================== */
-          <div className="w-full max-w-[580px] mx-auto py-1 px-1 sm:px-2 space-y-4">
+          <div className={`w-full max-w-[580px] mx-auto py-1 px-1 sm:px-2 space-y-4 ${currentPage === 1 || currentPage === 2 ? "rounded-3xl border-2 border-amber-600/40 p-3 sm:p-4 bg-[#FFFDF8]" : ""}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
             {/* Mushaf Header Navigation Bar (Clean & Borderless) */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 text-xs font-bold text-slate-700">
               <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-semibold">
@@ -1027,15 +1123,59 @@ export default function MushafPage() {
                 <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
               </div>
             ) : Object.keys(pageLines).length > 0 ? (
-              <div className="space-y-0.5 sm:space-y-1 py-1">
-                {/* Bismillah Header jika awal surah ada di halaman ini (kecuali surah 1 dan surah 9) */}
-                {pageVerses.some((v) => v.verse_key?.endsWith(':1')) && currentPage !== 1 && currentPage !== 187 && (
-                  <div className="text-center py-2 border-y border-slate-200/80 mb-2">
-                    <span className="font-quran text-xl sm:text-2xl text-emerald-900">
-                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                    </span>
+              <div className="space-y-0.5 sm:space-y-1 py-1" onMouseMove={handleTajweedPointerMove} onMouseLeave={() => setHoveredTajweed(null)} onClick={handleTajweedClick}>
+                {/* Awal Surat: Kepala Surat Ornamen Islami Klasik & Bismillah dengan Garis Ornamen */}
+                {startingSurahsOnPage.map((sMeta) => (
+                  <div key={sMeta.number} className="space-y-2 mb-3">
+                    {/* Kepala Surat: Ornate Islamic Frame Box */}
+                    <div className="rounded-2xl border-2 border-amber-600/40 bg-gradient-to-r from-amber-50/80 via-emerald-50/40 to-amber-50/80 p-2.5 sm:p-3 shadow-xs">
+                      <div className="flex items-center justify-between text-xs font-semibold px-2">
+                        {/* Right: Info Jumlah Ayat */}
+                        <div className="text-left text-amber-900 font-sans">
+                          <span className="block text-[11px] sm:text-xs font-bold text-amber-900">
+                            {sMeta.numberOfAyahs} Ayat
+                          </span>
+                          <span className="text-[10px] text-amber-700/80 font-quran">
+                            {sMeta.numberOfAyahs.toLocaleString('ar-EG')} آية
+                          </span>
+                        </div>
+
+                        {/* Center: Nama Surat Calligraphy & Latin */}
+                        <div className="text-center">
+                          <div className="font-quran text-xl sm:text-2xl font-bold text-emerald-950 tracking-wider">
+                            سُورَةُ {sMeta.nameArabic.replace('سورة ', '')}
+                          </div>
+                          <div className="text-[11px] font-sans font-medium text-slate-600 -mt-0.5">
+                            Surat {sMeta.nameLatin}
+                          </div>
+                        </div>
+
+                        {/* Left: Tempat Turun */}
+                        <div className="text-right text-amber-900 font-sans">
+                          <span className="block text-[11px] sm:text-xs font-bold text-amber-900">
+                            {getNormRevelation(sMeta.revelationType)}
+                          </span>
+                          <span className="text-[10px] text-amber-700/80 font-quran">
+                            {sMeta.revelationType?.toLowerCase() === 'makiyyah' || sMeta.revelationType === 'Mekah' ? 'مَكِّيَّةٌ' : 'مَدَنِيَّةٌ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bismillah Header Flanked with Ornamental Lines (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
+                    {sMeta.number !== 9 && sMeta.number !== 1 && (
+                      <div className="flex items-center justify-center my-2.5 px-4 text-center">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/30 to-amber-600/70" />
+                        <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
+                        <span className="font-quran text-xl sm:text-2xl text-emerald-950 tracking-wider px-2">
+                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                        </span>
+                        <span className="text-amber-700/70 text-xs px-2 select-none">❖</span>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/30 to-amber-600/70" />
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
 
                 {/* Exact 15 Lines: Full Width Responsive Alignment (Posisi Baris Tetap 100% Mushaf Asli) */}
                 {Object.entries(pageLines).map(([lineStr, words]) => {
@@ -1124,6 +1264,12 @@ export default function MushafPage() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Mobile Touch Swap Hint */}
+            <p className="text-center text-[11px] text-slate-400">
+              <span className="sm:hidden">Geser layar (swap) ke kiri / kanan untuk membalik halaman • </span>
+              Ketuk teks ayat untuk audio & terjemah
+            </p>
 
             {/* Bottom Helper Hint */}
             <p className="text-center text-[11px] text-slate-400">
@@ -1463,6 +1609,94 @@ export default function MushafPage() {
               className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
             >
               Mengerti & Lanjutkan Membaca
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Floating Tajweed Tooltip */}
+      {hoveredTajweed && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${Math.min(window.innerWidth - 240, Math.max(16, hoveredTajweed.x - 100))}px`,
+            top: `${Math.max(12, hoveredTajweed.y - 80)}px`,
+            pointerEvents: 'none',
+            zIndex: 60,
+          }}
+          className="bg-slate-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-xl shadow-xl text-xs space-y-1 max-w-[240px] animate-in fade-in duration-100 border border-slate-700"
+        >
+          <div className="flex items-center space-x-1.5 font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shrink-0" />
+            <span className="text-emerald-300 font-semibold">{hoveredTajweed.rule.label}</span>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-tight">
+            {hoveredTajweed.rule.desc}
+          </p>
+          <div className="text-[10px] text-slate-400 font-quran text-right pt-0.5">
+            Contoh: {hoveredTajweed.rule.example}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Tajweed Rule Bottom Sheet */}
+      {bottomSheetTajweed && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            onClick={() => setBottomSheetTajweed(null)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in"
+          />
+          {/* Bottom Sheet Drawer */}
+          <div className="relative w-full max-w-lg bg-white rounded-t-3xl shadow-2xl p-5 sm:p-6 z-10 border-t border-slate-200 animate-in slide-in-from-bottom duration-200">
+            {/* Drag Handle */}
+            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-4" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Hukum Tajwid: {bottomSheetTajweed.rule.label}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBottomSheetTajweed(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="py-4 space-y-3">
+              <div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                  Cara Membaca & Ketentuan
+                </span>
+                <p className="text-sm text-slate-700 mt-1 leading-relaxed">
+                  {bottomSheetTajweed.rule.desc}
+                </p>
+              </div>
+
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                <span className="text-xs font-semibold text-emerald-800 block mb-1">
+                  Contoh Lafaz / Huruf
+                </span>
+                <p className="font-quran text-2xl text-emerald-950 text-right leading-loose">
+                  {bottomSheetTajweed.rule.example}
+                </p>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setBottomSheetTajweed(null)}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer"
+            >
+              Tutup Panduan
             </button>
           </div>
         </div>
