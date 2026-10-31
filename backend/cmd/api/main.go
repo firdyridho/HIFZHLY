@@ -11,16 +11,43 @@ import (
 	"github.com/go-chi/cors"
 
 	"github.com/fifa-team/hifzhly-backend/internal/config"
+	"github.com/fifa-team/hifzhly-backend/internal/database"
 	"github.com/fifa-team/hifzhly-backend/internal/handler"
+	appMiddleware "github.com/fifa-team/hifzhly-backend/internal/middleware"
+	"github.com/fifa-team/hifzhly-backend/internal/repository"
 	"github.com/fifa-team/hifzhly-backend/internal/service"
 )
 
 func main() {
 	cfg := config.LoadConfig()
 
+	// 1. Inisialisasi Database PostgreSQL & Redis
+	pgPool, err := database.NewPostgresPool(cfg.DatabaseURL)
+	if err != nil {
+		log.Printf("[Init Warning] PostgreSQL pool: %v", err)
+	}
+	if pgPool != nil {
+		defer pgPool.Close()
+	}
+
+	redisClient := database.NewRedisClient(cfg.RedisHost, cfg.RedisPort)
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
+	// 2. Repositories & Services
+	userRepo := repository.NewUserRepository(pgPool)
+	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	quranService := service.NewQuranService()
+
+	// 3. Handlers & Middlewares
+	authHandler := handler.NewAuthHandler(authService)
+	authMiddleware := appMiddleware.NewAuthMiddleware(authService)
+	quranHandler := handler.NewQuranHandler(quranService)
+
 	r := chi.NewRouter()
 
-	// Middlewares
+	// Global Middlewares
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -32,14 +59,10 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// Dependencies
-	quranService := service.NewQuranService()
-	quranHandler := handler.NewQuranHandler(quranService)
-
-	// Routes
+	// Health Check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "healthy",
 			"app":     "Hifzhly Backend",
 			"version": "1.0.0",
@@ -47,11 +70,21 @@ func main() {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		// Quran proxy routes
+		// Public Auth Endpoints
+		r.Post("/auth/register", authHandler.Register)
+		r.Post("/auth/login", authHandler.Login)
+
+		// Protected Auth Endpoints
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
+			r.Get("/auth/me", authHandler.GetMe)
+		})
+
+		// Quran Proxy Endpoints
 		r.Get("/quran/surahs", quranHandler.GetSurahs)
 		r.Get("/quran/surahs/{number}", quranHandler.GetSurahDetail)
 
-		// Mock endpoint for rapid frontend development (per API_CONTRACT_AGREEMENT.md)
+		// Spaced Repetition (SRS)
 		r.Get("/srs/today", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -81,6 +114,7 @@ func main() {
 			})
 		})
 
+		// Tajwid Modules
 		r.Get("/tajwid/modules", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode([]map[string]interface{}{

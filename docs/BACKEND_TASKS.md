@@ -13,19 +13,19 @@
 
 ### Tahap 1: Fondasi Arsitektur, Kontrak & Database (Jam 00:00 – 02:00)
 - [x] Menyepakati kontrak data JSON (`camelCase`), representasi waktu ISO 8601 UTC, dan batas tanggung jawab di [`API_CONTRACT_AGREEMENT.md`](./API_CONTRACT_AGREEMENT.md).
-- [ ] Inisialisasi modul Go (`go mod init hifzhly-backend`) dan setup struktur folder Clean Architecture (`cmd/`, `internal/handler/`, `internal/service/`, `internal/repository/`, `pkg/`).
-- [ ] Menulis file migrasi SQL untuk 10 tabel inti PostgreSQL (`users`, `murojaah_sessions`, `murojaah_evaluations`, `ayah_memory_states`, `mutabaah_logs`, `tajwid_modules`, `tajwid_quizzes`, `quiz_questions`, `quiz_options`, `user_quiz_attempts`).
-- [ ] Menyiapkan koneksi pool database PostgreSQL dengan driver `pgx/v5` dan koneksi Redis client `go-redis/v9`.
-- [ ] Membuat file `docker-compose.yml` untuk PostgreSQL 16 dan Redis 7.2 pada port default.
+- [x] Inisialisasi modul Go (`go mod init hifzhly-backend`) dan setup struktur folder Clean Architecture (`cmd/`, `internal/handler/`, `internal/service/`, `internal/repository/`, `pkg/`).
+- [x] Menulis file migrasi SQL untuk 10 tabel inti PostgreSQL (`users`, `murojaah_sessions`, `murojaah_evaluations`, `ayah_memory_states`, `mutabaah_logs`, `tajwid_modules`, `tajwid_quizzes`, `quiz_questions`, `quiz_options`, `user_quiz_attempts`).
+- [x] Menyiapkan koneksi pool database PostgreSQL dengan driver `pgx/v5` dan koneksi Redis client `go-redis/v9`.
+- [x] Membuat file `docker-compose.yml` untuk PostgreSQL 16 dan Redis 7.2 pada port default.
 
 ### Tahap 2: Layanan Inti, Auth, Caching & Tajwid API (Jam 02:00 – 10:00)
-- [ ] Implementasi autentikasi JWT:
-  - [ ] Endpoint `POST /api/v1/auth/register` (hashing Bcrypt salt 12).
-  - [ ] Endpoint `POST /api/v1/auth/login` (penerbitan token JWT access & refresh).
-  - [ ] Endpoint `GET /api/v1/auth/me` (middleware verifikasi Bearer token).
-- [ ] Integrasi EQuran.id API v2 Proxy dengan Cache Redis:
-  - [ ] Endpoint `GET /api/v1/quran/surahs` (cache TTL 7 hari).
-  - [ ] Endpoint `GET /api/v1/quran/surahs/{number}` (cache surah & audio qari).
+- [x] Implementasi autentikasi JWT:
+  - [x] Endpoint `POST /api/v1/auth/register` (hashing Bcrypt salt 12).
+  - [x] Endpoint `POST /api/v1/auth/login` (penerbitan token JWT access & refresh).
+  - [x] Endpoint `GET /api/v1/auth/me` (middleware verifikasi Bearer token).
+- [x] Integrasi EQuran.id API v2 Proxy dengan Cache Redis:
+  - [x] Endpoint `GET /api/v1/quran/surahs` (cache TTL 7 hari).
+  - [x] Endpoint `GET /api/v1/quran/surahs/{number}` (cache surah & audio qari).
 - [ ] Modul Tajwid Academy & Kuis:
   - [ ] Endpoint `GET /api/v1/tajwid/modules` (daftar materi berurutan).
   - [ ] Endpoint `GET /api/v1/tajwid/modules/{slug}` (materi markdown & YouTube ID).

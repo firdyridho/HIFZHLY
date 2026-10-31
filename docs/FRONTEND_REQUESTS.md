@@ -44,6 +44,19 @@
 
 ## Daftar Permintaan Aktif (Active Inbox)
 
+* [ ] **REQ-FE-02: Integrasi State Autentikasi Pengguna (Login & Register)**
+  * Tanggal Diminta: 2026-10-31 (Jam 03:00)
+  * Diminta Oleh: Backend Team (Firdy)
+  * Latar Belakang / Endpoint Aktif: Endpoint backend Go untuk autentikasi telah aktif:
+    - `POST /api/v1/auth/register` (body: `email`, `username`, `fullName`, `password`, `dailyTargetAyahs`)
+    - `POST /api/v1/auth/login` (body: `usernameOrEmail`, `password`)
+    - `GET /api/v1/auth/me` (header: `Authorization: Bearer <token>`)
+  * Kebutuhan Tampilan:
+    1. Modal/Form login & register di sudut kanan atas header.
+    2. Simpan token JWT yang diterima ke dalam `localStorage.setItem('hifzhly_auth_token', token)`.
+    3. Tampilkan nama user dan target ayat harian secara dinamis di header aplikasi.
+  * Status: Menunggu Dikerjakan
+
 * [ ] **REQ-FE-01: Implementasi Layar Review Pembahasan Kuis Pasca Submit Jawaban**
   * Tanggal Diminta: 2026-10-31 (Jam 01:45)
   * Diminta Oleh: Backend Team (Firdy)
