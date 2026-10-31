@@ -13,7 +13,8 @@ import {
   Layers
 } from 'lucide-react';
 import type { SrsDueItem, SurahSummary } from '../types';
-import { recordMurojaahSingleAyah } from '../lib/mutabaahService';
+import { recordMurojaahSingleAyah, recordMutabaahReport } from '../lib/mutabaahService';
+import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 
 interface AyahWord {
   raw: string;       // Lafal asli berharakat lengkap (contoh: ذَٰلِكَ)
@@ -162,6 +163,27 @@ export default function MurojaahPage() {
   const [liveStatusText, setLiveStatusText] = useState('...Menunggu suara');
   const [isCompletedAyah, setIsCompletedAyah] = useState(false);
   const [scoreNotification, setScoreNotification] = useState<string | null>(null);
+  // Mutabaah Session & Exit-Intent Modal
+  const sessionStartTimeRef = useRef<number>(Date.now());
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [exitPayload, setExitPayload] = useState<ExitMutabaahPayload | null>(null);
+
+  const handleOpenExitModal = () => {
+    const duration = Math.round((Date.now() - sessionStartTimeRef.current) / 1000);
+    const ayahsCount = activeAyahIndex + 1;
+    setExitPayload({
+      activityType: 'murojaah',
+      surahNumber: currentSurah.number,
+      surahName: currentSurah.name,
+      startAyah: 1,
+      endAyah: ayahsCount,
+      totalAyahs: ayahsCount,
+      pagesCount: Math.max(1, Math.ceil(ayahsCount / 15)),
+      durationSeconds: Math.max(duration, 10),
+      score: 96.5,
+    });
+    setIsExitModalOpen(true);
+  };
 
   // SRS due items from backend
   const [dueAyahs, setDueAyahs] = useState<SrsDueItem[]>([]);
@@ -496,6 +518,18 @@ export default function MurojaahPage() {
           </select>
         </div>
 
+        {/* Tombol Selesai Murojaah & Catat Mutabaah */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenExitModal}
+            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Selesai Sesi & Catat</span>
+          </button>
+        </div>
+
         {/* SRS Due Badge */}
         {dueAyahs.length > 0 && (
           <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg w-full sm:w-auto justify-center sm:justify-end">
@@ -731,6 +765,39 @@ export default function MurojaahPage() {
           </div>
         </div>
       </div>
+
+      {/* Exit-Intent Logger Modal Mutabaah */}
+      {exitPayload && (
+        <ExitMutabaahModal
+          isOpen={isExitModalOpen}
+          onClose={() => setIsExitModalOpen(false)}
+          onSave={(payload) => {
+            recordMutabaahReport({
+              activityType: 'murojaah',
+              surahNumber: payload.surahNumber,
+              surahName: payload.surahName,
+              ayahStart: payload.startAyah,
+              ayahEnd: payload.endAyah,
+              durationSeconds: payload.durationSeconds,
+              pagesCount: payload.pagesCount,
+              score: payload.score,
+              santriNotes: payload.santriNotes,
+            });
+            setIsExitModalOpen(false);
+            setScoreNotification('Alhamdulillah! Laporan sesi murojaah tersimpan ke Mutabaah Yaumi.');
+            setTimeout(() => setScoreNotification(null), 3000);
+          }}
+          activityType={exitPayload.activityType}
+          surahNumber={exitPayload.surahNumber}
+          surahName={exitPayload.surahName}
+          startAyah={exitPayload.startAyah}
+          endAyah={exitPayload.endAyah}
+          totalAyahs={exitPayload.totalAyahs}
+          pagesCount={exitPayload.pagesCount}
+          durationSeconds={exitPayload.durationSeconds}
+          score={exitPayload.score}
+        />
+      )}
     </div>
   );
 }

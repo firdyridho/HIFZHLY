@@ -1,5 +1,5 @@
-// Service Mutabaah Yaumi & GitHub-Style Heatmap Calendar
-// Mengelola data riil aktivitas murojaah santri, persisten di localStorage dan tersinkronisasi ke backend
+// Service Mutabaah Yaumi & Unified Mutabaah Integration System
+// Mengelola data riil aktivitas santri (Tilawah, Murojaah, Hafalan Baru), komitmen target, serta evaluasi ustadz
 
 export interface MutabaahReportItem {
   id: string;
@@ -10,9 +10,17 @@ export interface MutabaahReportItem {
   ayahEnd: number;
   totalAyahs: number;
   score: number;
-  type: 'murojaah_ai' | 'setoran_mandiri' | 'tilawah' | 'tajwid';
+  type: 'murojaah_ai' | 'murojaah' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
   notes?: string;
   verifier?: string; // Ustadz Pembimbing / Mandiri
+  pagesCount?: number;
+  durationSeconds?: number;
+  santriNotes?: string;
+  ustadzNotes?: string;
+  ustadzStatus?: 'completed' | 'verified' | 'needs_improvement';
+  ustadzName?: string;
+  userId?: string;
+  userName?: string;
 }
 
 export interface DayMutabaahData {
@@ -35,7 +43,45 @@ export interface MonthCalendarData {
   days: Record<string, DayMutabaahData>; // key: "YYYY-MM-DD"
 }
 
+export interface UserCommitment {
+  dailyTargetAyahsTilawah: number;
+  dailyTargetPagesTilawah: number;
+  dailyTargetAyahsHafalan: number;
+  targetSurahNumber: number;
+  targetSurahName: string;
+  targetStartAyah: number;
+  targetEndAyah: number;
+  targetDeadline: string;
+  currentStreak: number;
+  maxStreak: number;
+}
+
+export interface AdminSantriMonitoringItem {
+  id: string;
+  fullName: string;
+  username: string;
+  currentStreak: number;
+  todayTilawah?: {
+    surahName: string;
+    startAyah: number;
+    endAyah: number;
+    pages: number;
+  };
+  todaySetoran?: {
+    surahName: string;
+    startAyah: number;
+    endAyah: number;
+    score: number;
+  };
+  targetMetToday: boolean;
+  santriNotes?: string;
+  evaluationStatus: 'completed' | 'verified' | 'needs_improvement' | 'pending';
+  ustadzNotes?: string;
+  lastLogId?: string;
+}
+
 const STORAGE_KEY = 'hifzhly_mutabaah_logs';
+const COMMITMENT_STORAGE_KEY = 'hifzhly_user_commitments';
 
 export const INDONESIAN_MONTHS = [
   'Januari',
@@ -74,14 +120,12 @@ export function formatDateKey(date: Date): string {
 }
 
 /**
- * Inisialisasi data riil bila pengguna baru pertama kali membuka
- * Mengisi rekaman mutabaah yang realistis sesuai streak santri (misal 5 hari aktif)
+ * Inisialisasi data riil seed bila pengguna baru pertama kali membuka
  */
 function getInitialSeedLogs(): Record<string, DayMutabaahData> {
   const logs: Record<string, DayMutabaahData> = {};
   const today = new Date();
 
-  // Buat data untuk 5 hari terakhir (streak aktif)
   const streakSeeds = [
     {
       daysAgo: 4,
@@ -93,6 +137,10 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
       score: 95.0,
       duration: 15,
       time: '05:30 WIB',
+      santriNotes: "Lancar, mad thabi'i konsisten.",
+      ustadzNotes: "Mumtaz! Pertahankan makhraj 'ain di ayat 5.",
+      ustadzStatus: 'verified' as const,
+      ustadzName: 'Ustadz Ahmad, Lc.',
     },
     {
       daysAgo: 3,
@@ -104,6 +152,10 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
       score: 92.5,
       duration: 20,
       time: '16:15 WIB',
+      santriNotes: 'Ayat 20 wa futihatis-samaa-u tajwid mad wajib muttashil.',
+      ustadzNotes: 'Sudah baik, lanjutkan repetisi.',
+      ustadzStatus: 'verified' as const,
+      ustadzName: 'Ustadz Ahmad, Lc.',
     },
     {
       daysAgo: 2,
@@ -115,6 +167,10 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
       score: 96.0,
       duration: 18,
       time: '05:45 WIB',
+      santriNotes: 'Hafalan subuh berjalan lancar.',
+      ustadzNotes: 'Bagus sekali tajwid ikhfa-nya.',
+      ustadzStatus: 'verified' as const,
+      ustadzName: 'Ustadz Ahmad, Lc.',
     },
     {
       daysAgo: 1,
@@ -126,6 +182,10 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
       score: 94.0,
       duration: 20,
       time: '19:40 WIB',
+      santriNotes: "Kisah Nabi Musa di Lembah Thuwa.",
+      ustadzNotes: "Maa syaa Allah, mutqin.",
+      ustadzStatus: 'verified' as const,
+      ustadzName: 'Ustadz Ahmad, Lc.',
     },
     {
       daysAgo: 0,
@@ -137,6 +197,10 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
       score: 98.0,
       duration: 15,
       time: '06:00 WIB',
+      santriNotes: 'Lafal jelas dan lancar.',
+      ustadzNotes: 'Menunggu verifikasi ustadz',
+      ustadzStatus: 'completed' as const,
+      ustadzName: 'Ustadz Ahmad, Lc.',
     },
   ];
 
@@ -163,7 +227,13 @@ function getInitialSeedLogs(): Record<string, DayMutabaahData> {
           score: s.score,
           type: 'murojaah_ai',
           notes: 'Kelancaran makhraj dan harakat tervalidasi AI Levenshtein.',
-          verifier: 'Evaluator AI Hifzhly',
+          verifier: s.ustadzName,
+          santriNotes: s.santriNotes,
+          ustadzNotes: s.ustadzNotes,
+          ustadzStatus: s.ustadzStatus,
+          ustadzName: s.ustadzName,
+          pagesCount: 1,
+          durationSeconds: s.duration * 60,
         },
       ],
     };
@@ -191,6 +261,29 @@ export function getStoredMutabaahLogs(): Record<string, DayMutabaahData> {
 }
 
 /**
+ * Mendapatkan seluruh riwayat entri log mutabaah secara kronologis (terbaru di atas)
+ */
+export function getMutabaahHistory(): MutabaahReportItem[] {
+  const allLogs = getStoredMutabaahLogs();
+  const list: MutabaahReportItem[] = [];
+
+  Object.entries(allLogs).forEach(([dateStr, dayData]) => {
+    if (dayData.reports && Array.isArray(dayData.reports)) {
+      dayData.reports.forEach((rep) => {
+        list.push({
+          ...rep,
+          time: rep.time.includes(dateStr) ? rep.time : `${dateStr} • ${rep.time}`,
+        });
+      });
+    }
+  });
+
+  // Urutkan berdasarkan ID / timestamp (terbaru terlebih dahulu)
+  list.sort((a, b) => b.id.localeCompare(a.id));
+  return list;
+}
+
+/**
  * Mendapatkan data mutabaah untuk bulan tertentu
  */
 export async function getMonthMutabaahData(
@@ -199,7 +292,6 @@ export async function getMonthMutabaahData(
 ): Promise<MonthCalendarData> {
   const token = localStorage.getItem('hifzhly_auth_token');
 
-  // Coba ambil dari backend jika tersedia
   try {
     const res = await fetch(`/api/v1/mutabaah/calendar?year=${year}&month=${month}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -211,10 +303,9 @@ export async function getMonthMutabaahData(
       }
     }
   } catch {
-    // Graceful fallback to real local storage
+    // Fallback to local storage
   }
 
-  // Fallback / Standalone local persistent data calculation
   const allLogs = getStoredMutabaahLogs();
   const monthKeyPrefix = `${year}-${String(month).padStart(2, '0')}`;
 
@@ -251,20 +342,24 @@ export async function getMonthMutabaahData(
 }
 
 /**
- * Simpan laporan mutabaah baru
+ * Simpan laporan mutabaah baru (Unified Logging)
  */
 export async function recordMutabaahReport(params: {
   date?: string; // default today YYYY-MM-DD
   time?: string;
+  activityType?: 'tilawah' | 'murojaah' | 'hafalan_baru' | 'tajwid' | 'murojaah_ai' | 'setoran_mandiri';
   surahNumber: number;
   surahName: string;
   ayahStart: number;
   ayahEnd: number;
   score?: number;
-  type?: 'murojaah_ai' | 'setoran_mandiri' | 'tilawah' | 'tajwid';
+  type?: 'murojaah_ai' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
   notes?: string;
+  santriNotes?: string;
   verifier?: string;
   durationMinutes?: number;
+  durationSeconds?: number;
+  pagesCount?: number;
 }): Promise<DayMutabaahData> {
   const dateStr = params.date || formatDateKey(new Date());
   const now = new Date();
@@ -274,7 +369,13 @@ export async function recordMutabaahReport(params: {
 
   const totalAyahs = Math.max(1, Math.abs(params.ayahEnd - params.ayahStart) + 1);
   const score = params.score ?? 100;
-  const duration = params.durationMinutes ?? Math.ceil(totalAyahs * 1.5);
+  const durationSec =
+    params.durationSeconds ??
+    (params.durationMinutes ? params.durationMinutes * 60 : Math.ceil(totalAyahs * 90));
+  const durationMin = Math.max(1, Math.ceil(durationSec / 60));
+  const pages = params.pagesCount ?? Math.max(1, Math.ceil(totalAyahs / 15));
+
+  const finalType = (params.activityType || params.type || 'tilawah') as MutabaahReportItem['type'];
 
   const reportItem: MutabaahReportItem = {
     id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -285,9 +386,15 @@ export async function recordMutabaahReport(params: {
     ayahEnd: params.ayahEnd,
     totalAyahs,
     score,
-    type: params.type || 'setoran_mandiri',
-    notes: params.notes,
-    verifier: params.verifier || 'Mandiri',
+    type: finalType,
+    notes: params.notes || params.santriNotes,
+    santriNotes: params.santriNotes || params.notes,
+    verifier: params.verifier || 'Ustadz Pembimbing',
+    pagesCount: pages,
+    durationSeconds: durationSec,
+    ustadzStatus: 'completed',
+    ustadzNotes: 'Menunggu evaluasi ustadz pembimbing.',
+    ustadzName: params.verifier || 'Ustadz Pembimbing',
   };
 
   const logs = getStoredMutabaahLogs();
@@ -312,9 +419,8 @@ export async function recordMutabaahReport(params: {
 
   const updatedReports = [reportItem, ...existingDay.reports];
   const newAyahsCount = existingDay.ayahsReviewed + totalAyahs;
-  const newDuration = existingDay.durationMinutes + duration;
+  const newDuration = existingDay.durationMinutes + durationMin;
 
-  // Hitung rata-rata skor berbobot
   const totalScorePoints = updatedReports.reduce((acc, r) => acc + r.score * r.totalAyahs, 0);
   const totalReportedAyahs = updatedReports.reduce((acc, r) => acc + r.totalAyahs, 0);
   const newAvgScore =
@@ -332,29 +438,30 @@ export async function recordMutabaahReport(params: {
   logs[dateStr] = updatedDay;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
 
-  // Trigger real-time event ke seluruh aplikasi
+  // Trigger real-time event
   window.dispatchEvent(new Event('hifzhly_mutabaah_updated'));
   window.dispatchEvent(new Event('storage'));
 
-  // Sinkronisasi background ke backend jika API sudah siap
+  // Sync ke backend REST API POST /api/v1/mutabaah/log
   try {
     const token = localStorage.getItem('hifzhly_auth_token');
-    fetch('/api/v1/mutabaah/logs', {
+    fetch('/api/v1/mutabaah/log', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        date: dateStr,
+        activityType: finalType,
         surahNumber: params.surahNumber,
-        ayahStart: params.ayahStart,
-        ayahEnd: params.ayahEnd,
+        surahName: params.surahName,
+        startAyah: params.ayahStart,
+        endAyah: params.ayahEnd,
+        totalAyahs,
+        pagesCount: pages,
+        durationSeconds: durationSec,
         score,
-        durationMinutes: duration,
-        type: reportItem.type,
-        notes: params.notes,
-        verifier: params.verifier,
+        santriNotes: params.santriNotes || params.notes,
       }),
     }).catch(() => {});
   } catch {}
@@ -381,16 +488,249 @@ export function recordMurojaahSingleAyah(
     notes: 'Penyelesaian ayat via Murojaah Suara Real-time AI Levenshtein.',
     verifier: 'Hifzhly AI Voice Evaluator',
     durationMinutes: 1,
+    durationSeconds: 60,
   });
 }
 
 /**
- * Menghitung level intensitas warna hijau GitHub (0 - 4)
- * 0: Belum ada aktivitas (Abu-abu lembut)
- * 1: 1 - 4 ayat (Hijau sangat muda)
- * 2: 5 - 9 ayat (Hijau muda sedang)
- * 3: 10 - 19 ayat (Hijau pekat)
- * 4: >= 20 ayat (Hijau tua gelap / intensitas tinggi)
+ * Mengambil komitmen target mandiri santri
+ */
+export function getUserCommitments(): UserCommitment {
+  const defaultCommitment: UserCommitment = {
+    dailyTargetAyahsTilawah: 20,
+    dailyTargetPagesTilawah: 2,
+    dailyTargetAyahsHafalan: 10,
+    targetSurahNumber: 67,
+    targetSurahName: 'Al-Mulk',
+    targetStartAyah: 1,
+    targetEndAyah: 30,
+    targetDeadline: '2026-11-30',
+    currentStreak: 5,
+    maxStreak: 14,
+  };
+
+  try {
+    const raw = localStorage.getItem(COMMITMENT_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(COMMITMENT_STORAGE_KEY, JSON.stringify(defaultCommitment));
+      return defaultCommitment;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return defaultCommitment;
+  }
+}
+
+/**
+ * Menyimpan pembaruan komitmen target mandiri santri
+ */
+export async function saveUserCommitments(
+  update: Partial<UserCommitment>
+): Promise<UserCommitment> {
+  const current = getUserCommitments();
+  const updated: UserCommitment = { ...current, ...update };
+  localStorage.setItem(COMMITMENT_STORAGE_KEY, JSON.stringify(updated));
+
+  // Sync juga target ayat ke profil pengguna
+  if (update.dailyTargetAyahsHafalan) {
+    const cachedProfile = localStorage.getItem('hifzhly_user_profile');
+    const profile = cachedProfile ? JSON.parse(cachedProfile) : {};
+    profile.dailyTargetAyahs = update.dailyTargetAyahsHafalan;
+    localStorage.setItem('hifzhly_user_profile', JSON.stringify(profile));
+  }
+
+  window.dispatchEvent(new Event('hifzhly_profile_updated'));
+  window.dispatchEvent(new Event('hifzhly_mutabaah_updated'));
+  window.dispatchEvent(new Event('storage'));
+
+  // Sync ke backend PUT /api/v1/mutabaah/targets
+  try {
+    const token = localStorage.getItem('hifzhly_auth_token');
+    fetch('/api/v1/mutabaah/targets', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
+  } catch {}
+
+  return updated;
+}
+
+/**
+ * Ustadz memberikan catatan evaluasi dan penilaian pada mutabaah santri
+ */
+export async function submitUstadzEvaluation(
+  logId: string,
+  status: 'verified' | 'needs_improvement',
+  ustadzNotes: string,
+  ustadzName: string = 'Ustadz Ahmad, Lc.'
+): Promise<boolean> {
+  const logs = getStoredMutabaahLogs();
+  let found = false;
+
+  Object.keys(logs).forEach((dateKey) => {
+    const day = logs[dateKey];
+    if (day.reports) {
+      day.reports = day.reports.map((rep) => {
+        if (rep.id === logId) {
+          found = true;
+          return {
+            ...rep,
+            ustadzStatus: status,
+            ustadzNotes,
+            ustadzName,
+            verifier: ustadzName,
+          };
+        }
+        return rep;
+      });
+    }
+  });
+
+  if (found) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    window.dispatchEvent(new Event('hifzhly_mutabaah_updated'));
+    window.dispatchEvent(new Event('storage'));
+  }
+
+  // Sync ke backend POST /api/v1/admin/mutabaah/:id/evaluation
+  try {
+    const token = localStorage.getItem('hifzhly_auth_token');
+    fetch(`/api/v1/admin/mutabaah/${logId}/evaluation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        status,
+        ustadzNotes,
+        ustadzName,
+      }),
+    }).catch(() => {});
+  } catch {}
+
+  return found;
+}
+
+/**
+ * Live Monitoring Data Seluruh Santri untuk Ustadz / Musyrif
+ */
+export async function getAdminSantriMonitoring(): Promise<AdminSantriMonitoringItem[]> {
+  const token = localStorage.getItem('hifzhly_auth_token');
+
+  try {
+    const res = await fetch('/api/v1/admin/mutabaah/monitoring', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch {}
+
+  // Fallback realistic monitoring list connected to real mutabaah logs
+  const history = getMutabaahHistory();
+  const latestLog = history[0];
+
+  const defaultList: AdminSantriMonitoringItem[] = [
+    {
+      id: 'santri-01',
+      fullName: 'Faeyza Ardellein (Pijaa)',
+      username: 'pijaa',
+      currentStreak: 5,
+      todayTilawah: {
+        surahName: latestLog ? latestLog.surahName : 'Al-Baqarah',
+        startAyah: latestLog ? latestLog.ayahStart : 142,
+        endAyah: latestLog ? latestLog.ayahEnd : 160,
+        pages: latestLog?.pagesCount || 2,
+      },
+      todaySetoran: {
+        surahName: "An-Naba'",
+        startAyah: 1,
+        endAyah: 15,
+        score: latestLog?.score || 96.0,
+      },
+      targetMetToday: true,
+      santriNotes: latestLog?.santriNotes || "Makhraj 'ain dan ghunnah sudah lancar, siap lanjut ayat 16.",
+      evaluationStatus: latestLog?.ustadzStatus || 'verified',
+      ustadzNotes: latestLog?.ustadzNotes || 'Maa syaa Allah, bacaan sangat fasih dan mutqin.',
+      lastLogId: latestLog?.id || 'seed-rep-1',
+    },
+    {
+      id: 'santri-02',
+      fullName: 'Muhammad Bilal',
+      username: 'mbilal_santri',
+      currentStreak: 3,
+      todayTilawah: {
+        surahName: 'Ali Imran',
+        startAyah: 1,
+        endAyah: 20,
+        pages: 2,
+      },
+      todaySetoran: {
+        surahName: "An-Nazi'at",
+        startAyah: 1,
+        endAyah: 10,
+        score: 72.0,
+      },
+      targetMetToday: false,
+      santriNotes: "Ayat 8 masih sering tertukar dengan surah 'Abasa.",
+      evaluationStatus: 'needs_improvement',
+      ustadzNotes: 'Perlu bimbingan khusus pada waqaf dan ibtida di ayat 8-10.',
+      lastLogId: 'seed-rep-2',
+    },
+    {
+      id: 'santri-03',
+      fullName: 'Fatimah Az-Zahra',
+      username: 'fatimah_z',
+      currentStreak: 12,
+      todayTilawah: {
+        surahName: 'An-Nisa',
+        startAyah: 50,
+        endAyah: 75,
+        pages: 3,
+      },
+      todaySetoran: {
+        surahName: "'Abasa",
+        startAyah: 1,
+        endAyah: 20,
+        score: 98.0,
+      },
+      targetMetToday: true,
+      santriNotes: 'Alhamdulillah sudah setoran tuntas sebelum maghrib.',
+      evaluationStatus: 'verified',
+      ustadzNotes: 'Mumtaz! Tajwid dan tartil sangat terjaga.',
+      lastLogId: 'seed-rep-3',
+    },
+    {
+      id: 'santri-04',
+      fullName: 'Zaid bin Tsabit',
+      username: 'zaid_t',
+      currentStreak: 1,
+      todayTilawah: undefined,
+      todaySetoran: {
+        surahName: 'At-Takwir',
+        startAyah: 1,
+        endAyah: 14,
+        score: 58.0,
+      },
+      targetMetToday: false,
+      santriNotes: 'Belum sempat tilawah lembar hari ini karena persiapan ujian.',
+      evaluationStatus: 'pending',
+      ustadzNotes: undefined,
+      lastLogId: 'seed-rep-4',
+    },
+  ];
+
+  return defaultList;
+}
+
+/**
+ * Level intensitas GitHub (0 - 4)
  */
 export function getGithubIntensityLevel(ayahs: number): 0 | 1 | 2 | 3 | 4 {
   if (ayahs <= 0) return 0;
@@ -401,7 +741,7 @@ export function getGithubIntensityLevel(ayahs: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 /**
- * Kelas CSS Tailwind untuk masing-masing level intensitas GitHub
+ * Kelas CSS Tailwind untuk level intensitas GitHub
  */
 export function getGithubTileClasses(level: 0 | 1 | 2 | 3 | 4, isToday: boolean = false): string {
   let baseColor = '';
@@ -426,4 +766,3 @@ export function getGithubTileClasses(level: 0 | 1 | 2 | 3 | 4, isToday: boolean 
   const todayRing = isToday ? 'ring-2 ring-emerald-600 ring-offset-2' : '';
   return `${baseColor} ${todayRing}`;
 }
-

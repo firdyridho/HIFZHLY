@@ -20,6 +20,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
+import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
+import { recordMutabaahReport } from '../lib/mutabaahService';
 
 // 30 Juz Mapping Data
 interface JuzInfo {
@@ -205,6 +207,55 @@ export default function MushafPage() {
   const [currentSurah, setCurrentSurah] = useState<SurahDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [targetAyahToScroll, setTargetAyahToScroll] = useState<number | null>(null);
+  // Mutabaah Session Tracker & Exit-Intent Logger
+  const readingSessionStartRef = useRef<number>(Date.now());
+  const readingStartAyahRef = useRef<number>(1);
+  const readingMaxAyahRef = useRef<number>(1);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [exitPayload, setExitPayload] = useState<ExitMutabaahPayload | null>(null);
+
+  useEffect(() => {
+    if (selectedSurahNumber !== null || selectedJuzNumber !== null) {
+      readingSessionStartRef.current = Date.now();
+      readingStartAyahRef.current = targetAyahToScroll || 1;
+      readingMaxAyahRef.current = targetAyahToScroll || 1;
+    }
+  }, [selectedSurahNumber, selectedJuzNumber]);
+
+  const performCloseReading = () => {
+    setSelectedSurahNumber(null);
+    setSelectedJuzNumber(null);
+    setTargetAyahToScroll(null);
+    if (audioRef.current) audioRef.current.pause();
+    if (fullAudioRef.current) fullAudioRef.current.pause();
+    setIsPlayingFull(false);
+    setPlayingAyah(null);
+  };
+
+  const handleTriggerExit = () => {
+    const durationSec = Math.round((Date.now() - readingSessionStartRef.current) / 1000);
+    const surahNum = selectedSurahNumber || 1;
+    const surahNm = currentSurah?.nameLatin || (selectedJuzNumber ? `Juz ${selectedJuzNumber}` : "Al-Qur'an");
+    const startA = readingStartAyahRef.current;
+    const endA = Math.max(startA, readingMaxAyahRef.current);
+    const totalA = endA - startA + 1;
+    const pages = Math.max(1, Math.ceil(totalA / 15));
+    if (durationSec >= 3 || totalA > 1) {
+      setExitPayload({
+        activityType: 'tilawah',
+        surahNumber: surahNum,
+        surahName: surahNm,
+        startAyah: startA,
+        endAyah: endA,
+        totalAyahs: totalA,
+        pagesCount: pages,
+        durationSeconds: Math.max(durationSec, 5),
+      });
+      setIsExitModalOpen(true);
+    } else {
+      performCloseReading();
+    }
+  };
 
   // Header Toolbar Controls State
   const [readingMode, setReadingMode] = useState<'ayat' | 'mushaf'>(() => {
@@ -807,15 +858,7 @@ export default function MushafPage() {
             <div className="flex items-center space-x-1.5 sm:space-x-2.5 min-w-0 shrink">
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedSurahNumber(null);
-                  setSelectedJuzNumber(null);
-                  setTargetAyahToScroll(null);
-                  if (audioRef.current) audioRef.current.pause();
-                  if (fullAudioRef.current) fullAudioRef.current.pause();
-                  setIsPlayingFull(false);
-                  setPlayingAyah(null);
-                }}
+                onClick={handleTriggerExit}
                 className="p-1.5 sm:p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                 title="Kembali ke Daftar Surah / Juz"
               >
@@ -2222,6 +2265,39 @@ export default function MushafPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Exit-Intent Logger Modal Mutabaah */}
+      {exitPayload && (
+        <ExitMutabaahModal
+          isOpen={isExitModalOpen}
+          onClose={() => {
+            setIsExitModalOpen(false);
+            performCloseReading();
+          }}
+          onSave={(payload) => {
+            recordMutabaahReport({
+              activityType: 'tilawah',
+              surahNumber: payload.surahNumber,
+              surahName: payload.surahName,
+              ayahStart: payload.startAyah,
+              ayahEnd: payload.endAyah,
+              durationSeconds: payload.durationSeconds,
+              pagesCount: payload.pagesCount,
+              santriNotes: payload.santriNotes,
+            });
+            setIsExitModalOpen(false);
+            performCloseReading();
+          }}
+          activityType={exitPayload.activityType}
+          surahNumber={exitPayload.surahNumber}
+          surahName={exitPayload.surahName}
+          startAyah={exitPayload.startAyah}
+          endAyah={exitPayload.endAyah}
+          totalAyahs={exitPayload.totalAyahs}
+          pagesCount={exitPayload.pagesCount}
+          durationSeconds={exitPayload.durationSeconds}
+        />
       )}
     </div>
   );

@@ -113,3 +113,15 @@
   4. **Form Pencatatan Laporan Mutabaah**: Modal form interaktif "+ Catat Setoran Baru" untuk mencatat setoran hafalan mandiri maupun bersama ustadz yang secara instan memperbarui persistent storage, menaikkan intensitas warna sel kalender hari tersebut, dan mengirim sinkronisasi ke backend.
   5. **Sinkronisasi Otomatis Antar-Halaman**: Setiap ayat yang selesai dimurojaah di `MurojaahPage.tsx` otomatis terekam ke riwayat mutabaah harian melalui `mutabaahService.ts` dan tersinkronisasi dinamis ke progres target harian pada `DashboardPage.tsx`.
   6. **Formalisasi Permintaan Backend**: Mendokumentasikan permintaan endpoint `REQ-BE-07` (Heatmap Calendar Bulanan), `REQ-BE-08` (Detail Riwayat Laporan Harian), dan `REQ-BE-09` (Pencatatan Setoran Mutabaah Baru) pada `docs/BACKEND_REQUESTS.md` sesuai SOP.
+* [x] **2026-11-01 (01:25)**: Implementasi Penuh Spesifikasi Sistem Mutabaah Terpadu Hifzhly (`MUTABAAH_INTEGRATION_SPEC.md`):
+  1. **Komponen Exit-Intent Logger Modal (`ExitMutabaahModal.tsx`)**: Modal terpadu ringkasan sesi otomatis (surah, ayat awal & akhir, total ayat, durasi membaca, lembar, skor AI, dan input catatan refleksi santri).
+  2. **Interaksi Tracker Tilawah di Mushaf Al-Qur'an (`MushafPage.tsx`)**: Perekaman otomatis rentang ayat dan durasi membaca saat santri membuka surah/juz, serta pemicuan `ExitMutabaahModal` saat santri mengklik tombol `<- Kembali`.
+  3. **Interaksi Tracker Murojaah AI (`MurojaahPage.tsx`)**: Tombol `[Selesai Sesi & Catat]` pada header Murojaah yang memicu `ExitMutabaahModal` pasca setoran suara AI tuntas.
+  4. **Dashboard Mutabaah 3 Tab Modular (`MutabaahPage.tsx`)**:
+     - **Tab Kalender Heatmap**: Kalender kontribusi bergaya GitHub per bulan dan heatmap retensi memori 37 surah Juz 'Amma.
+     - **Tab Jurnal & Catatan Musyrif**: Linimasa kronologis seluruh aktivitas (tilawah, hafalan baru, murojaah AI) dengan filter kategori, catatan kendala santri, dan balasan evaluasi Ustadz pembimbing (`Mumtaz` / `Perlu Diulang`).
+     - **Tab Target & Komitmen Mandiri**: Pengaturan komitmen target tilawah lembar/hari, target ayat hafalan, serta target surah khusus dengan deadline dan progres tracking real-time.
+  5. **Live Monitoring & Evaluasi Musyrif (`AdminDashboardPage.tsx`)**:
+     - Tab `[Live Mutabaah & Evaluasi]` dengan tabel rekapitulasi kepatuhan seluruh santri (tilawah hari ini, setoran AI, status target, catatan kendala, dan status penilaian).
+     - Modal formulir pengiriman catatan evaluasi & arahan musyrif (`submitUstadzEvaluation`) yang langsung tersinkronisasi ke jurnal mutabaah santri.
+  6. **Penyelesaian Checklist**: Seluruh task checklist pada Fase 2, Fase 3, dan Fase 4 di `docs/MUTABAAH_INTEGRATION_SPEC.md` telah diselesaikan secara menyeluruh.

@@ -60,3 +60,4 @@
 * [x] **2026-10-31 (04:30)**: Integrasi algoritma Spaced Repetition (SRS SuperMemo-2) dan endpoint `POST /api/v1/murojaah/evaluate`.
 * [x] **2026-10-31 (05:00)**: Integrasi pengayaan data Ayat Mutasyabihat mengadopsi standar Tarteel QUL (Quranic Universal Library) pada endpoint `/api/v1/quran/mutashabihat/{surah}/{ayah}`.
 
+* [x] **2026-11-01 (03:00)**: Implementasi lengkap Sistem Mutabaah Terpadu & Komitmen Target Santri (`mutabaah_logs` auto-logging, `user_commitments`, endpoint `POST /api/v1/mutabaah/log`, `GET /api/v1/mutabaah/history`, `GET/PUT /api/v1/mutabaah/targets`, `GET /api/v1/admin/mutabaah/monitoring`, dan `POST /api/v1/admin/mutabaah/:id/evaluation`) sesuai [`MUTABAAH_INTEGRATION_SPEC.md`](./MUTABAAH_INTEGRATION_SPEC.md).

@@ -132,8 +132,16 @@ func main() {
 		r.Get("/mutabaah/summary", enrichmentHandler.GetMutabaahSummary)
 		r.Get("/mutabaah/heatmap/{surahNumber}", enrichmentHandler.GetSurahHeatmap)
 
-		// Admin Santri Monitoring
+		// Mutabaah Yaumi & Unified Logging System
+		r.Post("/mutabaah/log", enrichmentHandler.CreateMutabaahLog)
+		r.Get("/mutabaah/history", enrichmentHandler.GetMutabaahHistory)
+		r.Get("/mutabaah/targets", enrichmentHandler.GetTargets)
+		r.Put("/mutabaah/targets", enrichmentHandler.UpdateTargets)
+
+		// Admin Santri Monitoring & Live Mutabaah
 		r.Get("/admin/santri", enrichmentHandler.GetAdminSantri)
+		r.Get("/admin/mutabaah/monitoring", enrichmentHandler.GetAdminMutabaahMonitoring)
+		r.Post("/admin/mutabaah/{id}/evaluation", enrichmentHandler.SubmitUstadzEvaluation)
 
 		// Tajwid Modules & Quizzes
 		r.Get("/tajwid/modules", tajwidHandler.GetModules)

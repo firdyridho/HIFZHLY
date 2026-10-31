@@ -23,6 +23,8 @@ import {
   GraduationCap
 } from 'lucide-react';
 import type { TajwidModule } from '../types';
+import { getAdminSantriMonitoring, submitUstadzEvaluation, AdminSantriMonitoringItem } from '../lib/mutabaahService';
+import { TrendingUp, ShieldCheck, AlertCircle, MessageSquare } from 'lucide-react';
 
 interface SantriOverview {
   id: string;
@@ -47,7 +49,13 @@ interface QuestionForm {
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'santri' | 'tajwid'>('santri');
+  const [activeTab, setActiveTab] = useState<'mutabaah' | 'santri' | 'tajwid'>('mutabaah');
+  // Live Mutabaah Monitoring State
+  const [monitoringList, setMonitoringList] = useState<AdminSantriMonitoringItem[]>([]);
+  const [selectedSantriForEval, setSelectedSantriForEval] = useState<AdminSantriMonitoringItem | null>(null);
+  const [evalStatus, setEvalStatus] = useState<'verified' | 'needs_improvement'>('verified');
+  const [evalNotes, setEvalNotes] = useState('');
+  const [isSubmittingEval, setIsSubmittingEval] = useState(false);
 
   // Santri state
   const [metrics, setMetrics] = useState({
@@ -162,6 +170,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchModules();
+    getAdminSantriMonitoring().then((data) => setMonitoringList(data));
+    const handleSync = () => getAdminSantriMonitoring().then((data) => setMonitoringList(data));
+    window.addEventListener('hifzhly_mutabaah_updated', handleSync);
     fetchSantriMonitoring();
   }, []);
 
@@ -415,6 +426,17 @@ export default function AdminDashboardPage() {
       <div className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-6">
           <button
+            onClick={() => setActiveTab('mutabaah')}
+            className={`py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition cursor-pointer ${
+              activeTab === 'mutabaah'
+                ? 'border-emerald-500 text-emerald-400 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Live Mutabaah & Evaluasi</span>
+          </button>
+          <button
             onClick={() => setActiveTab('santri')}
             className={`py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition ${
               activeTab === 'santri'
@@ -441,7 +463,273 @@ export default function AdminDashboardPage() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        {activeTab === 'santri' ? (
+        {activeTab === 'mutabaah' ? (
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Header Mutabaah Live */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                  <span>Live Rekapitulasi Mutabaah Yaumiyyah Santri</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Pantau kepatuhan target tilawah lembar, setoran suara AI, dan berikan catatan evaluasi langsung ke santri.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-semibold px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-400">
+                  Total Santri Terpantau: {monitoringList.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Table of Live Monitoring */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-800/80 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700/60">
+                    <tr>
+                      <th className="px-5 py-3.5">Santri</th>
+                      <th className="px-4 py-3.5">Tilawah Hari Ini</th>
+                      <th className="px-4 py-3.5">Setoran Murojaah AI</th>
+                      <th className="px-4 py-3.5 text-center">Status Target</th>
+                      <th className="px-5 py-3.5">Catatan Kendala Santri</th>
+                      <th className="px-4 py-3.5 text-center">Evaluasi Musyrif</th>
+                      <th className="px-5 py-3.5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-300">
+                    {monitoringList.map((item) => {
+                      const isVerified = item.evaluationStatus === 'verified';
+                      const isNeedsImprovement = item.evaluationStatus === 'needs_improvement';
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                          {/* Santri */}
+                          <td className="px-5 py-4">
+                            <div className="font-bold text-slate-100">{item.fullName}</div>
+                            <div className="text-[11px] text-slate-500 font-mono">
+                              @{item.username} • {item.currentStreak} Hari Streak
+                            </div>
+                          </td>
+
+                          {/* Tilawah */}
+                          <td className="px-4 py-4">
+                            {item.todayTilawah ? (
+                              <div>
+                                <span className="font-bold text-teal-400 block">
+                                  QS. {item.todayTilawah.surahName}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-mono">
+                                  Ayat {item.todayTilawah.startAyah}-{item.todayTilawah.endAyah} ({item.todayTilawah.pages} Lembar)
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 font-mono italic">Belum Tilawah</span>
+                            )}
+                          </td>
+
+                          {/* Setoran */}
+                          <td className="px-4 py-4">
+                            {item.todaySetoran ? (
+                              <div>
+                                <span className="font-bold text-emerald-400 block">
+                                  QS. {item.todaySetoran.surahName} : {item.todaySetoran.startAyah}-{item.todaySetoran.endAyah}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-mono">
+                                  Skor AI: <strong className="text-emerald-400">{item.todaySetoran.score}%</strong>
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 font-mono italic">Belum Setoran</span>
+                            )}
+                          </td>
+
+                          {/* Target */}
+                          <td className="px-4 py-4 text-center">
+                            <span
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold inline-block ${
+                                item.targetMetToday
+                                  ? 'bg-emerald-950 border border-emerald-700 text-emerald-300'
+                                  : 'bg-amber-950 border border-amber-800 text-amber-300'
+                              }`}
+                            >
+                              {item.targetMetToday ? 'Tercapai' : 'Belum'}
+                            </span>
+                          </td>
+
+                          {/* Catatan Santri */}
+                          <td className="px-5 py-4 max-w-xs">
+                            {item.santriNotes ? (
+                              <p className="text-[11px] text-slate-300 italic line-clamp-2 leading-relaxed">
+                                "{item.santriNotes}"
+                              </p>
+                            ) : (
+                              <span className="text-slate-600 font-mono text-[11px]">-</span>
+                            )}
+                          </td>
+
+                          {/* Evaluasi Musyrif Status */}
+                          <td className="px-4 py-4 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider inline-block ${
+                                isVerified
+                                  ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
+                                  : isNeedsImprovement
+                                  ? 'bg-amber-900/60 text-amber-300 border border-amber-700/60'
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              }`}
+                            >
+                              {isVerified ? 'Mumtaz' : isNeedsImprovement ? 'Perlu Diulang' : 'Menunggu Review'}
+                            </span>
+                          </td>
+
+                          {/* Aksi */}
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedSantriForEval(item);
+                                setEvalStatus(item.evaluationStatus === 'needs_improvement' ? 'needs_improvement' : 'verified');
+                                setEvalNotes(item.ustadzNotes || '');
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors cursor-pointer inline-flex items-center space-x-1"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>Evaluasi</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Evaluasi Musyrif */}
+            {selectedSantriForEval && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsSubmittingEval(true);
+                    await submitUstadzEvaluation(
+                      selectedSantriForEval.lastLogId || 'seed-rep-1',
+                      evalStatus,
+                      evalNotes,
+                      'Ustadz Ahmad, Lc.'
+                    );
+                    setIsSubmittingEval(false);
+                    setSelectedSantriForEval(null);
+                    getAdminSantriMonitoring().then((data) => setMonitoringList(data));
+                    showToast(`Catatan evaluasi untuk ${selectedSantriForEval.fullName} berhasil dikirim!`);
+                  }}
+                  className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-200"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="font-bold text-white text-base">
+                        Evaluasi Mutabaah Santri
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        {selectedSantriForEval.fullName} (@{selectedSantriForEval.username})
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSantriForEval(null)}
+                      className="p-1.5 text-slate-400 hover:text-white rounded-xl cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Ringkasan Setoran & Catatan Santri */}
+                  <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5 text-xs">
+                    <div className="font-bold text-slate-100">
+                      Aktivitas Terakhir: QS. {selectedSantriForEval.todaySetoran?.surahName || selectedSantriForEval.todayTilawah?.surahName || "Al-Qur'an"}
+                    </div>
+                    {selectedSantriForEval.santriNotes && (
+                      <div className="text-slate-300 italic pt-1 border-t border-slate-700/50">
+                        Catatan Santri: "{selectedSantriForEval.santriNotes}"
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Radio Pilihan Status */}
+                  <div className="space-y-2 text-xs">
+                    <label className="font-bold text-slate-300 block">Status Penilaian Musyrif:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEvalStatus('verified')}
+                        className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          evalStatus === 'verified'
+                            ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-sm'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
+                        }`}
+                      >
+                        <ShieldCheck className="w-4 h-4 mb-1 text-emerald-400" />
+                        <div>Disetujui (Mumtaz)</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEvalStatus('needs_improvement')}
+                        className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          evalStatus === 'needs_improvement'
+                            ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-sm'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
+                        }`}
+                      >
+                        <AlertCircle className="w-4 h-4 mb-1 text-amber-400" />
+                        <div>Perlu Diulang</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Input Catatan Evaluasi Ustadz */}
+                  <div className="space-y-1.5 text-xs">
+                    <label className="font-bold text-slate-300 block">
+                      Catatan Arahan &amp; Bimbingan Ustadz:
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={evalNotes}
+                      onChange={(e) => setEvalNotes(e.target.value)}
+                      required
+                      placeholder="Contoh: Maa syaa Allah lancar, perhatikan mad jaiz munfashil di ayat 158..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none resize-none"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Catatan ini akan langsung tampil di kartu mutabaah dan timeline jurnal santri.
+                    </p>
+                  </div>
+
+                  {/* Footer Modal */}
+                  <div className="pt-2 flex justify-end space-x-2 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSantriForEval(null)}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingEval}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-xs"
+                    >
+                      {isSubmittingEval ? 'Mengirim...' : 'Kirim Catatan Evaluasi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'santri' ? (
           <div>
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

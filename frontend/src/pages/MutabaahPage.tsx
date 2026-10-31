@@ -18,11 +18,16 @@ import {
   FileText,
   UserCheck,
   Sparkles,
+  ShieldCheck,
+  AlertCircle,
+  Compass,
+  Bookmark,
 } from 'lucide-react';
 import type { MutabaahSummary, SurahHeatmap } from '../types';
 import {
   DayMutabaahData,
   MutabaahReportItem,
+  UserCommitment,
   INDONESIAN_MONTHS,
   INDONESIAN_DAYS_SHORT,
   INDONESIAN_DAYS_FULL,
@@ -31,6 +36,9 @@ import {
   recordMutabaahReport,
   getGithubIntensityLevel,
   getGithubTileClasses,
+  getMutabaahHistory,
+  getUserCommitments,
+  saveUserCommitments,
 } from '../lib/mutabaahService';
 
 const JUZ_AMMA_SURAHS = [
@@ -74,15 +82,25 @@ const JUZ_AMMA_SURAHS = [
 ];
 
 export default function MutabaahPage() {
-  // Calendar View Month & Year State
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(() => formatDateKey(today), [today]);
+
+  // Main Section Tabs: 'calendar' | 'journal' | 'commitments'
+  const [activeMainTab, setActiveMainTab] = useState<'calendar' | 'journal' | 'commitments'>('calendar');
 
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth() + 1); // 1-12
 
   // Stored Mutabaah Logs (Real persistent data)
   const [logs, setLogs] = useState<Record<string, DayMutabaahData>>({});
+  const [historyList, setHistoryList] = useState<MutabaahReportItem[]>([]);
+  const [journalFilter, setJournalFilter] = useState<'all' | 'tilawah' | 'murojaah' | 'hafalan_baru'>('all');
+
+  // Commitments State
+  const [commitments, setCommitments] = useState<UserCommitment>(getUserCommitments());
+  const [isEditingCommitment, setIsEditingCommitment] = useState(false);
+  const [commitmentForm, setCommitmentForm] = useState<UserCommitment>(commitments);
+  const [commitmentToast, setCommitmentToast] = useState<string | null>(null);
 
   // Summary Metrics
   const [summary, setSummary] = useState<MutabaahSummary>({
@@ -95,7 +113,7 @@ export default function MutabaahPage() {
     weeklyActivity: [],
   });
 
-  // Daily target editor
+  // Daily target quick editor
   const [isEditingTarget, setIsEditingTarget] = useState<boolean>(false);
   const [customTarget, setCustomTarget] = useState<number>(10);
 
@@ -123,22 +141,28 @@ export default function MutabaahPage() {
     const stored = getStoredMutabaahLogs();
     setLogs(stored);
 
-    // Update today's metric
+    const history = getMutabaahHistory();
+    setHistoryList(history);
+
+    const curCommitments = getUserCommitments();
+    setCommitments(curCommitments);
+    setCommitmentForm(curCommitments);
+
     const todayLog = stored[todayKey];
-    let dailyTarget = 10;
+    let dailyTarget = curCommitments.dailyTargetAyahsHafalan || 10;
     const cachedProfile = localStorage.getItem('hifzhly_user_profile');
     if (cachedProfile) {
       try {
         const p = JSON.parse(cachedProfile);
         if (p.dailyTargetAyahs) dailyTarget = p.dailyTargetAyahs;
-      } catch {}
+      } catch { }
     }
     setCustomTarget(dailyTarget);
 
     const todayReviewed = todayLog ? todayLog.ayahsReviewed : 0;
     const isTargetMet = todayReviewed >= dailyTarget;
 
-    // Calculate real streak from stored logs
+    // Hitung streak riil
     let calcStreak = 0;
     const checkDate = new Date(today);
     while (true) {
@@ -151,7 +175,7 @@ export default function MutabaahPage() {
         break;
       }
     }
-    const finalStreak = Math.max(calcStreak, 1);
+    const finalStreak = Math.max(calcStreak, curCommitments.currentStreak || 1);
 
     setSummary((prev) => ({
       ...prev,
@@ -159,13 +183,13 @@ export default function MutabaahPage() {
       dailyTarget,
       targetMetToday: isTargetMet,
       currentStreak: finalStreak,
+      maxStreak: Math.max(finalStreak, curCommitments.maxStreak || 14),
     }));
   };
 
   useEffect(() => {
     refreshData();
 
-    // Listen to real-time events across the app
     const handleUpdate = () => refreshData();
     window.addEventListener('hifzhly_mutabaah_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -191,7 +215,7 @@ export default function MutabaahPage() {
           }));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // 2. Fetch or compute Surah Heatmap
@@ -216,8 +240,8 @@ export default function MutabaahPage() {
             ayahNum <= 10
               ? ('strong' as const)
               : ayahNum <= 25
-              ? ('reviewing' as const)
-              : ('learning' as const);
+                ? ('reviewing' as const)
+                : ('learning' as const);
           return {
             ayahNumber: ayahNum,
             status,
@@ -235,7 +259,7 @@ export default function MutabaahPage() {
       });
   }, [selectedSurah]);
 
-  // Handle Save Target
+  // Handle Save Quick Target
   const handleSaveTarget = () => {
     const newTarget = customTarget;
     setSummary((prev) => ({
@@ -244,13 +268,7 @@ export default function MutabaahPage() {
       targetMetToday: prev.todayReviewedAyahs >= newTarget,
     }));
 
-    const cached = localStorage.getItem('hifzhly_user_profile');
-    const profile = cached ? JSON.parse(cached) : {};
-    profile.dailyTargetAyahs = newTarget;
-    localStorage.setItem('hifzhly_user_profile', JSON.stringify(profile));
-
-    window.dispatchEvent(new Event('hifzhly_profile_updated'));
-    window.dispatchEvent(new Event('storage'));
+    saveUserCommitments({ dailyTargetAyahsHafalan: newTarget });
     setIsEditingTarget(false);
   };
 
@@ -280,7 +298,7 @@ export default function MutabaahPage() {
 
   // Build Calendar Grid for Current Month
   const calendarCells = useMemo(() => {
-    const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 = Ahad/Min
+    const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay();
     const totalDaysInMonth = new Date(currentYear, currentMonth, 0).getDate();
     const totalDaysInPrevMonth = new Date(currentYear, currentMonth - 1, 0).getDate();
 
@@ -319,7 +337,7 @@ export default function MutabaahPage() {
       });
     }
 
-    // Padding cells for next month to complete the last week row
+    // Padding cells for next month
     const remaining = 7 - (cells.length % 7);
     if (remaining < 7) {
       for (let n = 1; n <= remaining; n++) {
@@ -371,19 +389,16 @@ export default function MutabaahPage() {
     setSelectedDayData(logs[cellDateKey] || null);
   };
 
-  // Close Date Detail Modal
   const handleCloseDetailModal = () => {
     setSelectedDateKey(null);
     setSelectedDayData(null);
   };
 
-  // Open Manual Report Modal
   const handleOpenReportModal = (dateStr?: string) => {
     setFormDate(dateStr || todayKey);
     setIsReportModalOpen(true);
   };
 
-  // Submit Manual Report Form
   const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
     const surahMeta = JUZ_AMMA_SURAHS.find((s) => s.number === formSurahNumber);
@@ -399,19 +414,28 @@ export default function MutabaahPage() {
       type: formType,
       verifier: formVerifier,
       notes: formNotes || undefined,
+      santriNotes: formNotes || undefined,
     });
 
     setIsReportModalOpen(false);
     refreshData();
 
-    // If detail modal is open for this date, refresh it
     if (selectedDateKey === formDate) {
       const updated = getStoredMutabaahLogs();
       setSelectedDayData(updated[formDate] || null);
     }
   };
 
-  // Format Indonesian date for detail modal
+  // Submit Commitment Form
+  const handleSaveCommitments = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveUserCommitments(commitmentForm);
+    setIsEditingCommitment(false);
+    refreshData();
+    setCommitmentToast('Target & Komitmen Ibadah berhasil diperbarui!');
+    setTimeout(() => setCommitmentToast(null), 3000);
+  };
+
   const formattedSelectedDate = useMemo(() => {
     if (!selectedDateKey) return '';
     const [y, m, d] = selectedDateKey.split('-').map(Number);
@@ -421,16 +445,35 @@ export default function MutabaahPage() {
     return `${dayName}, ${d} ${monthName} ${y}`;
   }, [selectedDateKey]);
 
+  // Filtered Journal History
+  const filteredHistory = useMemo(() => {
+    if (journalFilter === 'all') return historyList;
+    return historyList.filter((item) => {
+      if (journalFilter === 'tilawah') return item.type === 'tilawah';
+      if (journalFilter === 'murojaah') return item.type === 'murojaah_ai' || item.type === 'murojaah';
+      if (journalFilter === 'hafalan_baru') return item.type === 'hafalan_baru' || item.type === 'setoran_mandiri';
+      return true;
+    });
+  }, [historyList, journalFilter]);
+
   return (
     <div className="space-y-6 pb-28 font-sans">
+      {/* Toast Notification */}
+      {commitmentToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-400 text-sm font-semibold animate-in zoom-in-95">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+          <span>{commitmentToast}</span>
+        </div>
+      )}
+
       {/* 1. Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Mutabaah Yaumi &amp; Analitik Retensi
+            Sistem Mutabaah Yaumiyyah Terpadu
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Pencatatan konsistensi murojaah santri, heatmap bergaya GitHub, dan ketahanan memori Juz 'Amma.
+            Pusat data tunggal pencatatan tilawah, murojaah, komitmen hafalan, dan evaluasi ustadz pembimbing.
           </p>
         </div>
 
@@ -531,11 +574,10 @@ export default function MutabaahPage() {
                     key={preset}
                     type="button"
                     onClick={() => setCustomTarget(preset)}
-                    className={`py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      customTarget === preset
+                    className={`py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${customTarget === preset
                         ? 'bg-emerald-600 text-white shadow-xs'
                         : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     {preset}
                   </button>
@@ -618,198 +660,689 @@ export default function MutabaahPage() {
         </div>
       </div>
 
-      {/* 3. GITHUB-STYLE CONTRIBUTION HEATMAP CALENDAR (Per-Bulan, Grid Hari & Tanggal) */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
-        {/* Top Controls: Month Selector & Navigation */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <div className="flex items-center space-x-2">
-              <CalendarIcon className="w-5 h-5 text-emerald-700" />
-              <h2 className="text-lg font-bold text-slate-900">
-                Kalender Mutabaah Murojaah
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Warna hijau semakin pekat menandakan jumlah ayat yang dimurojaah semakin banyak. Klik tanggal untuk melihat rincian laporan.
-            </p>
-          </div>
+      {/* 3. MAIN SECTION TABS NAVIGATION */}
+      <div className="flex border-b border-slate-200 gap-1 sm:gap-4 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('calendar')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'calendar'
+              ? 'border-emerald-600 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+        >
+          <CalendarIcon className="w-4 h-4" />
+          <span>Kalender Heatmap</span>
+        </button>
 
-          <div className="flex items-center space-x-2 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
-              title="Bulan Sebelumnya"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('journal')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'journal'
+              ? 'border-emerald-600 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>Jurnal &amp; Catatan Musyrif</span>
+        </button>
 
-            <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 min-w-[140px] text-center">
-              {INDONESIAN_MONTHS[currentMonth - 1]} {currentYear}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
-              title="Bulan Berikutnya"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleJumpToToday}
-              className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
-            >
-              Bulan Ini
-            </button>
-          </div>
-        </div>
-
-        {/* Month Summary Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Total Bulan Ini</span>
-            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
-              {monthStats.totalAyahs} Ayat
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Hari Aktif</span>
-            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
-              {monthStats.activeDays} Hari
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Target Tercapai</span>
-            <span className="font-bold text-emerald-800 font-mono text-sm sm:text-base">
-              {monthStats.targetMetDays} Hari
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Rata-rata Akurasi</span>
-            <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
-              {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '-'}
-            </span>
-          </div>
-        </div>
-
-        {/* Day-of-Week Column Headers (Min, Sen, Sel, Rab, Kam, Jum, Sab) */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center">
-          {INDONESIAN_DAYS_SHORT.map((dayName, idx) => (
-            <div
-              key={idx}
-              className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-400 py-1"
-            >
-              {dayName}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Grid of Day Tiles */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-          {calendarCells.map((cell, idx) => {
-            const ayahsCount = cell.data ? cell.data.ayahsReviewed : 0;
-            const level = cell.isCurrentMonth ? getGithubIntensityLevel(ayahsCount) : 0;
-            const tileColorClass = cell.isCurrentMonth
-              ? getGithubTileClasses(level, cell.isToday)
-              : 'bg-slate-50/50 border-slate-100 text-slate-300 opacity-40';
-
-            const isSelected = selectedDateKey === cell.dateKey;
-
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleCellClick(cell.dateKey)}
-                className={`relative aspect-square sm:aspect-auto sm:h-20 rounded-2xl border p-1.5 sm:p-2.5 flex flex-col justify-between transition-all cursor-pointer text-left ${tileColorClass} ${
-                  isSelected ? 'ring-2 ring-emerald-700 shadow-md scale-102 z-10' : ''
-                }`}
-                title={`${cell.dateKey}: ${ayahsCount} ayat dimurojaah`}
-              >
-                {/* Header: Date Number & Today Dot */}
-                <div className="flex items-center justify-between w-full">
-                  <span
-                    className={`text-xs sm:text-sm font-bold font-mono ${
-                      cell.isCurrentMonth
-                        ? level >= 3
-                          ? 'text-white'
-                          : 'text-slate-800'
-                        : 'text-slate-300'
-                    }`}
-                  >
-                    {cell.dayNumber}
-                  </span>
-
-                  {cell.isToday && (
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        level >= 3 ? 'bg-amber-300' : 'bg-emerald-600'
-                      }`}
-                      title="Hari Ini"
-                    />
-                  )}
-                </div>
-
-                {/* Footer on desktop: Total Ayats Reviewed */}
-                {cell.isCurrentMonth && ayahsCount > 0 ? (
-                  <div className="hidden sm:flex flex-col">
-                    <span
-                      className={`text-xs font-black font-mono leading-none ${
-                        level >= 3 ? 'text-white' : 'text-emerald-950'
-                      }`}
-                    >
-                      {ayahsCount}
-                    </span>
-                    <span
-                      className={`text-[9px] uppercase font-bold tracking-tight opacity-80 ${
-                        level >= 3 ? 'text-emerald-100' : 'text-emerald-800'
-                      }`}
-                    >
-                      Ayat
-                    </span>
-                  </div>
-                ) : (
-                  cell.isCurrentMonth && (
-                    <span className="hidden sm:block text-[9px] text-slate-300 font-mono">-</span>
-                  )
-                )}
-
-                {/* Mobile Dot Indicator if active */}
-                {cell.isCurrentMonth && ayahsCount > 0 && (
-                  <div className="sm:hidden self-end w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* GitHub Heatmap Intensity Legend */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-          <span className="text-slate-500 text-[11px]">
-            * Klik salah satu kotak tanggal untuk membaca riwayat laporan setoran santri.
-          </span>
-
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] text-slate-400 font-semibold">Sedikit (0 Ayat)</span>
-            <div className="flex items-center space-x-1">
-              <span className="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200" title="0 Ayat" />
-              <span className="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-200" title="1-4 Ayat" />
-              <span className="w-3.5 h-3.5 rounded bg-emerald-300 border border-emerald-400" title="5-9 Ayat" />
-              <span className="w-3.5 h-3.5 rounded bg-emerald-500 border border-emerald-600" title="10-19 Ayat" />
-              <span className="w-3.5 h-3.5 rounded bg-emerald-700 border border-emerald-800" title=">= 20 Ayat" />
-            </div>
-            <span className="text-[11px] text-slate-600 font-bold">Banyak (20+ Ayat)</span>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('commitments')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'commitments'
+              ? 'border-emerald-600 text-emerald-800'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+        >
+          <Target className="w-4 h-4" />
+          <span>Target &amp; Komitmen Mandiri</span>
+        </button>
       </div>
 
-      {/* 4. MODAL DETAIL LAPORAN TANGGAL (Informasi riwayat laporan setoran) */}
+      {/* TAB 1: KALENDER HEATMAP (GitHub Style) */}
+      {activeMainTab === 'calendar' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+            {/* Top Controls: Month Selector & Navigation */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <CalendarIcon className="w-5 h-5 text-emerald-700" />
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Kalender Mutabaah Murojaah
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Warna hijau semakin pekat menandakan jumlah ayat yang dimurojaah semakin banyak. Klik tanggal untuk melihat rincian laporan.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                  title="Bulan Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 min-w-[140px] text-center">
+                  {INDONESIAN_MONTHS[currentMonth - 1]} {currentYear}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                  title="Bulan Berikutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleJumpToToday}
+                  className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Bulan Ini
+                </button>
+              </div>
+            </div>
+
+            {/* Month Summary Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Total Bulan Ini</span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+                  {monthStats.totalAyahs} Ayat
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Hari Aktif</span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+                  {monthStats.activeDays} Hari
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Target Tercapai</span>
+                <span className="font-bold text-emerald-800 font-mono text-sm sm:text-base">
+                  {monthStats.targetMetDays} Hari
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Rata-rata Akurasi</span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+                  {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '-'}
+                </span>
+              </div>
+            </div>
+
+            {/* Day-of-Week Column Headers */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center">
+              {INDONESIAN_DAYS_SHORT.map((dayName, idx) => (
+                <div
+                  key={idx}
+                  className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-400 py-1"
+                >
+                  {dayName}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Grid of Day Tiles */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              {calendarCells.map((cell, idx) => {
+                const ayahsCount = cell.data ? cell.data.ayahsReviewed : 0;
+                const level = cell.isCurrentMonth ? getGithubIntensityLevel(ayahsCount) : 0;
+                const tileColorClass = cell.isCurrentMonth
+                  ? getGithubTileClasses(level, cell.isToday)
+                  : 'bg-slate-50/50 border-slate-100 text-slate-300 opacity-40';
+
+                const isSelected = selectedDateKey === cell.dateKey;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleCellClick(cell.dateKey)}
+                    className={`relative aspect-square sm:aspect-auto sm:h-20 rounded-2xl border p-1.5 sm:p-2.5 flex flex-col justify-between transition-all cursor-pointer text-left ${tileColorClass} ${isSelected ? 'ring-2 ring-emerald-700 shadow-md scale-102 z-10' : ''
+                      }`}
+                    title={`${cell.dateKey}: ${ayahsCount} ayat dimurojaah`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span
+                        className={`text-xs sm:text-sm font-bold font-mono ${cell.isCurrentMonth
+                            ? level >= 3
+                              ? 'text-white'
+                              : 'text-slate-800'
+                            : 'text-slate-300'
+                          }`}
+                      >
+                        {cell.dayNumber}
+                      </span>
+
+                      {cell.isToday && (
+                        <span
+                          className={`w-2 h-2 rounded-full ${level >= 3 ? 'bg-amber-300' : 'bg-emerald-600'
+                            }`}
+                          title="Hari Ini"
+                        />
+                      )}
+                    </div>
+
+                    {cell.isCurrentMonth && ayahsCount > 0 ? (
+                      <div className="hidden sm:flex flex-col">
+                        <span
+                          className={`text-xs font-black font-mono leading-none ${level >= 3 ? 'text-white' : 'text-emerald-950'
+                            }`}
+                        >
+                          {ayahsCount}
+                        </span>
+                        <span
+                          className={`text-[9px] uppercase font-bold tracking-tight opacity-80 ${level >= 3 ? 'text-emerald-100' : 'text-emerald-800'
+                            }`}
+                        >
+                          Ayat
+                        </span>
+                      </div>
+                    ) : (
+                      cell.isCurrentMonth && (
+                        <span className="hidden sm:block text-[9px] text-slate-300 font-mono">-</span>
+                      )
+                    )}
+
+                    {cell.isCurrentMonth && ayahsCount > 0 && (
+                      <div className="sm:hidden self-end w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* GitHub Heatmap Intensity Legend */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              <span className="text-slate-500 text-[11px]">
+                * Klik salah satu kotak tanggal untuk membaca riwayat laporan setoran santri.
+              </span>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] text-slate-400 font-semibold">Sedikit (0 Ayat)</span>
+                <div className="flex items-center space-x-1">
+                  <span className="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200" title="0 Ayat" />
+                  <span className="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-200" title="1-4 Ayat" />
+                  <span className="w-3.5 h-3.5 rounded bg-emerald-300 border border-emerald-400" title="5-9 Ayat" />
+                  <span className="w-3.5 h-3.5 rounded bg-emerald-500 border border-emerald-600" title="10-19 Ayat" />
+                  <span className="w-3.5 h-3.5 rounded bg-emerald-700 border border-emerald-800" title=">= 20 Ayat" />
+                </div>
+                <span className="text-[11px] text-slate-600 font-bold">Banyak (20+ Ayat)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Heatmap Surah Juz 'Amma */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-lg">
+                  Peta Visual Retensi Surah (Heatmap Juz 30)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pilih salah satu surah untuk melihat rincian ketahanan memori per ayat
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-4 text-xs font-medium">
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-3 h-3 rounded bg-emerald-500" />
+                  <span>Kuat (Mutqin)</span>
+                </span>
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-3 h-3 rounded bg-amber-400" />
+                  <span>Reviewing</span>
+                </span>
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-3 h-3 rounded bg-rose-400" />
+                  <span>Lemah</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+              {JUZ_AMMA_SURAHS.map((surah) => {
+                const isSelected = selectedSurah === surah.number;
+                let statusBg = 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:border-emerald-400';
+                if (surah.status === 'reviewing') {
+                  statusBg = 'bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400';
+                } else if (surah.status === 'learning') {
+                  statusBg = 'bg-rose-50 text-rose-900 border-rose-200 hover:border-rose-400';
+                }
+
+                return (
+                  <button
+                    key={surah.number}
+                    type="button"
+                    onClick={() => setSelectedSurah(surah.number)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${statusBg} ${isSelected ? 'ring-2 ring-emerald-600 shadow-sm font-bold scale-105' : ''
+                      }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px] opacity-75 font-mono">
+                      <span>{surah.number}</span>
+                      <span>{surah.pct}%</span>
+                    </div>
+                    <div className="text-xs font-bold truncate mt-0.5">{surah.name}</div>
+                    <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeSurahHeatmap && (
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900">
+                      Rincian Ayat Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber}):
+                    </span>
+                    <span className="text-xs text-slate-500 ml-2">
+                      Total {activeSurahHeatmap.totalAyahs} Ayat
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-emerald-700 font-semibold">
+                    Daya Tahan Memori: {JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah)?.pct}%
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {activeSurahHeatmap.ayahs.map((ayah) => {
+                    let colorClass = 'bg-emerald-500 text-white';
+                    if (ayah.status === 'reviewing') colorClass = 'bg-amber-400 text-amber-950';
+                    if (ayah.status === 'learning') colorClass = 'bg-rose-400 text-white';
+
+                    return (
+                      <div
+                        key={ayah.ayahNumber}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs transition-transform hover:scale-110 cursor-pointer ${colorClass}`}
+                        title={`Ayat ${ayah.ayahNumber} • Skor: ${ayah.lastScore}% • Interval: +${ayah.intervalDays} Hari`}
+                      >
+                        {ayah.ayahNumber}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: JURNAL & CATATAN MUSYRIF */}
+      {activeMainTab === 'journal' && (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Timeline Riwayat Jurnal Mutabaah
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pusat catatan tilawah dan setoran murojaah santri lengkap dengan umpan balik Ustadz pembimbing.
+                </p>
+              </div>
+
+              {/* Activity Filters */}
+              <div className="flex items-center space-x-1.5 self-start sm:self-auto overflow-x-auto pb-1 sm:pb-0">
+                {(['all', 'tilawah', 'murojaah', 'hafalan_baru'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setJournalFilter(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer capitalize ${journalFilter === cat
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                  >
+                    {cat === 'all'
+                      ? 'Semua'
+                      : cat === 'murojaah'
+                        ? 'Murojaah AI'
+                        : cat === 'hafalan_baru'
+                          ? 'Hafalan Baru'
+                          : 'Tilawah'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* List of Journal Entries */}
+            <div className="space-y-4 pt-2">
+              {filteredHistory.length > 0 ? (
+                filteredHistory.map((item) => {
+                  const isTilawah = item.type === 'tilawah';
+                  const isMurojaah = item.type === 'murojaah_ai' || item.type === 'murojaah';
+                  const isVerified = item.ustadzStatus === 'verified';
+                  const isNeedsImprovement = item.ustadzStatus === 'needs_improvement';
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-xs hover:border-emerald-300 transition-all space-y-3"
+                    >
+                      {/* Entry Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2.5">
+                          <span
+                            className={`p-2 rounded-xl text-xs font-bold ${isTilawah
+                                ? 'bg-teal-50 text-teal-800 border border-teal-200'
+                                : isMurojaah
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                  : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                              }`}
+                          >
+                            {isTilawah ? <BookOpen className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          </span>
+
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-bold text-slate-900 text-sm">
+                                QS. {item.surahName} : Ayat {item.ayahStart} – {item.ayahEnd}
+                              </h4>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                                {item.type.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <span className="text-xs text-slate-500 font-mono">
+                              {item.time}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Badges / Metrics */}
+                        <div className="flex items-center space-x-2 self-start sm:self-auto">
+                          <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
+                            {item.totalAyahs} Ayat
+                          </span>
+                          {item.pagesCount && item.pagesCount > 0 && (
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
+                              {item.pagesCount} Lembar
+                            </span>
+                          )}
+                          {item.score !== undefined && (
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 font-mono">
+                              {item.score}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Santri Notes Box */}
+                      {item.santriNotes && (
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-700 space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Catatan Kendala / Refleksi Santri:
+                          </span>
+                          <p className="italic leading-relaxed">
+                            "{item.santriNotes}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Ustadz Feedback / Evaluasi Box */}
+                      {item.ustadzNotes && (
+                        <div
+                          className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${isVerified
+                              ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                              : isNeedsImprovement
+                                ? 'bg-amber-50/60 border-amber-200 text-amber-950'
+                                : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold flex items-center space-x-1.5">
+                              {isVerified ? (
+                                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                              ) : isNeedsImprovement ? (
+                                <AlertCircle className="w-4 h-4 text-amber-600" />
+                              ) : (
+                                <UserCheck className="w-4 h-4 text-slate-600" />
+                              )}
+                              <span>Catatan Evaluasi Musyrif / Ustadz Pembimbing:</span>
+                            </span>
+
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isVerified
+                                  ? 'bg-emerald-200/80 text-emerald-900'
+                                  : isNeedsImprovement
+                                    ? 'bg-amber-200/80 text-amber-900'
+                                    : 'bg-slate-200 text-slate-700'
+                                }`}
+                            >
+                              {isVerified ? 'Disetujui (Mumtaz)' : isNeedsImprovement ? 'Perlu Diulang' : 'Tercatat'}
+                            </span>
+                          </div>
+
+                          <p className="leading-relaxed font-medium">
+                            {item.ustadzNotes}
+                          </p>
+
+                          {item.ustadzName && (
+                            <span className="text-[10px] text-slate-500 block text-right font-semibold">
+                              — {item.ustadzName}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center p-12 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2">
+                  <p className="text-xs text-slate-500">
+                    Belum ada riwayat aktivitas untuk kategori ini.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: TARGET & KOMITMEN MANDIRI */}
+      {activeMainTab === 'commitments' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Target &amp; Komitmen Ibadah Mandiri Santri
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Tetapkan target tilawah lembar dan surat hafalan pilihan untuk menjaga istiqomah hafalan Anda.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingCommitment(!isEditingCommitment)}
+                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all cursor-pointer self-start sm:self-auto"
+              >
+                {isEditingCommitment ? 'Batal Ubah' : 'Atur Komitmen Target'}
+              </button>
+            </div>
+
+            {/* Target Cards Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Card 1: Target Tilawah Harian */}
+              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-center space-x-2 text-teal-800">
+                  <BookOpen className="w-5 h-5" />
+                  <span className="font-bold text-xs uppercase tracking-wider">
+                    Target Tilawah Harian
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl font-black text-slate-900 font-mono block">
+                    {commitments.dailyTargetPagesTilawah} Lembar / Hari
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Setara {commitments.dailyTargetAyahsTilawah} ayat tilawah Al-Qur'an
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200/60 text-xs text-emerald-700 font-semibold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Sistem otomatis mencatat dari Mushaf</span>
+                </div>
+              </div>
+
+              {/* Card 2: Target Hafalan Harian */}
+              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-center space-x-2 text-emerald-800">
+                  <Flame className="w-5 h-5 fill-amber-500/20 text-amber-600" />
+                  <span className="font-bold text-xs uppercase tracking-wider">
+                    Target Hafalan &amp; Murojaah
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl font-black text-slate-900 font-mono block">
+                    {commitments.dailyTargetAyahsHafalan} Ayat / Hari
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Diulang melalui Spaced Repetition System (SRS)
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200/60 text-xs text-emerald-700 font-semibold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Streak konsistensi: {commitments.currentStreak} Hari</span>
+                </div>
+              </div>
+
+              {/* Card 3: Target Surah Pilihan */}
+              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-center space-x-2 text-indigo-800">
+                  <Compass className="w-5 h-5" />
+                  <span className="font-bold text-xs uppercase tracking-wider">
+                    Target Surah Khusus
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-2xl font-black text-slate-900 font-mono block truncate">
+                    QS. {commitments.targetSurahName}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Ayat {commitments.targetStartAyah} s.d. {commitments.targetEndAyah} • Tenggat {commitments.targetDeadline}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200/60 text-xs text-indigo-700 font-semibold flex items-center space-x-1">
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Target komitmen semester ini</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit Commitment Form */}
+            {isEditingCommitment && (
+              <form onSubmit={handleSaveCommitments} className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4 animate-in fade-in duration-150">
+                <h4 className="font-bold text-emerald-950 text-sm">
+                  Formulir Pengaturan Komitmen Target
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Target Tilawah (Lembar/Hari)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={commitmentForm.dailyTargetPagesTilawah}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, dailyTargetPagesTilawah: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Target Hafalan (Ayat/Hari)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={commitmentForm.dailyTargetAyahsHafalan}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, dailyTargetAyahsHafalan: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Nama Surah Target Khusus</label>
+                    <input
+                      type="text"
+                      value={commitmentForm.targetSurahName}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetSurahName: e.target.value })}
+                      placeholder="Contoh: Al-Mulk / Al-Kahf"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Rentang Ayat Mulai</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={commitmentForm.targetStartAyah}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetStartAyah: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Rentang Ayat Selesai</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={commitmentForm.targetEndAyah}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetEndAyah: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Tenggat Target (Deadline)</label>
+                    <input
+                      type="date"
+                      value={commitmentForm.targetDeadline}
+                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetDeadline: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingCommitment(false)}
+                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center space-x-1"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan Komitmen</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. MODAL DETAIL LAPORAN TANGGAL */}
       {selectedDateKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
@@ -834,7 +1367,6 @@ export default function MutabaahPage() {
               </button>
             </div>
 
-            {/* Quick Metrics of the Day */}
             <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-center">
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Ayat</span>
@@ -845,11 +1377,10 @@ export default function MutabaahPage() {
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Status Target</span>
                 <span
-                  className={`text-xs font-bold block mt-1 ${
-                    selectedDayData?.targetAchieved
+                  className={`text-xs font-bold block mt-1 ${selectedDayData?.targetAchieved
                       ? 'text-emerald-700'
                       : 'text-amber-700'
-                  }`}
+                    }`}
                 >
                   {selectedDayData?.targetAchieved ? 'Tercapai' : 'Belum'}
                 </span>
@@ -884,7 +1415,7 @@ export default function MutabaahPage() {
               {selectedDayData && selectedDayData.reports && selectedDayData.reports.length > 0 ? (
                 <div className="space-y-2.5">
                   {selectedDayData.reports.map((report: MutabaahReportItem) => {
-                    const isAi = report.type === 'murojaah_ai';
+                    const isAi = report.type === 'murojaah_ai' || report.type === 'murojaah';
                     return (
                       <div
                         key={report.id}
@@ -893,11 +1424,10 @@ export default function MutabaahPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-2">
                             <span
-                              className={`p-1.5 rounded-lg text-xs ${
-                                isAi
+                              className={`p-1.5 rounded-lg text-xs ${isAi
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-teal-50 text-teal-700 border border-teal-200'
-                              }`}
+                                }`}
                             >
                               {isAi ? <Mic className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
                             </span>
@@ -921,9 +1451,9 @@ export default function MutabaahPage() {
                           </div>
                         </div>
 
-                        {report.notes && (
-                          <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
-                            {report.notes}
+                        {report.santriNotes && (
+                          <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed italic">
+                            "{report.santriNotes}"
                           </p>
                         )}
 
@@ -971,7 +1501,6 @@ export default function MutabaahPage() {
               )}
             </div>
 
-            {/* Modal Actions */}
             <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
               <button
                 type="button"
@@ -985,7 +1514,7 @@ export default function MutabaahPage() {
         </div>
       )}
 
-      {/* 5. MODAL FORM TAMBAH LAPORAN SETORAN MANDIRI / USTADZ */}
+      {/* 5. MODAL FORM TAMBAH LAPORAN MANUAL */}
       {isReportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <form
@@ -1009,7 +1538,6 @@ export default function MutabaahPage() {
             </div>
 
             <div className="space-y-3 text-xs">
-              {/* Tanggal */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Tanggal Setoran</label>
                 <input
@@ -1021,7 +1549,6 @@ export default function MutabaahPage() {
                 />
               </div>
 
-              {/* Surah */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Pilih Surah (Juz 'Amma)</label>
                 <select
@@ -1037,7 +1564,6 @@ export default function MutabaahPage() {
                 </select>
               </div>
 
-              {/* Rentang Ayat */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Ayat Mulai</label>
@@ -1065,7 +1591,6 @@ export default function MutabaahPage() {
                 </div>
               </div>
 
-              {/* Jenis Kegiatan & Penguji */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Jenis Aktivitas</label>
@@ -1093,7 +1618,6 @@ export default function MutabaahPage() {
                 </div>
               </div>
 
-              {/* Penguji */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Nama Penguji / Pembimbing</label>
                 <input
@@ -1105,7 +1629,6 @@ export default function MutabaahPage() {
                 />
               </div>
 
-              {/* Catatan */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Catatan Tambahan (Opsional)</label>
                 <textarea
@@ -1137,103 +1660,6 @@ export default function MutabaahPage() {
           </form>
         </div>
       )}
-
-      {/* 6. HEATMAP DAYA INGAT SURAH (Juz 'Amma 37 Surahs) */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-          <div>
-            <h3 className="font-extrabold text-slate-900 text-lg">
-              Peta Visual Retensi Surah (Heatmap Juz 30)
-            </h3>
-            <p className="text-xs text-slate-500">
-              Pilih salah satu surah untuk melihat rincian ketahanan memori per ayat
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-4 text-xs font-medium">
-            <span className="flex items-center space-x-1.5">
-              <span className="w-3 h-3 rounded bg-emerald-500" />
-              <span>Kuat (Mutqin)</span>
-            </span>
-            <span className="flex items-center space-x-1.5">
-              <span className="w-3 h-3 rounded bg-amber-400" />
-              <span>Reviewing</span>
-            </span>
-            <span className="flex items-center space-x-1.5">
-              <span className="w-3 h-3 rounded bg-rose-400" />
-              <span>Lemah</span>
-            </span>
-          </div>
-        </div>
-
-        {/* 37 Surah Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-          {JUZ_AMMA_SURAHS.map((surah) => {
-            const isSelected = selectedSurah === surah.number;
-            let statusBg = 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:border-emerald-400';
-            if (surah.status === 'reviewing') {
-              statusBg = 'bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400';
-            } else if (surah.status === 'learning') {
-              statusBg = 'bg-rose-50 text-rose-900 border-rose-200 hover:border-rose-400';
-            }
-
-            return (
-              <button
-                key={surah.number}
-                type="button"
-                onClick={() => setSelectedSurah(surah.number)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${statusBg} ${
-                  isSelected ? 'ring-2 ring-emerald-600 shadow-sm font-bold scale-105' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between text-[10px] opacity-75 font-mono">
-                  <span>{surah.number}</span>
-                  <span>{surah.pct}%</span>
-                </div>
-                <div className="text-xs font-bold truncate mt-0.5">{surah.name}</div>
-                <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selected Surah Ayah-by-Ayah Heatmap Detail */}
-        {activeSurahHeatmap && (
-          <div className="pt-4 border-t border-slate-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-900">
-                  Rincian Ayat Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber}):
-                </span>
-                <span className="text-xs text-slate-500 ml-2">
-                  Total {activeSurahHeatmap.totalAyahs} Ayat
-                </span>
-              </div>
-              <span className="text-[11px] font-mono text-emerald-700 font-semibold">
-                Daya Tahan Memori: {JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah)?.pct}%
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {activeSurahHeatmap.ayahs.map((ayah) => {
-                let colorClass = 'bg-emerald-500 text-white';
-                if (ayah.status === 'reviewing') colorClass = 'bg-amber-400 text-amber-950';
-                if (ayah.status === 'learning') colorClass = 'bg-rose-400 text-white';
-
-                return (
-                  <div
-                    key={ayah.ayahNumber}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs transition-transform hover:scale-110 cursor-pointer ${colorClass}`}
-                    title={`Ayat ${ayah.ayahNumber} • Skor: ${ayah.lastScore}% • Interval: +${ayah.intervalDays} Hari`}
-                  >
-                    {ayah.ayahNumber}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

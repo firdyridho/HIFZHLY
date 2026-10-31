@@ -79,3 +79,103 @@ type AdminSantriListResponse struct {
 	AverageAccuracyScore float64               `json:"averageAccuracyScore"`
 	Santri               []AdminSantriOverview `json:"santri"`
 }
+
+// 5. Model Unified Mutabaah Integration System
+type CreateMutabaahLogRequest struct {
+	ActivityType    string   `json:"activityType"` // 'tilawah', 'murojaah', 'hafalan_baru', 'tajwid', 'murojaah_ai'
+	SurahNumber     int      `json:"surahNumber"`
+	SurahName       string   `json:"surahName"`
+	StartAyah       int      `json:"startAyah"`
+	EndAyah         int      `json:"endAyah"`
+	TotalAyahs      int      `json:"totalAyahs,omitempty"`
+	PagesCount      int      `json:"pagesCount,omitempty"`
+	DurationSeconds int      `json:"durationSeconds,omitempty"`
+	DurationMinutes int      `json:"durationMinutes,omitempty"`
+	Score           *float64 `json:"score,omitempty"`
+	SantriNotes     string   `json:"santriNotes,omitempty"`
+	Notes           string   `json:"notes,omitempty"`
+	Verifier        string   `json:"verifier,omitempty"`
+	Type            string   `json:"type,omitempty"`
+}
+
+type MutabaahLogItem struct {
+	ID              string  `json:"id"`
+	UserID          string  `json:"userId,omitempty"`
+	UserName        string  `json:"userName,omitempty"`
+	LogDate         string  `json:"logDate"`
+	Time            string  `json:"time"`
+	Type            string  `json:"type"` // 'tilawah', 'murojaah', 'hafalan_baru', etc.
+	SurahNumber     int     `json:"surahNumber"`
+	SurahName       string  `json:"surahName"`
+	StartAyah       int     `json:"ayahStart"`
+	EndAyah         int     `json:"ayahEnd"`
+	TotalAyahs      int     `json:"totalAyahs"`
+	PagesCount      int     `json:"pagesCount"`
+	DurationSeconds int     `json:"durationSeconds"`
+	Score           float64 `json:"score"`
+	SantriNotes     string  `json:"santriNotes,omitempty"`
+	Notes           string  `json:"notes,omitempty"`
+	UstadzNotes     string  `json:"ustadzNotes,omitempty"`
+	UstadzStatus    string  `json:"ustadzStatus"` // 'completed', 'verified', 'needs_improvement'
+	UstadzName      string  `json:"ustadzName,omitempty"`
+	Verifier        string  `json:"verifier,omitempty"`
+	CreatedAt       string  `json:"createdAt"`
+}
+
+type UserCommitment struct {
+	DailyTargetAyahsTilawah int    `json:"dailyTargetAyahsTilawah"`
+	DailyTargetPagesTilawah int    `json:"dailyTargetPagesTilawah"`
+	DailyTargetAyahsHafalan int    `json:"dailyTargetAyahsHafalan"`
+	TargetSurahNumber       int    `json:"targetSurahNumber"`
+	TargetSurahName         string `json:"targetSurahName"`
+	TargetStartAyah         int    `json:"targetStartAyah"`
+	TargetEndAyah           int    `json:"targetEndAyah"`
+	TargetDeadline          string `json:"targetDeadline"`
+	CurrentStreak           int    `json:"currentStreak"`
+	MaxStreak               int    `json:"maxStreak"`
+}
+
+type UpdateUserCommitmentRequest struct {
+	DailyTargetAyahsTilawah *int   `json:"dailyTargetAyahsTilawah,omitempty"`
+	DailyTargetPagesTilawah *int   `json:"dailyTargetPagesTilawah,omitempty"`
+	DailyTargetAyahsHafalan *int   `json:"dailyTargetAyahsHafalan,omitempty"`
+	TargetSurahNumber       *int   `json:"targetSurahNumber,omitempty"`
+	TargetSurahName         string `json:"targetSurahName,omitempty"`
+	TargetStartAyah         *int   `json:"targetStartAyah,omitempty"`
+	TargetEndAyah           *int   `json:"targetEndAyah,omitempty"`
+	TargetDeadline          string `json:"targetDeadline,omitempty"`
+}
+
+type AdminMutabaahTilawahInfo struct {
+	SurahName string `json:"surahName"`
+	StartAyah int    `json:"startAyah"`
+	EndAyah   int    `json:"endAyah"`
+	Pages     int    `json:"pages"`
+}
+
+type AdminMutabaahSetoranInfo struct {
+	SurahName string  `json:"surahName"`
+	StartAyah int     `json:"startAyah"`
+	EndAyah   int     `json:"endAyah"`
+	Score     float64 `json:"score"`
+}
+
+type AdminMutabaahMonitoringItem struct {
+	ID               string                    `json:"id"`
+	FullName         string                    `json:"fullName"`
+	Username         string                    `json:"username"`
+	CurrentStreak    int                       `json:"currentStreak"`
+	TodayTilawah     *AdminMutabaahTilawahInfo `json:"todayTilawah,omitempty"`
+	TodaySetoran     *AdminMutabaahSetoranInfo `json:"todaySetoran,omitempty"`
+	TargetMetToday   bool                      `json:"targetMetToday"`
+	SantriNotes      string                    `json:"santriNotes,omitempty"`
+	EvaluationStatus string                    `json:"evaluationStatus"` // 'completed', 'verified', 'needs_improvement', 'pending'
+	UstadzNotes      string                    `json:"ustadzNotes,omitempty"`
+	LastLogID        string                    `json:"lastLogId,omitempty"`
+}
+
+type UstadzEvaluationRequest struct {
+	Status      string `json:"status"` // 'verified' | 'needs_improvement'
+	UstadzNotes string `json:"ustadzNotes"`
+	UstadzName  string `json:"ustadzName,omitempty"`
+}

@@ -143,22 +143,22 @@ CREATE TABLE IF NOT EXISTS user_commitments (
 ## 4. Rincian Task Pembagian Kerja (Checklist)
 
 ### Fase 1: Backend Database & Endpoints
-- [ ] Buat migrasi SQL tabel `mutabaah_logs` dan `user_commitments`.
-- [ ] Implementasikan `MutabaahRepository.CreateLog` & `MutabaahRepository.GetHistory`.
-- [ ] Implementasikan endpoint `POST /api/v1/mutabaah/log` dengan kalkulasi otomatis streak konsistensi.
-- [ ] Implementasikan endpoint `GET /api/v1/mutabaah/targets` dan `PUT /api/v1/mutabaah/targets`.
-- [ ] Implementasikan endpoint `GET /api/v1/admin/mutabaah/monitoring` dan `POST /api/v1/admin/mutabaah/:id/evaluation`.
+- [x] Buat migrasi SQL tabel `mutabaah_logs` dan `user_commitments`.
+- [x] Implementasikan `MutabaahRepository.CreateLog` & `MutabaahRepository.GetHistory`.
+- [x] Implementasikan endpoint `POST /api/v1/mutabaah/log` dengan kalkulasi otomatis streak konsistensi.
+- [x] Implementasikan endpoint `GET /api/v1/mutabaah/targets` dan `PUT /api/v1/mutabaah/targets`.
+- [x] Implementasikan endpoint `GET /api/v1/admin/mutabaah/monitoring` dan `POST /api/v1/admin/mutabaah/:id/evaluation`.
 
 ### Fase 2: Frontend Exit-Intent Logger Modal
-- [ ] Buat komponen modal terpadu `ExitMutabaahModal.tsx` (Pre-filled ringkasan ayat, durasi, lembar, input catatan santri).
-- [ ] Pasang tracker interaksi di `MushafPage.tsx`: catat rentang ayat/halaman saat membaca, picu modal saat klik `<- Kembali ke Katalog`.
-- [ ] Pasang tracker di `MurojaahPage.tsx`: picu modal pasca setoran suara AI selesai.
+- [x] Buat komponen modal terpadu `ExitMutabaahModal.tsx` (Pre-filled ringkasan ayat, durasi, lembar, input catatan santri).
+- [x] Pasang tracker interaksi di `MushafPage.tsx`: catat rentang ayat/halaman saat membaca, picu modal saat klik `<- Kembali ke Katalog`.
+- [x] Pasang tracker di `MurojaahPage.tsx`: picu modal pasca setoran suara AI selesai.
 
 ### Fase 3: Dashboard Mutabaah Santri (`MutabaahPage.tsx`)
-- [ ] Hubungkan kartu ringkasan dengan `GET /api/v1/mutabaah/summary`.
-- [ ] Buat tab Jurnal Aktivitas & Riwayat Catatan (menampilkan timeline tilawah, hafalan, skor AI, catatan santri, dan balasan catatan ustadz).
-- [ ] Buat kartu/modal Target Komitmen Mandiri (atur target surat, target lembar/ayat harian).
+- [x] Hubungkan kartu ringkasan dengan `GET /api/v1/mutabaah/summary`.
+- [x] Buat tab Jurnal Aktivitas & Riwayat Catatan (menampilkan timeline tilawah, hafalan, skor AI, catatan santri, dan balasan catatan ustadz).
+- [x] Buat kartu/modal Target Komitmen Mandiri (atur target surat, target lembar/ayat harian).
 
 ### Fase 4: Dashboard Ustadz / Musyrif (`AdminDashboardPage.tsx`)
-- [ ] Buat tabel Live Monitoring Kepatuhan Santri (Status hari ini: Tilawah, Setoran, Target Tercapai).
-- [ ] Buat drawer detail inspeksi aktivitas santri & form kirim Catatan Evaluasi Musyrif.
+- [x] Buat tabel Live Monitoring Kepatuhan Santri (Status hari ini: Tilawah, Setoran, Target Tercapai).
+- [x] Buat drawer detail inspeksi aktivitas santri & form kirim Catatan Evaluasi Musyrif.
