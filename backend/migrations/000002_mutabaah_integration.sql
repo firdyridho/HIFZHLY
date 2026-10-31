@@ -42,3 +42,4 @@ CREATE TABLE IF NOT EXISTS user_commitments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_commitments_user ON user_commitments(user_id);
+

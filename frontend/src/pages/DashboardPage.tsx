@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   MapPin,
   Settings,
@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
-import { getStoredMutabaahLogs, formatDateKey } from '../lib/mutabaahService';
+import { getStoredMutabaahLogs, formatDateKey, getUserCommitments, saveUserCommitments } from '../lib/mutabaahService';
 
 interface PrayerSchedule {
   name: string;
@@ -44,7 +44,6 @@ const DEFAULT_PRAYER_TIMES: PrayerSchedule[] = [
 ];
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -55,6 +54,10 @@ export default function DashboardPage() {
   const [cityName, setCityName] = useState('Serang, Banten');
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
   const [todayReviewed, setTodayReviewed] = useState(10);
+  const [showTargetModal, setShowTargetModal] = useState(false);
+  const [customAyahsTarget, setCustomAyahsTarget] = useState(10);
+  const [customPagesTarget, setCustomPagesTarget] = useState(2);
+  const [targetToastMessage, setTargetToastMessage] = useState<string | null>(null);
 
   // Load Real Prayer Times and Doa from Backend API
   useEffect(() => {
@@ -115,6 +118,11 @@ export default function DashboardPage() {
         })
         .catch(() => {});
     }
+
+    // Load current commitment settings
+    const com = getUserCommitments();
+    if (com.dailyTargetAyahsHafalan) setCustomAyahsTarget(com.dailyTargetAyahsHafalan);
+    if (com.dailyTargetPagesTilawah) setCustomPagesTarget(com.dailyTargetPagesTilawah);
 
     // 0. Sync Real Mutabaah Today Log
     const syncTodayMutabaah = () => {
@@ -195,6 +203,18 @@ export default function DashboardPage() {
       ? `${nextPrayer.name} ${hoursLeft} jam ${minsLeft} mnt lagi`
       : `${nextPrayer.name} ${minsLeft} min left`;
 
+  const handleSaveTarget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveUserCommitments({
+      dailyTargetAyahsHafalan: customAyahsTarget,
+      dailyTargetPagesTilawah: customPagesTarget,
+    });
+    setProfile((prev) => prev ? { ...prev, dailyTargetAyahs: customAyahsTarget } : null);
+    setShowTargetModal(false);
+    setTargetToastMessage(`Target berhasil disimpan: ${customAyahsTarget} Ayat & ${customPagesTarget} Lembar per hari`);
+    setTimeout(() => setTargetToastMessage(null), 4000);
+  };
+
   const displayName = profile?.fullName || profile?.username || 'pijaa';
   const streak = profile?.currentStreak ?? 5;
   const dailyTarget = profile?.dailyTargetAyahs ?? 10;
@@ -225,9 +245,9 @@ export default function DashboardPage() {
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={() => navigate('/app/mutabaah')}
+              onClick={() => setShowTargetModal(true)}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
-              title="Pengaturan Target & Profil"
+              title="Atur Target Harian"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -398,8 +418,9 @@ export default function DashboardPage() {
             </Link>
 
             {/* 8. Target Harian */}
-            <Link
-              to="/app/mutabaah"
+            <button
+              type="button"
+              onClick={() => setShowTargetModal(true)}
               className="flex flex-col items-center group cursor-pointer"
             >
               <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:scale-105 group-hover:bg-slate-200/80 transition-all shadow-xs">
@@ -408,7 +429,7 @@ export default function DashboardPage() {
               <span className="mt-2 text-xs font-bold text-slate-800 group-hover:text-emerald-700 transition-colors text-center">
                 Target
               </span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -561,13 +582,14 @@ export default function DashboardPage() {
                     Target Harian Tercapai!
                   </span>
                 </div>
-                <Link
-                  to="/app/mutabaah"
-                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center space-x-0.5"
+                <button
+                  type="button"
+                  onClick={() => setShowTargetModal(true)}
+                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center space-x-0.5 cursor-pointer"
                 >
                   <span>Atur Target</span>
                   <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -702,6 +724,107 @@ export default function DashboardPage() {
             >
               Selesai Membaca Doa
             </button>
+          </div>
+        </div>
+      )}
+      {/* SWEETALERT-STYLE TOAST BANNER */}
+      {targetToastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center space-x-2 border border-emerald-400 text-xs sm:text-sm font-semibold animate-in zoom-in-95">
+          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-200" />
+          <span>{targetToastMessage}</span>
+        </div>
+      )}
+
+      {/* SWEETALERT-STYLE ATUR TARGET MODAL */}
+      {showTargetModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setShowTargetModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border border-emerald-100">
+              <Target className="w-7 h-7 text-emerald-700" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                Atur Target Harian
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Tentukan target hafalan dan tilawah harian Anda untuk menjaga konsistensi mutabaah.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveTarget} className="space-y-4 text-xs">
+              {/* Presets */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">Preset Cepat (Ayat/Hari):</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[5, 10, 20, 30].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCustomAyahsTarget(preset)}
+                      className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        customAyahsTarget === preset
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Ayat Input */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Target Hafalan / Murojaah (Ayat/Hari):</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="300"
+                  value={customAyahsTarget}
+                  onChange={(e) => setCustomAyahsTarget(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono text-xs font-bold focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Custom Pages Input */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Target Tilawah Qur'an (Lembar/Hari):</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={customPagesTarget}
+                  onChange={(e) => setCustomPagesTarget(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono text-xs font-bold focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowTargetModal(false)}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer flex items-center justify-center space-x-1"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Simpan</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

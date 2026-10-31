@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Users,
   BookOpen,
@@ -50,13 +50,13 @@ interface QuestionForm {
 }
 
 export default function AdminDashboardPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'mutabaah' | 'santri' | 'tajwid'>('mutabaah');
   const [monitoringList, setMonitoringList] = useState<AdminSantriMonitoringItem[]>([]);
   const [selectedSantriForEval, setSelectedSantriForEval] = useState<AdminSantriMonitoringItem | null>(null);
   const [evalStatus, setEvalStatus] = useState<'verified' | 'needs_improvement'>('verified');
   const [evalNotes, setEvalNotes] = useState('');
   const [isSubmittingEval, setIsSubmittingEval] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Santri state
@@ -219,12 +219,12 @@ export default function AdminDashboardPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleLogout = () => {
+  const executeLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('hifzhly_auth_token');
     localStorage.removeItem('hifzhly_user_profile');
-    navigate('/login');
+    window.location.replace('/');
   };
 
   const handleOpenEditModal = (mod: TajwidModule) => {
@@ -580,7 +580,7 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center space-x-2.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4 text-slate-400" />
@@ -655,7 +655,7 @@ export default function AdminDashboardPage() {
               
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-medium text-rose-600"
               >
                 <LogOut className="w-4 h-4" />
@@ -1676,6 +1676,51 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* SWEETALERT-STYLE LOGOUT CONFIRMATION MODAL */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setShowLogoutConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
+              <AlertCircle className="w-7 h-7 text-rose-600" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                Konfirmasi Keluar Portal
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Apakah Ustadz/Musyrif yakin ingin keluar dari Portal Manajemen Hifzhly?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={executeLogout}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-xs cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Ya, Keluar</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

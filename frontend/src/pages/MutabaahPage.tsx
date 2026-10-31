@@ -17,7 +17,7 @@ import {
   Mic,
   FileText,
   UserCheck,
-  Sparkles,
+  TrendingUp,
   ShieldCheck,
   AlertCircle,
   Compass,
@@ -33,7 +33,6 @@ import {
   INDONESIAN_DAYS_FULL,
   formatDateKey,
   getStoredMutabaahLogs,
-  recordMutabaahReport,
   getGithubIntensityLevel,
   getGithubTileClasses,
   getMutabaahHistory,
@@ -121,16 +120,14 @@ export default function MutabaahPage() {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [selectedDayData, setSelectedDayData] = useState<DayMutabaahData | null>(null);
 
-  // Manual Report Form Modal State
-  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
-  const [formDate, setFormDate] = useState<string>(todayKey);
-  const [formSurahNumber, setFormSurahNumber] = useState<number>(78);
-  const [formAyahStart, setFormAyahStart] = useState<number>(1);
-  const [formAyahEnd, setFormAyahEnd] = useState<number>(10);
-  const [formScore, setFormScore] = useState<number>(95);
-  const [formType, setFormType] = useState<'murojaah_ai' | 'setoran_mandiri' | 'tilawah'>('setoran_mandiri');
-  const [formVerifier, setFormVerifier] = useState<string>('Ustadz Pembimbing');
-  const [formNotes, setFormNotes] = useState<string>('');
+  // Monthly Line Chart Interactive State
+  const [hoveredChartPoint, setHoveredChartPoint] = useState<{
+    day: number;
+    dateKey: string;
+    ayahs: number;
+    targetMet: boolean;
+    score: number;
+  } | null>(null);
 
   // Surah Heatmap State (Juz 'Amma)
   const [selectedSurah, setSelectedSurah] = useState<number>(78);
@@ -394,37 +391,7 @@ export default function MutabaahPage() {
     setSelectedDayData(null);
   };
 
-  const handleOpenReportModal = (dateStr?: string) => {
-    setFormDate(dateStr || todayKey);
-    setIsReportModalOpen(true);
-  };
 
-  const handleSubmitReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const surahMeta = JUZ_AMMA_SURAHS.find((s) => s.number === formSurahNumber);
-    const surahName = surahMeta ? surahMeta.name : `Surah ${formSurahNumber}`;
-
-    await recordMutabaahReport({
-      date: formDate,
-      surahNumber: formSurahNumber,
-      surahName,
-      ayahStart: formAyahStart,
-      ayahEnd: formAyahEnd,
-      score: formScore,
-      type: formType,
-      verifier: formVerifier,
-      notes: formNotes || undefined,
-      santriNotes: formNotes || undefined,
-    });
-
-    setIsReportModalOpen(false);
-    refreshData();
-
-    if (selectedDateKey === formDate) {
-      const updated = getStoredMutabaahLogs();
-      setSelectedDayData(updated[formDate] || null);
-    }
-  };
 
   // Submit Commitment Form
   const handleSaveCommitments = async (e: React.FormEvent) => {
@@ -477,14 +444,22 @@ export default function MutabaahPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => handleOpenReportModal()}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Catat Setoran Baru</span>
-        </button>
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          <Link
+            to="/app/mushaf"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-xs"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Tilawah Qur'an</span>
+          </Link>
+          <Link
+            to="/app/murojaah"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+          >
+            <Mic className="w-3.5 h-3.5" />
+            <span>Murojaah AI</span>
+          </Link>
+        </div>
       </div>
 
       {/* 2. Metric Cards (4 Kolom) */}
@@ -879,6 +854,295 @@ export default function MutabaahPage() {
               </div>
             </div>
           </div>
+
+                    {/* 3. DIAGRAM LINE STATISTIK PROGRES BULANAN (User Request) */}
+          {(() => {
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            const dailyStats = Array.from({ length: daysInMonth }, (_, i) => {
+              const dNum = i + 1;
+              const dKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+              const dLog = logs[dKey];
+              const ayahs = dLog ? dLog.ayahsReviewed : 0;
+              const targetMet = ayahs >= summary.dailyTarget;
+              const score = dLog ? dLog.averageScore : 0;
+              return {
+                day: dNum,
+                dateKey: dKey,
+                ayahs,
+                targetMet,
+                score,
+                hasActivity: ayahs > 0,
+              };
+            });
+
+            const maxVal = Math.max(...dailyStats.map((d) => d.ayahs), 0);
+            const chartMax = Math.max(Math.ceil((maxVal + 5) / 10) * 10, summary.dailyTarget + 10, 25);
+
+            const svgW = 760;
+            const svgH = 220;
+            const padL = 40;
+            const padR = 25;
+            const padT = 30;
+            const padB = 40;
+            const plotW = svgW - padL - padR;
+            const plotH = svgH - padT - padB;
+
+            const getX = (idx: number) => padL + (idx / (daysInMonth - 1)) * plotW;
+            const getY = (val: number) => padT + plotH - (val / chartMax) * plotH;
+
+            const targetY = getY(summary.dailyTarget);
+
+            const pointsString = dailyStats
+              .map((d, idx) => `${getX(idx).toFixed(1)},${getY(d.ayahs).toFixed(1)}`)
+              .join(' ');
+
+            const areaString = `${getX(0).toFixed(1)},${(padT + plotH).toFixed(1)} ` +
+              pointsString +
+              ` ${getX(daysInMonth - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
+
+            return (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-5 h-5 text-emerald-700" />
+                      <h3 className="font-extrabold text-slate-900 text-lg">
+                        Diagram Garis Tren Progres Harian
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Statistik perkembangan total ayat ibadah Al-Qur'an per hari ({INDONESIAN_MONTHS[currentMonth - 1]} {currentYear})
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-4 text-xs font-medium self-start sm:self-auto">
+                    <div className="flex items-center space-x-1.5 text-emerald-800 font-bold">
+                      <span className="w-3.5 h-1 bg-emerald-600 rounded-full inline-block" />
+                      <span>Realisasi Ayat</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5 text-amber-700 font-semibold">
+                      <span className="w-3.5 h-0.5 border-t-2 border-dashed border-amber-500 inline-block" />
+                      <span>Target ({summary.dailyTarget} Ayat/Hari)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metric Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/70 text-xs">
+                  <div>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Total Bulan Ini</span>
+                    <span className="font-black text-emerald-950 font-mono text-sm sm:text-base">
+                      {monthStats.totalAyahs} Ayat
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Rata-Rata / Hari</span>
+                    <span className="font-black text-slate-800 font-mono text-sm sm:text-base">
+                      {(monthStats.totalAyahs / daysInMonth).toFixed(1)} Ayat
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Hari Aktif</span>
+                    <span className="font-black text-slate-800 font-mono text-sm sm:text-base">
+                      {monthStats.activeDays} / {daysInMonth} Hari
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Target Tercapai</span>
+                    <span className="font-black text-emerald-700 font-mono text-sm sm:text-base">
+                      {monthStats.targetMetDays} Hari
+                    </span>
+                  </div>
+                </div>
+
+                {/* SVG Line Chart */}
+                <div className="relative overflow-x-auto pt-2">
+                  <div className="min-w-[620px] sm:min-w-full">
+                    <svg
+                      viewBox={`0 0 ${svgW} ${svgH}`}
+                      className="w-full h-56 sm:h-64 overflow-visible"
+                    >
+                      <defs>
+                        <linearGradient id="mutabaahLineGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#059669" stopOpacity="0.28" />
+                          <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Horizontal Grid lines & Y-Axis Labels */}
+                      {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
+                        const yPos = padT + plotH - pct * plotH;
+                        const labelVal = Math.round(pct * chartMax);
+                        return (
+                          <g key={idx}>
+                            <line
+                              x1={padL}
+                              y1={yPos}
+                              x2={svgW - padR}
+                              y2={yPos}
+                              stroke="#e2e8f0"
+                              strokeWidth="1"
+                              strokeDasharray={pct === 0 ? "none" : "2 2"}
+                            />
+                            <text
+                              x={padL - 8}
+                              y={yPos + 3}
+                              textAnchor="end"
+                              className="text-[10px] fill-slate-400 font-mono font-bold"
+                            >
+                              {labelVal}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Daily Target Threshold Dashed Line */}
+                      <g>
+                        <line
+                          x1={padL}
+                          y1={targetY}
+                          x2={svgW - padR}
+                          y2={targetY}
+                          stroke="#f59e0b"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 4"
+                        />
+                        <text
+                          x={svgW - padR}
+                          y={targetY - 5}
+                          textAnchor="end"
+                          className="text-[10px] fill-amber-700 font-bold"
+                        >
+                          Target: {summary.dailyTarget} Ayat
+                        </text>
+                      </g>
+
+                      {/* Gradient Fill under the line */}
+                      <polygon points={areaString} fill="url(#mutabaahLineGrad)" />
+
+                      {/* Main Trend Line */}
+                      <polyline
+                        points={pointsString}
+                        fill="none"
+                        stroke="#059669"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      {/* Data Points */}
+                      {dailyStats.map((d, idx) => {
+                        const cx = getX(idx);
+                        const cy = getY(d.ayahs);
+                        const isHovered = hoveredChartPoint?.day === d.day;
+                        const isToday = d.dateKey === todayKey;
+
+                        return (
+                          <g key={idx} className="cursor-pointer">
+                            {/* Hover hit area */}
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r="12"
+                              fill="transparent"
+                              onMouseEnter={() => setHoveredChartPoint(d)}
+                              onClick={() => handleCellClick(d.dateKey)}
+                            />
+
+                            {/* Visible Circle dot */}
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={isHovered ? 6 : d.hasActivity ? 4 : 2.5}
+                              fill={d.hasActivity ? (d.targetMet ? "#059669" : "#0d9488") : "#94a3b8"}
+                              stroke="#ffffff"
+                              strokeWidth={d.hasActivity ? 2 : 1}
+                              className="transition-all duration-150"
+                              onMouseEnter={() => setHoveredChartPoint(d)}
+                              onClick={() => handleCellClick(d.dateKey)}
+                            />
+
+                            {isToday && (
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r="8"
+                                fill="none"
+                                stroke="#10b981"
+                                strokeWidth="1.5"
+                                strokeDasharray="2 2"
+                                className="animate-pulse"
+                              />
+                            )}
+                          </g>
+                        );
+                      })}
+
+                      {/* X-Axis Day Numbers */}
+                      {dailyStats.map((d, idx) => {
+                        // Display every 3 days and the last day
+                        const shouldShow = d.day === 1 || d.day % 3 === 0 || d.day === daysInMonth;
+                        if (!shouldShow) return null;
+                        const cx = getX(idx);
+                        return (
+                          <text
+                            key={idx}
+                            x={cx}
+                            y={padT + plotH + 18}
+                            textAnchor="middle"
+                            className="text-[10px] fill-slate-500 font-mono font-bold"
+                          >
+                            {d.day}
+                          </text>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Tooltip Overlay Banner */}
+                {hoveredChartPoint ? (
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs animate-in fade-in duration-150">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-slate-800">
+                        Tanggal {hoveredChartPoint.day} {INDONESIAN_MONTHS[currentMonth - 1]}:
+                      </span>
+                      <span className="font-black font-mono text-emerald-800">
+                        {hoveredChartPoint.ayahs} Ayat
+                      </span>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                          hoveredChartPoint.targetMet
+                            ? "bg-emerald-600 text-white"
+                            : hoveredChartPoint.ayahs > 0
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {hoveredChartPoint.targetMet
+                          ? "Target Tercapai"
+                          : hoveredChartPoint.ayahs > 0
+                          ? "Di Bawah Target"
+                          : "Tidak Ada Aktivitas"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCellClick(hoveredChartPoint.dateKey)}
+                      className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
+                    >
+                      Buka Rincian &rarr;
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 text-center italic">
+                    Arahkan kursor atau sentuh titik tanggal pada grafik untuk melihat rincian capaian ayat.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Heatmap Surah Juz 'Amma */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
@@ -1402,14 +1666,9 @@ export default function MutabaahPage() {
                   Rincian Sesi Laporan ({selectedDayData?.reports?.length || 0})
                 </h4>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenReportModal(selectedDateKey)}
-                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center space-x-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Laporan</span>
-                </button>
+                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Tersinkronisasi Otomatis
+                </span>
               </div>
 
               {selectedDayData && selectedDayData.reports && selectedDayData.reports.length > 0 ? (
@@ -1493,19 +1752,19 @@ export default function MutabaahPage() {
                   </div>
                   <div className="pt-2 flex items-center justify-center space-x-2">
                     <Link
-                      to="/app/murojaah"
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors"
+                      to="/app/mushaf"
+                      className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center space-x-1.5 transition-colors shadow-2xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Mulai Murojaah AI</span>
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Baca di Mushaf</span>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReportModal(selectedDateKey)}
-                      className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    <Link
+                      to="/app/murojaah"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors shadow-xs"
                     >
-                      Catat Manual
-                    </button>
+                      <Mic className="w-3.5 h-3.5" />
+                      <span>Setor Murojaah AI</span>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -1524,152 +1783,6 @@ export default function MutabaahPage() {
         </div>
       )}
 
-      {/* 5. MODAL FORM TAMBAH LAPORAN MANUAL */}
-      {isReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <form
-            onSubmit={handleSubmitReport}
-            className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-emerald-700" />
-                <h3 className="font-bold text-slate-900 text-base">
-                  Catat Laporan Mutabaah
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Tanggal Setoran</label>
-                <input
-                  type="date"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Pilih Surah (Juz 'Amma)</label>
-                <select
-                  value={formSurahNumber}
-                  onChange={(e) => setFormSurahNumber(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                >
-                  {JUZ_AMMA_SURAHS.map((s) => (
-                    <option key={s.number} value={s.number}>
-                      {s.number}. {s.name} ({s.ayahs} Ayat)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Ayat Mulai</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={formAyahStart}
-                    onChange={(e) => setFormAyahStart(Number(e.target.value))}
-                    required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Ayat Akhir</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={formAyahEnd}
-                    onChange={(e) => setFormAyahEnd(Number(e.target.value))}
-                    required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Jenis Aktivitas</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                  >
-                    <option value="setoran_mandiri">Setoran Mandiri</option>
-                    <option value="murojaah_ai">Murojaah Suara AI</option>
-                    <option value="tilawah">Tilawah Harian</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Nilai Evaluasi (%)</label>
-                  <input
-                    type="number"
-                    min="50"
-                    max="100"
-                    value={formScore}
-                    onChange={(e) => setFormScore(Number(e.target.value))}
-                    required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Nama Penguji / Pembimbing</label>
-                <input
-                  type="text"
-                  value={formVerifier}
-                  onChange={(e) => setFormVerifier(e.target.value)}
-                  placeholder="Contoh: Ustadz Ahmad, Lc. / Mandiri"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Catatan Tambahan (Opsional)</label>
-                <textarea
-                  rows={2}
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Contoh: Bacaan lancar, mad thabi'i konsisten 2 harakat."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center space-x-1"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Simpan Laporan</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
+          </div>
   );
 }
