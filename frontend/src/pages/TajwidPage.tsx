@@ -33,7 +33,7 @@ export default function TajwidPage() {
             className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase">
+              <span className="text-[11px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider border border-slate-200">
                 Modul {module.orderIndex}
               </span>
               <h3 className="font-bold text-slate-900 text-base mt-2">{module.title}</h3>

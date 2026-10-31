@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function TermsPage() {
   return (
@@ -22,7 +22,7 @@ export default function TermsPage() {
       {/* Main Content */}
       <main className="max-w-4xl w-full mx-auto px-4 py-10 space-y-8">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-md border border-emerald-200 text-xs font-semibold uppercase tracking-wider">
             <FileText className="w-3.5 h-3.5" />
             <span>Dokumen Resmi Ketentuan</span>
           </div>
@@ -45,7 +45,10 @@ export default function TermsPage() {
               Hifzhly adalah platform teknologi pendamping (*companion platform*) yang dirancang untuk membantu santri, pelajar, dan penghafal mandiri dalam melatih kelancaran ingatan hafalan (*murojaah*) secara berulang. 
             </p>
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-xs font-medium space-y-1">
-              <p className="font-bold">⚠️ Perhatian Mengenai Tradisi Talaqqi:</p>
+              <div className="flex items-center space-x-1.5 font-bold">
+                <AlertTriangle className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>Perhatian Mengenai Tradisi Talaqqi:</span>
+              </div>
               <p>
                 Hifzhly <strong>bukan pengganti guru Al-Qur'an, asatidz, atau musyrif halaqah</strong>. Tradisi <em>talaqqi</em> dan <em>musyafahah</em> (belajar langsung bertatap muka dari lisan guru yang bersanad) tetap menjadi rujukan mutlak dan utama dalam memvalidasi keabsahan bacaan dan tajwid Al-Qur'an.
               </p>

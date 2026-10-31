@@ -27,7 +27,7 @@ export default function MushafPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-900">Daftar Surah (Juz 'Amma)</h2>
-        <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold">
+        <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
           Teks Kemenag RI + QUL Mutasyabihat
         </span>
       </div>

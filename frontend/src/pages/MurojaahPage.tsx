@@ -28,7 +28,7 @@ export default function MurojaahPage() {
       {/* SRS Due Banner */}
       <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-xl shadow-emerald-900/10 relative overflow-hidden">
         <div className="relative z-10">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-medium text-emerald-100 mb-3">
+          <div className="inline-flex items-center space-x-2 px-2.5 py-1 bg-white/10 border border-white/20 rounded-md text-xs font-medium text-emerald-100 mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Adaptive Spaced Repetition (SRS)</span>
           </div>

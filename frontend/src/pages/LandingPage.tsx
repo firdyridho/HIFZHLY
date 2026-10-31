@@ -12,9 +12,6 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-xl tracking-tight text-slate-900">Hifzhly</span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
-                  AI Murojaah
-                </span>
               </div>
               <p className="text-[11px] text-slate-500">Platform Pendamping Murojaah Al-Qur'an</p>
             </div>
@@ -40,9 +37,9 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/30 to-slate-50">
         <div className="max-w-5xl mx-auto px-4 text-center space-y-6">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-emerald-100/80 border border-emerald-200 rounded-full text-xs font-bold text-emerald-800 mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Inclusive Education and Future Skills • Hackathon FIFA</span>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-50 border border-emerald-200/80 rounded-md text-xs font-medium text-emerald-800 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Inclusive Education and Future Skills • Tim FIFA</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight">

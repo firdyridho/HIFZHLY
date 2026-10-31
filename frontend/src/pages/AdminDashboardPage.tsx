@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
               <img src="/logo saja.png" alt="Hifzhly" className="w-8 h-8 object-contain brightness-0 invert" />
               <span className="font-extrabold text-lg tracking-tight">Hifzhly Admin</span>
             </Link>
-            <span className="hidden sm:inline text-[11px] bg-teal-800 text-teal-200 px-2.5 py-0.5 rounded-full font-semibold border border-teal-700">
+            <span className="hidden sm:inline text-[11px] bg-teal-800 text-teal-200 px-2.5 py-0.5 rounded-md font-semibold border border-teal-700">
               Portal Musyrif & Ustaz
             </span>
           </div>
@@ -207,16 +207,19 @@ export default function AdminDashboardPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="font-bold text-slate-900">🔥 {santri.currentStreak} Hari</span>
+                      <span className="font-semibold text-slate-800 inline-flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{santri.currentStreak} Hari</span>
+                      </span>
                     </td>
                     <td className="py-4 px-6">
                       {santri.status === 'active' ? (
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          <CheckCircle2 className="w-3 h-3" />
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                           <span>Lancar (Mutqin)</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
                           <span>Butuh Bimbingan</span>
                         </span>
                       )}
