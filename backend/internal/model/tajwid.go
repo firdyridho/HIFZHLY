@@ -77,3 +77,59 @@ type QuizSubmissionResponse struct {
 	PassingScore   int                  `json:"passingScore"`
 	Reviews        []QuestionReviewItem `json:"reviews"`
 }
+
+// ==========================================
+// ADMIN DTO & GEMINI AI GENERATOR
+// ==========================================
+
+// CreateOrUpdateModuleRequest input dari admin untuk membuat/mengedit modul
+type CreateOrUpdateModuleRequest struct {
+	Title          string `json:"title"`
+	Slug           string `json:"slug"`
+	Summary        string `json:"summary"`
+	ContentBody    string `json:"contentBody"`
+	YoutubeVideoID string `json:"youtubeVideoId"`
+	OrderIndex     int    `json:"orderIndex"`
+	IsActive       bool   `json:"isActive"`
+}
+
+// CreateOptionRequest input opsi jawaban
+type CreateOptionRequest struct {
+	OptionText        string `json:"optionText"`
+	IsCorrect         bool   `json:"isCorrect"`
+	OptionExplanation string `json:"optionExplanation,omitempty"`
+}
+
+// CreateQuestionRequest input butir pertanyaan
+type CreateQuestionRequest struct {
+	QuestionText   string                `json:"questionText"`
+	AudioSampleURL string                `json:"audioSampleUrl,omitempty"`
+	Explanation    string                `json:"explanation"`
+	OrderIndex     int                   `json:"orderIndex"`
+	Options        []CreateOptionRequest `json:"options"`
+}
+
+// CreateOrUpdateQuizRequest input paket kuis untuk modul
+type CreateOrUpdateQuizRequest struct {
+	Title        string                  `json:"title"`
+	Description  string                  `json:"description"`
+	PassingScore int                     `json:"passingScore"`
+	Questions    []CreateQuestionRequest `json:"questions"`
+}
+
+// GenerateAIQuizRequest input dari admin ke Gemini AI
+type GenerateAIQuizRequest struct {
+	Topic         string `json:"topic"`                   // misal: "Hukum Iqlab dan Idgham Bighunnah"
+	ModuleContent string `json:"moduleContent,omitempty"` // teks materi modul pendukung
+	QuestionCount int    `json:"questionCount"`           // misal: 3 atau 5 soal
+	Difficulty    string `json:"difficulty"`              // "mudah", "sedang", "sulit"
+}
+
+// GenerateAIQuizResponse output soal yang digenerate Gemini AI
+type GenerateAIQuizResponse struct {
+	Title       string                  `json:"title"`
+	Description string                  `json:"description"`
+	Questions   []CreateQuestionRequest `json:"questions"`
+	ModelUsed   string                  `json:"modelUsed"`
+}
+

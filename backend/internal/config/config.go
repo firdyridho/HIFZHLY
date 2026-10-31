@@ -5,12 +5,13 @@ import (
 )
 
 type Config struct {
-	AppPort     string
-	AppEnv      string
-	DatabaseURL string
-	RedisHost   string
-	RedisPort   string
-	JWTSecret   string
+	AppPort      string
+	AppEnv       string
+	DatabaseURL  string
+	RedisHost    string
+	RedisPort    string
+	JWTSecret    string
+	GeminiAPIKey string
 }
 
 func LoadConfig() *Config {
@@ -25,12 +26,13 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		AppPort:     port,
-		AppEnv:      env,
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		RedisHost:   os.Getenv("REDIS_HOST"),
-		RedisPort:   os.Getenv("REDIS_PORT"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		AppPort:      port,
+		AppEnv:       env,
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
+		RedisHost:    os.Getenv("REDIS_HOST"),
+		RedisPort:    os.Getenv("REDIS_PORT"),
+		JWTSecret:    os.Getenv("JWT_SECRET"),
+		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
 	}
 }
 
