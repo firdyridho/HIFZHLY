@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Lock,
   ArrowRight,
@@ -8,75 +8,46 @@ import {
   Eye,
   EyeOff,
   User,
-  CheckCircle2,
+  ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
+import type { UserProfile } from '../types';
 
 export default function LoginPage() {
-    const [identifier, setIdentifier] = useState('');
+  const [searchParams] = useSearchParams();
+  const [loginPortal, setLoginPortal] = useState<'user' | 'admin'>(() => {
+    return searchParams.get('role') === 'admin' ? 'admin' : 'user';
+  });
+
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Sinkronkan input demo saat ganti tab jika form masih kosong
   useEffect(() => {
-    // Jangan pernah redirect otomatis ke /app saat membuka halaman login,
-    // agar pengguna bisa bebas memilih akun admin maupun santri.
-  }, []);
+    if (loginPortal === 'admin') {
+      if (!identifier || identifier === 'ahmad_hifzh') setIdentifier('admin');
+      if (!password || password === 'santri123') setPassword('admin123');
+    } else {
+      if (identifier === 'admin') setIdentifier('');
+      if (password === 'admin123') setPassword('');
+    }
+    setErrorMessage('');
+  }, [loginPortal]);
 
-    const executeLogin = async (userIdentifier: string, userPass: string) => {
+  const executeLogin = async (userIdentifier: string, userPass: string, portal: 'user' | 'admin') => {
     setErrorMessage('');
     setLoading(true);
 
     const cleanIdentifier = userIdentifier.trim().toLowerCase();
-    const cleanPass = userPass.trim();
 
     try {
-      // 1. Cek apakah ini kredensial Admin
-      let isKnownAdmin =
-        cleanIdentifier === 'admin' ||
-        cleanIdentifier === 'admin@hifzhly.id' ||
-        cleanIdentifier.includes('admin') ||
-        cleanIdentifier.includes('musyrif') ||
-        cleanIdentifier.includes('ustadz') ||
-        cleanIdentifier.includes('ustaz') ||
-        cleanPass === 'admin123';
-
-      let localUserData: any = null;
-      try {
-        const dbRaw = localStorage.getItem('hifzhly_users_db');
-        if (dbRaw) {
-          const db = JSON.parse(dbRaw);
-          if (db[cleanIdentifier]) {
-            localUserData = db[cleanIdentifier];
-            const r = (localUserData.role || '').toLowerCase();
-            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
-              isKnownAdmin = true;
-            }
-          }
-        }
-      } catch {}
-
-      try {
-        const curProfile = localStorage.getItem('hifzhly_user_profile');
-        if (curProfile) {
-          const p = JSON.parse(curProfile);
-          if (
-            p.username?.toLowerCase() === cleanIdentifier ||
-            p.email?.toLowerCase() === cleanIdentifier
-          ) {
-            const r = (p.role || '').toLowerCase();
-            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
-              isKnownAdmin = true;
-              if (!localUserData) localUserData = p;
-            }
-          }
-        }
-      } catch {}
-
-      let loggedUser: any = null;
+      let loggedUser: UserProfile | null = null;
       let tokenStr: string = '';
 
-      // 2. Hubungi backend dengan timeout cepat 800ms
+      // 1. Coba hubungi backend API dengan timeout cepat 800ms
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 800);
@@ -98,24 +69,20 @@ export default function LoginPage() {
           loggedUser = data.user;
           tokenStr = data.token;
         }
-      } catch {}
+      } catch {
+        // Backend offline / timeout: lanjut ke penyimpanan lokal
+      }
 
-      const finalRole = loggedUser
-        ? (loggedUser.role || '').toLowerCase()
-        : isKnownAdmin
-        ? 'admin'
-        : 'user';
-
-      if (finalRole === 'admin' || finalRole === 'ustadz' || finalRole === 'musyrif') {
-        const adminProfile = loggedUser || localUserData || {
+      // 2. Jika Portal ADMIN yang dipilih
+      if (portal === 'admin') {
+        const adminProfile: UserProfile = loggedUser || {
           id: '00000000-0000-0000-0000-000000000001',
-          username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier,
+          username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier || 'admin',
           email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
           fullName: 'Ustadz Pembina (Admin)',
           role: 'admin',
           dailyTargetAyahs: 20,
           currentStreak: 14,
-          maxStreak: 30,
         };
         const token = tokenStr || 'jwt_hifzhly_admin_' + Date.now();
 
@@ -125,20 +92,19 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(adminProfile));
 
         // Redirect langsung ke Dashboard Admin
-        window.location.replace('/admin');
+        window.location.href = '/admin';
         return;
       }
 
-      // Santri / User
-      const santriProfile = loggedUser || localUserData || {
+      // 3. Jika Portal SANTRI yang dipilih
+      const santriProfile: UserProfile = loggedUser || {
         id: '1',
-        username: cleanIdentifier,
-        email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@santri.hifzhly.id`,
-        fullName: cleanIdentifier === 'ahmad_hifzh' ? 'Ahmad Al-Hafizh' : cleanIdentifier,
+        username: cleanIdentifier || 'ahmad_hifzh',
+        email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier || 'ahmad_hifzh'}@santri.hifzhly.id`,
+        fullName: cleanIdentifier === 'ahmad_hifzh' || !cleanIdentifier ? 'Ahmad Al-Hafizh' : cleanIdentifier,
         role: 'user',
         dailyTargetAyahs: 10,
         currentStreak: 5,
-        maxStreak: 14,
       };
       const token = tokenStr || 'jwt_hifzhly_santri_' + Date.now();
 
@@ -147,8 +113,8 @@ export default function LoginPage() {
       localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriProfile));
       localStorage.setItem('user', JSON.stringify(santriProfile));
 
-      // Redirect langsung ke Portal Santri
-      window.location.replace('/app');
+      // Redirect langsung ke Aplikasi Santri
+      window.location.href = '/app';
       return;
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan sistem saat menghubungi server.');
@@ -159,19 +125,19 @@ export default function LoginPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    executeLogin(identifier, password);
+    executeLogin(identifier, password, loginPortal);
   };
 
-  const handleQuickLoginAdmin = () => {
-    setIdentifier('admin');
-    setPassword('admin123');
-    executeLogin('admin', 'admin123');
-  };
-
-  const handleQuickLoginSantri = () => {
-    setIdentifier('ahmad_hifzh');
-    setPassword('santri123');
-    executeLogin('ahmad_hifzh', 'santri123');
+  const handleFillDemo = () => {
+    if (loginPortal === 'admin') {
+      setIdentifier('admin');
+      setPassword('admin123');
+      executeLogin('admin', 'admin123', 'admin');
+    } else {
+      setIdentifier('ahmad_hifzh');
+      setPassword('santri123');
+      executeLogin('ahmad_hifzh', 'santri123', 'user');
+    }
   };
 
   return (
@@ -187,11 +153,41 @@ export default function LoginPage() {
             />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Masuk ke Akun Hifzhly
+            Masuk ke Hifzhly
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Sistem otomatis mendeteksi peran akun Santri maupun Asatidz / Admin
+            {loginPortal === 'admin'
+              ? 'Portal Khusus Asatidz & Musyrif Pembina'
+              : 'Portal Murojaah & Hafalan Santri'}
           </p>
+        </div>
+
+        {/* 2-Role Tab Switcher: Santri vs Admin */}
+        <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center border border-slate-200/80 max-w-xs mx-auto">
+          <button
+            type="button"
+            onClick={() => setLoginPortal('user')}
+            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              loginPortal === 'user'
+                ? 'bg-white text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Santri</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLoginPortal('admin')}
+            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              loginPortal === 'admin'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Asatidz / Admin</span>
+          </button>
         </div>
 
         {/* Error Alert */}
@@ -202,101 +198,122 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Unified Direct Login Form */}
-        <form onSubmit={handleFormSubmit} className="space-y-4 pt-1">
-          {/* Username or Email Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">
-              Username atau Alamat Email
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Masukkan username atau email Anda"
-                className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
-              />
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-            </div>
-          </div>
-
-          {/* Password Input with Show/Hide Eye Toggle */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-700">
-                Kata Sandi
-              </label>
-            </div>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi akunmu"
-                className="w-full pl-10 pr-11 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
-              />
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-700 p-0.5 rounded-lg transition-colors focus:outline-hidden"
-                title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Instant Login Buttons for Testing */}
-          <div className="flex flex-wrap items-center justify-between text-xs pt-1 gap-2">
-            <button
-              type="button"
-              onClick={handleQuickLoginAdmin}
-              className="text-[11px] text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center space-x-1.5 transition-colors cursor-pointer"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Masuk Demo Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleQuickLoginSantri}
-              className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center space-x-1 transition-colors cursor-pointer"
-            >
-              <span>Masuk Demo Santri</span>
-            </button>
-          </div>
-
-          {/* Submit Action Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer"
-            >
-              {loading ? (
+        {/* Login Form Card */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
+              {loginPortal === 'admin' ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memverifikasi Akun...</span>
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Login Dashboard Admin</span>
                 </>
               ) : (
                 <>
-                  <span>Masuk Sekarang</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <GraduationCap className="w-4 h-4 text-emerald-600" />
+                  <span>Login Aplikasi Santri</span>
                 </>
               )}
+            </span>
+            <button
+              type="button"
+              onClick={handleFillDemo}
+              className="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold hover:underline cursor-pointer"
+            >
+              Isi Demo {loginPortal === 'admin' ? 'Admin' : 'Santri'}
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            {/* Username or Email Input */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                {loginPortal === 'admin' ? 'Username Admin / Asatidz' : 'Username Santri atau Email'}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={
+                    loginPortal === 'admin'
+                      ? 'admin atau admin@hifzhly.id'
+                      : 'ahmad_hifzh atau email santri'
+                  }
+                  className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
+                />
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              </div>
+            </div>
+
+            {/* Password Input with Show/Hide Eye Toggle */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">
+                  Kata Sandi
+                </label>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi"
+                  className="w-full pl-10 pr-11 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
+                />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-700 p-0.5 rounded-lg transition-colors focus:outline-hidden"
+                  title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Action Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3.5 px-4 rounded-2xl text-sm font-bold text-white shadow-md active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer ${
+                  loginPortal === 'admin'
+                    ? 'bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/25'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Memverifikasi Akun...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      {loginPortal === 'admin'
+                        ? 'Masuk ke Dashboard Admin'
+                        : 'Masuk ke Aplikasi Santri'}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
 
         {/* Footer Navigation Links */}
-        <div className="pt-4 text-center text-xs text-slate-500 space-y-3">
+        <div className="pt-2 text-center text-xs text-slate-500 space-y-2">
           <p>
             Belum memiliki akun Hifzhly?{' '}
-            <Link to="/register" className="font-bold text-emerald-700 hover:underline">
-              Daftar Akun Baru
+            <Link
+              to={loginPortal === 'admin' ? '/register?role=admin' : '/register?role=user'}
+              className="font-bold text-emerald-700 hover:underline"
+            >
+              Daftar sebagai {loginPortal === 'admin' ? 'Asatidz / Musyrif' : 'Santri Baru'}
             </Link>
           </p>
           <p className="text-[11px] text-slate-400">
