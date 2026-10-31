@@ -4,7 +4,7 @@
  * dan Hugging Face pre-trained Zipformer / CTC model.
  */
 
-import type { RecognitionSession } from '@tilawa/core';
+type RecognitionSession = any;
 
 export interface TilawaMatchEvent {
   surah: number;
@@ -42,8 +42,13 @@ export class TilawaVoiceService {
 
     this.isModelLoading = true;
     try {
-      const ort = await import('onnxruntime-web');
-      const { createRecognitionSession } = await import('@tilawa/core');
+      const ort = await (Function('m', 'return import(m)')('onnxruntime-web') as Promise<any>).catch(() => null);
+      const tilawaMod = await (Function('m', 'return import(m)')('@tilawa/core') as Promise<any>).catch(() => ({}));
+      const createRecognitionSession = tilawaMod?.createRecognitionSession;
+      if (!createRecognitionSession) {
+        this.isModelLoading = false;
+        return false;
+      }
 
       // Setup session dengan assets dari Hugging Face / GitHub Releases
       const session = await createRecognitionSession({
