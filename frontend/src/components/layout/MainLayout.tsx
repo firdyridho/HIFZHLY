@@ -6,10 +6,8 @@ import {
   BarChart3,
   Home,
   LogOut,
-  Flame,
-  Target,
-  UserCheck,
   GraduationCap,
+  ShieldCheck,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -74,145 +72,133 @@ export default function MainLayout() {
     window.location.href = '/login';
   };
 
-  const displayName = profile?.fullName || profile?.username || 'Ahmad Al-Hafizh';
-  const dailyTarget = profile?.dailyTargetAyahs ?? 10;
-  const streak = profile?.currentStreak ?? 3;
-  const roleName = profile?.role === 'admin' ? 'Admin / Ustaz' : 'Santri';
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Dedicated In-App Logged-in Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Brand Identity */}
+      {/* Clean Minimalist Header (Anti-AI-Slop, Emerald Green Islamic Aesthetic) */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          {/* Brand Logo & Name */}
           <Link to="/app" className="flex items-center space-x-2.5 group shrink-0">
             <img
               src="/logo saja.png"
               alt="Hifzhly Logo"
-              className="w-9 h-9 object-contain group-hover:scale-105 transition-transform"
+              className="w-7 h-7 object-contain group-hover:scale-105 transition-transform"
             />
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="font-black text-lg tracking-tight text-slate-900 leading-none">
-                  Hifzhly
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-                  {roleName}
-                </span>
-              </div>
-            </div>
+            <span className="font-bold text-xl tracking-tight text-slate-900">
+              Hifzhly<span className="text-emerald-600 font-black">.</span>
+            </span>
           </Link>
 
-          {/* Desktop Navigation Links in Navbar (User Request: header menu pilihannya taro di navbar ada untuk yg dekstop) */}
+          {/* Desktop Minimalist Navigation */}
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5">
             <NavLink
               to="/app"
               end
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <Home className="w-3.5 h-3.5" />
+              <Home className="w-4 h-4" />
               <span>Beranda</span>
             </NavLink>
 
             <NavLink
               to="/app/mushaf"
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Mushaf</span>
+              <BookOpen className="w-4 h-4" />
+              <span>Qur'an</span>
             </NavLink>
 
             <NavLink
               to="/app/murojaah"
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <Mic className="w-3.5 h-3.5" />
+              <Mic className="w-4 h-4" />
               <span>Murojaah</span>
-            </NavLink>
-
-            <NavLink
-              to="/app/tajwid"
-              className={({ isActive }) =>
-                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`
-              }
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>Tajwid</span>
             </NavLink>
 
             <NavLink
               to="/app/mutabaah"
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
-              <BarChart3 className="w-3.5 h-3.5" />
+              <BarChart3 className="w-4 h-4" />
               <span>Mutabaah</span>
             </NavLink>
+
+            <NavLink
+              to="/app/tajwid"
+              className={({ isActive }) =>
+                `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`
+              }
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Tajwid</span>
+            </NavLink>
+
+            {profile?.role === 'admin' && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`
+                }
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Admin</span>
+              </NavLink>
+            )}
+
+            {/* Subtle Vertical Divider */}
+            <div className="h-5 w-px bg-slate-200 mx-2" />
+
+            {/* Keluar Action */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+              title="Keluar dari Akun"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Keluar</span>
+            </button>
           </nav>
 
-          {/* User Profile & Habit Metrics (REQ-FE-02) */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* User Name & Daily Target (Dynamic) */}
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-xs font-bold text-slate-900 flex items-center justify-end space-x-1">
-                <UserCheck className="w-3.5 h-3.5 text-emerald-700 inline" />
-                <span>{displayName}</span>
-              </span>
-              <span className="text-[11px] text-slate-500 flex items-center justify-end space-x-1 font-medium">
-                <Target className="w-3 h-3 text-slate-400 inline" />
-                <span>Target: {dailyTarget} Ayat/Hari</span>
-              </span>
-            </div>
-
-            {/* Streak Counter (Lucide Flame SVG, No Emojis) */}
-            <div
-              className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 bg-amber-50/90 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-semibold shrink-0"
-              title="Konsistensi Murojaah Berturut-turut"
-            >
-              <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500/20" />
-              <span>{streak} Hari <span className="hidden sm:inline">Streak</span></span>
-            </div>
-
-            {/* Back to Public Landing Page */}
-            <Link
-              to="/"
-              className="text-xs text-slate-500 hover:text-slate-800 p-2 rounded-xl hover:bg-slate-100 transition-all hidden sm:flex items-center"
-              title="Halaman Depan Publik"
-            >
-              <Home className="w-4 h-4" />
-            </Link>
-
-            {/* Logout Action */}
+          {/* Mobile Quick Action */}
+          <div className="flex md:hidden items-center space-x-2">
             <button
+              type="button"
               onClick={handleLogout}
-              className="text-xs text-slate-500 hover:text-rose-700 p-2 rounded-xl hover:bg-slate-100 transition-all flex items-center"
+              className="p-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
               title="Keluar dari Akun"
             >
               <LogOut className="w-4 h-4" />
@@ -266,7 +252,7 @@ export default function MainLayout() {
               }`
             }
           >
-            <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 border-3 border-white group-active:scale-95 transition-all">
+            <div className="w-13 h-13 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border-3 border-white group-active:scale-95 transition-all">
               <Home className="w-6 h-6" />
             </div>
             <span className="text-[10px] font-bold mt-0.5">Beranda</span>
