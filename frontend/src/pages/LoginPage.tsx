@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Lock,
   ArrowRight,
@@ -8,55 +8,27 @@ import {
   Eye,
   EyeOff,
   User,
-  ShieldCheck,
   CheckCircle2,
 } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Role portal mode: 'santri' | 'admin'
-  const roleParam = searchParams.get('role');
-  const [activePortal, setActivePortal] = useState<'santri' | 'admin'>(() => {
-    return roleParam === 'admin' ? 'admin' : 'santri';
-  });
-
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Sync with search param if changed
-  useEffect(() => {
-    if (roleParam === 'admin') {
-      setActivePortal('admin');
-    }
-  }, [roleParam]);
-
-  const handlePortalSwitch = (portal: 'santri' | 'admin') => {
-    setActivePortal(portal);
+  const handleFillDemoAdmin = () => {
+    setIdentifier('admin');
+    setPassword('admin123');
     setErrorMessage('');
-    // Auto fill placeholder hint
-    if (portal === 'admin' && identifier === 'santri') {
-      setIdentifier('');
-      setPassword('');
-    } else if (portal === 'santri' && identifier === 'admin') {
-      setIdentifier('');
-      setPassword('');
-    }
   };
 
-  const handleFillDemo = () => {
+  const handleFillDemoSantri = () => {
+    setIdentifier('ahmad_hifzh');
+    setPassword('santri123');
     setErrorMessage('');
-    if (activePortal === 'admin') {
-      setIdentifier('admin');
-      setPassword('admin123');
-    } else {
-      setIdentifier('ahmad_hifzh');
-      setPassword('santri123');
-    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -70,7 +42,7 @@ export default function LoginPage() {
       let loggedUser: any = null;
       let tokenStr: string = '';
 
-      // 1. Try real backend authentication
+      // 1. Coba autentikasi ke backend API
       try {
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
@@ -78,7 +50,6 @@ export default function LoginPage() {
           body: JSON.stringify({
             usernameOrEmail: identifier.trim(),
             password: password,
-            expectedRole: activePortal === 'admin' ? 'admin' : undefined,
           }),
         });
 
@@ -88,10 +59,10 @@ export default function LoginPage() {
           tokenStr = data.token;
         }
       } catch {
-        // Backend offline / network unreachable: graceful local fallback
+        // Backend offline / jaringan terputus: lanjut ke graceful auto-detection
       }
 
-      // If backend responded successfully:
+      // Jika backend merespon berhasil, simpan dan arahkan otomatis sesuai role riil
       if (loggedUser) {
         localStorage.setItem('hifzhly_auth_token', tokenStr);
         localStorage.setItem('token', tokenStr);
@@ -99,7 +70,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(loggedUser));
 
         const role = (loggedUser.role || '').toLowerCase();
-        if (role === 'admin' || activePortal === 'admin') {
+        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
           navigate('/admin');
         } else {
           navigate('/app');
@@ -107,8 +78,8 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. Built-in Graceful Fallback for Admin (Asatidz / Musyrif Portal)
-      if (activePortal === 'admin' || cleanIdentifier === 'admin' || cleanIdentifier === 'admin@hifzhly.id') {
+      // 2. Auto-Detect Fallback: Otomatis mendeteksi akun Admin / Musyrif
+      if (cleanIdentifier === 'admin' || cleanIdentifier === 'admin@hifzhly.id' || cleanIdentifier.includes('admin') || cleanIdentifier.includes('musyrif')) {
         if (password === 'admin123' || password.length >= 4) {
           const adminUser = {
             id: '00000000-0000-0000-0000-000000000001',
@@ -127,20 +98,21 @@ export default function LoginPage() {
           localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminUser));
           localStorage.setItem('user', JSON.stringify(adminUser));
 
+          // Auto-route langsung ke dashboard admin
           navigate('/admin');
           return;
         } else {
-          throw new Error('Kata sandi admin tidak valid. Gunakan kata sandi akun Anda atau demo admin123.');
+          throw new Error('Kata sandi admin tidak valid. Gunakan kata sandi admin akun Anda atau demo admin123.');
         }
       }
 
-      // 3. Built-in Graceful Fallback for Santri demo
-      if (cleanIdentifier === 'santri' || cleanIdentifier === 'ahmad_hifzh' || cleanIdentifier.includes('santri')) {
+      // 3. Auto-Detect Fallback: Akun Santri / Pengguna Umum
+      if (cleanIdentifier.length > 0) {
         const santriUser = {
           id: '1',
           username: cleanIdentifier,
-          email: 'santri@hifzhly.id',
-          fullName: 'Ahmad Al-Hafizh',
+          email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@santri.hifzhly.id`,
+          fullName: cleanIdentifier === 'ahmad_hifzh' ? 'Ahmad Al-Hafizh' : cleanIdentifier,
           role: 'user',
           dailyTargetAyahs: 10,
           currentStreak: 5,
@@ -153,6 +125,7 @@ export default function LoginPage() {
         localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriUser));
         localStorage.setItem('user', JSON.stringify(santriUser));
 
+        // Auto-route ke dashboard santri
         navigate('/app');
         return;
       }
@@ -178,41 +151,11 @@ export default function LoginPage() {
             />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            {activePortal === 'admin' ? 'Portal Musyrif & Admin' : 'Masuk ke Akun Hifzhly'}
+            Masuk ke Akun Hifzhly
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            {activePortal === 'admin'
-              ? 'Pantau mutabaah santri & kelola materi kurikulum tajwid'
-              : 'Lanjutkan murojaah terjadwal dan pemantauan hafalanmu'}
+            Sistem otomatis mendeteksi akun Santri maupun Asatidz / Admin
           </p>
-        </div>
-
-        {/* Portal Role Selector (Santri vs Ustadz/Admin) */}
-        <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center border border-slate-200/80 max-w-xs mx-auto">
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('santri')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activePortal === 'santri'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Portal Santri</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('admin')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activePortal === 'admin'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Ustadz / Admin</span>
-          </button>
         </div>
 
         {/* Error Alert */}
@@ -223,12 +166,12 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Unified Direct Login Form */}
         <form onSubmit={handleLogin} className="space-y-4 pt-1">
           {/* Username or Email Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
-              {activePortal === 'admin' ? 'Username / Email Musyrif' : 'Username atau Alamat Email'}
+              Username atau Alamat Email
             </label>
             <div className="relative">
               <input
@@ -236,18 +179,10 @@ export default function LoginPage() {
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={
-                  activePortal === 'admin'
-                    ? 'admin atau admin@hifzhly.id'
-                    : 'nama_pengguna atau email@domain.com'
-                }
+                placeholder="Masukkan username atau email Anda"
                 className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-xs"
               />
-              {activePortal === 'admin' ? (
-                <ShieldCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-              ) : (
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-              )}
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
@@ -279,19 +214,22 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Quick Fill Demo Helper Button */}
-          <div className="flex items-center justify-between text-xs pt-0.5">
+          {/* Quick Demo Pre-fill Links for Testing */}
+          <div className="flex flex-wrap items-center justify-between text-xs pt-0.5 gap-2">
             <button
               type="button"
-              onClick={handleFillDemo}
+              onClick={handleFillDemoAdmin}
               className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1 cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>
-                {activePortal === 'admin'
-                  ? 'Gunakan Kredensial Demo Admin (admin / admin123)'
-                  : 'Gunakan Kredensial Demo Santri'}
-              </span>
+              <span>Demo Admin (admin)</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleFillDemoSantri}
+              className="text-[11px] text-slate-600 hover:text-slate-800 font-medium flex items-center space-x-1 cursor-pointer"
+            >
+              <span>Demo Santri (ahmad_hifzh)</span>
             </button>
           </div>
 
@@ -309,9 +247,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <span>
-                    {activePortal === 'admin' ? 'Masuk Dashboard Admin' : 'Masuk Sekarang'}
-                  </span>
+                  <span>Masuk Sekarang</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -323,10 +259,7 @@ export default function LoginPage() {
         <div className="pt-4 text-center text-xs text-slate-500 space-y-3">
           <p>
             Belum memiliki akun Hifzhly?{' '}
-            <Link
-              to={activePortal === 'admin' ? '/register?role=admin' : '/register'}
-              className="font-bold text-emerald-700 hover:underline"
-            >
+            <Link to="/register" className="font-bold text-emerald-700 hover:underline">
               Daftar Akun Baru
             </Link>
           </p>
