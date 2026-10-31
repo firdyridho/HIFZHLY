@@ -28,10 +28,10 @@
   - [x] Endpoint `GET /api/v1/quran/surahs/{number}` (cache surah & audio qari).
 - [x] Integrasi Data Mutasyabihat (Standar Tarteel QUL - Quranic Universal Library):
   - [x] Endpoint `GET /api/v1/quran/mutashabihat/{surah}/{ayah}` (pemetaan ayat-ayat serupa & catatan perbedaan).
-- [ ] Modul Tajwid Academy & Kuis:
+- [x] Modul Tajwid Academy & Kuis:
   - [x] Endpoint `GET /api/v1/tajwid/modules` (daftar materi berurutan).
-  - [ ] Endpoint `GET /api/v1/tajwid/modules/{slug}` (materi markdown & YouTube ID).
-  - [ ] Endpoint `POST /api/v1/tajwid/quizzes/{quizId}/submit` (validasi jawaban & generate review penjelasan).
+  - [x] Endpoint `GET /api/v1/tajwid/modules/{slug}` (materi markdown & YouTube ID).
+  - [x] Endpoint `POST /api/v1/tajwid/quizzes/{quizId}/submit` (validasi jawaban & generate review penjelasan).
   - [x] Menyiapkan *seed data* migrasi SQL materi Tajwid (Nun Sukun & Tanwin, Mim Sukun).
 
 ### Tahap 3: Integrasi Whisper AI Voice & Algoritma SRS (Jam 10:00 – 17:00)
