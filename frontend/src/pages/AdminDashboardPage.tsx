@@ -16,8 +16,7 @@ import {
   FileText,
   HelpCircle,
   RefreshCw,
-  ExternalLink,
-  Save,
+Save,
   X,
   Layers,
   GraduationCap,
@@ -165,10 +164,37 @@ export default function AdminDashboardPage() {
     } catch {}
   };
 
+    // Guard Role: Khusus Admin/Musyrif. Santri dilarang masuk ke portal admin.
+  const cachedUser = (() => {
+    try {
+      const raw = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+  const userRole = (cachedUser?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin' || userRole === 'ustadz' || userRole === 'musyrif';
+
   useEffect(() => {
+    if (!token || !cachedUser) {
+      window.location.replace('/login');
+      return;
+    }
+    if (!isAdmin) {
+      window.location.replace('/app');
+      return;
+    }
     fetchModules();
     fetchSantriMonitoring();
   }, []);
+
+  if (!token || !cachedUser || !isAdmin) {
+    return null;
+  }
+
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -181,6 +207,21 @@ export default function AdminDashboardPage() {
     localStorage.removeItem('hifzhly_auth_token');
     localStorage.removeItem('hifzhly_user_profile');
     navigate('/login');
+  };
+
+  const handleOpenEditModal = (mod: TajwidModule) => {
+    setModuleId(mod.id);
+    setTitle(mod.title);
+    setSlug(mod.slug);
+    setSummary(mod.summary || '');
+    setYoutubeVideoId(mod.youtubeVideoId || '');
+    setOrderIndex(mod.orderIndex);
+    setContentBody(mod.contentBody || '');
+    setQuizTitle('');
+    setQuizPassingScore(70);
+    setQuestions([]);
+    setAiPromptTopic('');
+    setIsModalOpen(true);
   };
 
   const handleOpenAddModal = () => {
@@ -493,13 +534,7 @@ export default function AdminDashboardPage() {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 space-y-1">
-          <Link
-            to="/app"
-            className="flex items-center space-x-2.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4 text-slate-400" />
-            <span>Lihat Aplikasi Santri</span>
-          </Link>
+          
 
           <button
             type="button"
@@ -575,13 +610,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="pt-4 border-t border-slate-100 space-y-1">
-              <Link
-                to="/app"
-                className="flex items-center space-x-2 px-3 py-2 text-xs font-medium text-slate-600"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Lihat Aplikasi Santri</span>
-              </Link>
+              
               <button
                 type="button"
                 onClick={handleLogout}
@@ -942,14 +971,14 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <Link
-                          to={`/app/tajwid?module=${mod.slug}`}
-                          target="_blank"
-                          className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center space-x-1"
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(mod)}
+                          className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center space-x-1 cursor-pointer"
                         >
-                          <span>Tinjau Modul</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </Link>
+                          <span>Tinjau & Edit</span>
+                          <FileText className="w-3 h-3" />
+                        </button>
 
                         <button
                           type="button"

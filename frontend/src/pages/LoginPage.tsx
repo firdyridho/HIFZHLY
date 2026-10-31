@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, } from 'react-router-dom';
 import {
   Lock,
@@ -18,20 +18,79 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const executeLogin = async (userIdentifier: string, userPass: string) => {
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      const profileRaw = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
+      if (token && profileRaw) {
+        const p = JSON.parse(profileRaw);
+        const role = (p.role || '').toLowerCase();
+        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
+          window.location.replace('/admin');
+        } else {
+          window.location.replace('/app');
+        }
+      }
+    } catch {}
+  }, []);
+
+    const executeLogin = async (userIdentifier: string, userPass: string) => {
     setErrorMessage('');
     setLoading(true);
 
     const cleanIdentifier = userIdentifier.trim().toLowerCase();
+    const cleanPass = userPass.trim();
 
     try {
+      // 1. Cek apakah ini kredensial Admin
+      let isKnownAdmin =
+        cleanIdentifier === 'admin' ||
+        cleanIdentifier === 'admin@hifzhly.id' ||
+        cleanIdentifier.includes('admin') ||
+        cleanIdentifier.includes('musyrif') ||
+        cleanIdentifier.includes('ustadz') ||
+        cleanIdentifier.includes('ustaz') ||
+        cleanPass === 'admin123';
+
+      let localUserData: any = null;
+      try {
+        const dbRaw = localStorage.getItem('hifzhly_users_db');
+        if (dbRaw) {
+          const db = JSON.parse(dbRaw);
+          if (db[cleanIdentifier]) {
+            localUserData = db[cleanIdentifier];
+            const r = (localUserData.role || '').toLowerCase();
+            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
+              isKnownAdmin = true;
+            }
+          }
+        }
+      } catch {}
+
+      try {
+        const curProfile = localStorage.getItem('hifzhly_user_profile');
+        if (curProfile) {
+          const p = JSON.parse(curProfile);
+          if (
+            p.username?.toLowerCase() === cleanIdentifier ||
+            p.email?.toLowerCase() === cleanIdentifier
+          ) {
+            const r = (p.role || '').toLowerCase();
+            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
+              isKnownAdmin = true;
+              if (!localUserData) localUserData = p;
+            }
+          }
+        }
+      } catch {}
+
       let loggedUser: any = null;
       let tokenStr: string = '';
 
-      // 1. Coba hubungi backend API dengan batas waktu 1.5 detik (mencegah timeout proxy Vite yang menggantung)
+      // 2. Hubungi backend dengan timeout cepat 800ms
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        const timeoutId = setTimeout(() => controller.abort(), 800);
 
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
@@ -50,51 +109,16 @@ export default function LoginPage() {
           loggedUser = data.user;
           tokenStr = data.token;
         }
-      } catch {
-        // Backend offline atau timeout: lanjut ke auto-deteksi lokal
-      }
-
-      // 2. Jika backend berhasil mengautentikasi
-      if (loggedUser) {
-        localStorage.setItem('hifzhly_auth_token', tokenStr);
-        localStorage.setItem('token', tokenStr);
-        localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
-        localStorage.setItem('user', JSON.stringify(loggedUser));
-
-        const role = (loggedUser.role || '').toLowerCase();
-        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
-          window.location.href = '/admin';
-        } else {
-          window.location.href = '/app';
-        }
-        return;
-      }
-
-      // 3. Cek Database Pengguna Lokal (Akun yang sebelumnya didaftarkan di RegisterPage)
-      let localRole = '';
-      try {
-        const dbRaw = localStorage.getItem('hifzhly_users_db');
-        if (dbRaw) {
-          const db = JSON.parse(dbRaw);
-          if (db[cleanIdentifier]) {
-            localRole = (db[cleanIdentifier].role || '').toLowerCase();
-            loggedUser = db[cleanIdentifier];
-          }
-        }
       } catch {}
 
-      // 4. Deteksi apakah akun adalah Admin / Musyrif
-      const isAdminAccount =
-        localRole === 'admin' ||
-        cleanIdentifier === 'admin' ||
-        cleanIdentifier === 'admin@hifzhly.id' ||
-        cleanIdentifier.includes('admin') ||
-        cleanIdentifier.includes('musyrif') ||
-        cleanIdentifier.includes('ustadz') ||
-        cleanIdentifier.includes('ustaz');
+      const finalRole = loggedUser
+        ? (loggedUser.role || '').toLowerCase()
+        : isKnownAdmin
+        ? 'admin'
+        : 'user';
 
-      if (isAdminAccount) {
-        const adminUser = loggedUser || {
+      if (finalRole === 'admin' || finalRole === 'ustadz' || finalRole === 'musyrif') {
+        const adminProfile = loggedUser || localUserData || {
           id: '00000000-0000-0000-0000-000000000001',
           username: cleanIdentifier === 'admin' ? 'admin' : cleanIdentifier,
           email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
@@ -104,43 +128,39 @@ export default function LoginPage() {
           currentStreak: 14,
           maxStreak: 30,
         };
-        const fallbackToken = 'jwt_hifzhly_admin_' + Date.now();
+        const token = tokenStr || 'jwt_hifzhly_admin_' + Date.now();
 
-        localStorage.setItem('hifzhly_auth_token', fallbackToken);
-        localStorage.setItem('token', fallbackToken);
-        localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminUser));
-        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('hifzhly_auth_token', token);
+        localStorage.setItem('token', token);
+        localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminProfile));
+        localStorage.setItem('user', JSON.stringify(adminProfile));
 
         // Redirect langsung ke Dashboard Admin
-        window.location.href = '/admin';
+        window.location.replace('/admin');
         return;
       }
 
-      // 5. Deteksi sebagai Akun Santri / Pengguna Umum
-      if (cleanIdentifier.length > 0) {
-        const santriUser = loggedUser || {
-          id: '1',
-          username: cleanIdentifier,
-          email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@santri.hifzhly.id`,
-          fullName: cleanIdentifier === 'ahmad_hifzh' ? 'Ahmad Al-Hafizh' : cleanIdentifier,
-          role: 'user',
-          dailyTargetAyahs: 10,
-          currentStreak: 5,
-          maxStreak: 14,
-        };
-        const fallbackToken = 'jwt_hifzhly_santri_' + Date.now();
+      // Santri / User
+      const santriProfile = loggedUser || localUserData || {
+        id: '1',
+        username: cleanIdentifier,
+        email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@santri.hifzhly.id`,
+        fullName: cleanIdentifier === 'ahmad_hifzh' ? 'Ahmad Al-Hafizh' : cleanIdentifier,
+        role: 'user',
+        dailyTargetAyahs: 10,
+        currentStreak: 5,
+        maxStreak: 14,
+      };
+      const token = tokenStr || 'jwt_hifzhly_santri_' + Date.now();
 
-        localStorage.setItem('hifzhly_auth_token', fallbackToken);
-        localStorage.setItem('token', fallbackToken);
-        localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriUser));
-        localStorage.setItem('user', JSON.stringify(santriUser));
+      localStorage.setItem('hifzhly_auth_token', token);
+      localStorage.setItem('token', token);
+      localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriProfile));
+      localStorage.setItem('user', JSON.stringify(santriProfile));
 
-        // Redirect langsung ke Dashboard Santri
-        window.location.href = '/app';
-        return;
-      }
-
-      throw new Error('Gagal masuk. Periksa kembali username dan kata sandi Anda.');
+      // Redirect langsung ke Portal Santri
+      window.location.replace('/app');
+      return;
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan sistem saat menghubungi server.');
     } finally {

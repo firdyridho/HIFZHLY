@@ -7,30 +7,36 @@ import {
   Home,
   LogOut,
   GraduationCap,
-  ShieldCheck,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
 export default function MainLayout() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try {
+      const cached = localStorage.getItem('hifzhly_user_profile') || localStorage.getItem('user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   // Active reading check to replace double header
   const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz'));
 
-  useEffect(() => {
-    // 1. Load cached profile from localStorage
-    const cached = localStorage.getItem('hifzhly_user_profile');
-    if (cached) {
-      try {
-        setProfile(JSON.parse(cached));
-      } catch (e) {
-        console.error('Failed to parse cached profile:', e);
-      }
-    }
+  // Role Guard: Admin khusus di dashboard admin (/admin), dilarang masuk ke aplikasi santri (/app)
+  const userRole = (profile?.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin' || userRole === 'ustadz' || userRole === 'musyrif';
 
-    // 2. Refresh profile from backend if token is available
+  useEffect(() => {
+    if (isAdmin) {
+      window.location.replace('/admin');
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
     const token = localStorage.getItem('hifzhly_auth_token');
     if (token) {
       fetch('/api/v1/auth/me', {
@@ -45,17 +51,22 @@ export default function MainLayout() {
         .then((data: UserProfile) => {
           setProfile(data);
           localStorage.setItem('hifzhly_user_profile', JSON.stringify(data));
+          if ((data.role as string) === 'admin' || (data.role as string) === 'ustadz' || (data.role as string) === 'musyrif') {
+            window.location.replace('/admin');
+          }
         })
-        .catch(() => {
-          // If offline or network error, keep using cached profile
-        });
+        .catch(() => {});
     }
 
     const handleProfileUpdate = () => {
       const cached = localStorage.getItem('hifzhly_user_profile');
       if (cached) {
         try {
-          setProfile(JSON.parse(cached));
+          const p = JSON.parse(cached);
+          setProfile(p);
+          if ((p.role as string) === 'admin' || (p.role as string) === 'ustadz' || (p.role as string) === 'musyrif') {
+            window.location.replace('/admin');
+          }
         } catch (e) {
           console.error('Failed to parse cached profile:', e);
         }
@@ -74,8 +85,15 @@ export default function MainLayout() {
   const handleLogout = () => {
     localStorage.removeItem('hifzhly_auth_token');
     localStorage.removeItem('hifzhly_user_profile');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     window.location.href = '/login';
   };
+
+  if (isAdmin) {
+    return null;
+  }
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
@@ -168,21 +186,7 @@ export default function MainLayout() {
               <span>Tajwid</span>
             </NavLink>
 
-            {profile?.role === 'admin' && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Admin</span>
-              </NavLink>
-            )}
+            
 
             {/* Subtle Vertical Divider */}
             <div className="h-5 w-px bg-slate-200 mx-2" />
