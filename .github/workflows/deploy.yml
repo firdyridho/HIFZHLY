@@ -1,21 +1,50 @@
-name: Deploy to Tencent VPS
+name: Build & Deploy Go Backend to VPS
 
 on:
   push:
     branches:
       - staging
       - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
+    name: Compile Go & Ship Binary
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS via SSH
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+
+      - name: Compile Single Go Binary
+        run: |
+          cd backend
+          go mod tidy
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/api
+          ls -lh server
+
+      - name: Ship Binary & Migrations to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "backend/server,backend/migrations/*"
+          target: "/opt/hifzhly"
+          strip_components: 1
+
+      - name: Restart Backend Service on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -24,24 +53,37 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            TARGET_DIR="/www/wwwroot/HIFZHLY"
-            if [ ! -d "$TARGET_DIR" ]; then
-              TARGET_DIR="/www/wwwroot/hifzhly"
-            fi
+            # 1. Beri izin eksekusi pada binary
+            chmod +x /opt/hifzhly/server
             
-            # Jika belum di-clone, clone secara otomatis
-            if [ ! -d "$TARGET_DIR" ] && [ ! -d "$HOME/HIFZHLY" ]; then
-              echo "Folder belum ada, melakukan git clone awal ke /www/wwwroot/HIFZHLY..."
-              mkdir -p /www/wwwroot
-              cd /www/wwwroot
-              git clone -b staging https://github.com/firdyridho/HIFZHLY.git
-              TARGET_DIR="/www/wwwroot/HIFZHLY"
-            elif [ -d "$HOME/HIFZHLY" ]; then
-              TARGET_DIR="$HOME/HIFZHLY"
-            fi
-            
-            echo "Menjalankan deployment di $TARGET_DIR..."
-            cd "$TARGET_DIR"
-            chmod +x deploy.sh
-            ./deploy.sh
+            # 2. Setup Systemd Service jika belum terdaftar
+            if [ ! -f /etc/systemd/system/hifzhly.service ]; then
+              cat << 'EOF' > /etc/systemd/system/hifzhly.service
+            [Unit]
+            Description=Hifzhly Go Backend Service
+            After=network.target
 
+            [Service]
+            Type=simple
+            User=root
+            WorkingDirectory=/opt/hifzhly
+            ExecStart=/opt/hifzhly/server
+            Restart=always
+            RestartSec=3
+            Environment=APP_PORT=8080
+            Environment=APP_ENV=production
+            Environment=DATABASE_URL=postgres://hifzhly_user:hifzhly_secure_password_2026@127.0.0.1:5432/hifzhly_db?sslmode=disable
+            Environment=REDIS_HOST=127.0.0.1
+            Environment=REDIS_PORT=6379
+            Environment=JWT_SECRET=hifzhly_fifa_secret_key_prod_2026_xyz!
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+              systemctl daemon-reload
+              systemctl enable hifzhly.service
+            fi
+
+            # 3. Restart service agar langsung memuat biner terbaru
+            systemctl restart hifzhly.service
+            systemctl status hifzhly.service --no-pager
