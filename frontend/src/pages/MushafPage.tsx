@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Bookmark,
   Search,
@@ -109,20 +110,42 @@ function formatTajweedHtml(rawHtml: string, stripEndBadge = false): string {
 }
 
 export default function MushafPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const surahParam = searchParams.get('surah');
+  const pageParam = searchParams.get('page');
+  const modeParam = searchParams.get('mode');
+
   const [activeTab, setActiveTab] = useState<'surah' | 'juz'>('surah');
   const [revelationFilter, setRevelationFilter] = useState<'all' | 'makiyyah' | 'madaniyyah'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [surahs, setSurahs] = useState<SurahSummary[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
-  // Active Reading View State
-  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | null>(null);
+  // Active Reading View State (Persisted across refreshes via URL Query & localStorage)
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | null>(() => {
+    if (surahParam) {
+      const num = parseInt(surahParam, 10);
+      if (!isNaN(num) && num >= 1 && num <= 114) return num;
+    }
+    const saved = localStorage.getItem('hifzhly_active_surah');
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num) && num >= 1 && num <= 114) return num;
+    }
+    return null;
+  });
+
   const [currentSurah, setCurrentSurah] = useState<SurahDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [targetAyahToScroll, setTargetAyahToScroll] = useState<number | null>(null);
 
   // Header Toolbar Controls State
-  const [readingMode, setReadingMode] = useState<'ayat' | 'mushaf'>('ayat');
+  const [readingMode, setReadingMode] = useState<'ayat' | 'mushaf'>(() => {
+    if (modeParam === 'mushaf' || modeParam === 'ayat') return modeParam;
+    return 'ayat';
+  });
+
   const [fontSize, setFontSize] = useState<number>(26); // 20px - 44px
   const [showTranslation, setShowTranslation] = useState<boolean>(true);
   const [showTajwid, setShowTajwid] = useState<boolean>(true);
@@ -134,8 +157,14 @@ export default function MushafPage() {
   // Tajweed Per-Ayah Cached Map
   const [tajweedMap, setTajweedMap] = useState<Record<number, string>>({});
 
-  // Mushaf Per Halaman (604 Pages) State
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  // Mushaf Per Halaman (604 Pages) State (Persisted via URL query & start pages)
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    if (pageParam) {
+      const p = parseInt(pageParam, 10);
+      if (!isNaN(p) && p >= 1 && p <= 604) return p;
+    }
+    return 1;
+  });
   const [pageVerses, setPageVerses] = useState<any[]>([]);
   const [loadingPage, setLoadingPage] = useState<boolean>(false);
   const [selectedMushafAyah, setSelectedMushafAyah] = useState<any | null>(null);
@@ -173,6 +202,24 @@ export default function MushafPage() {
       ayahNumber: 1,
     };
   });
+
+  // Synchronize active surah, page, and mode with URL search params and localStorage so refreshing never loses position
+  useEffect(() => {
+    if (selectedSurahNumber !== null) {
+      localStorage.setItem('hifzhly_active_surah', selectedSurahNumber.toString());
+      const newParams: Record<string, string> = {
+        surah: selectedSurahNumber.toString(),
+        mode: readingMode,
+      };
+      if (readingMode === 'mushaf') {
+        newParams.page = currentPage.toString();
+      }
+      setSearchParams(newParams, { replace: true });
+    } else {
+      localStorage.removeItem('hifzhly_active_surah');
+      setSearchParams({}, { replace: true });
+    }
+  }, [selectedSurahNumber, readingMode, currentPage, setSearchParams]);
 
   // 1. Fetch 114 Surahs from EQuran.id API v2
   useEffect(() => {
