@@ -35,26 +35,26 @@ const JUZ_LIST: JuzInfo[] = [
   { number: 8, nameArabic: 'الجزء ٨', startSurahNumber: 6, startSurahName: "Al-An'am", startAyah: 111, endSurahName: "Al-A'raf", endAyah: 87 },
   { number: 9, nameArabic: 'الجزء ٩', startSurahNumber: 7, startSurahName: "Al-A'raf", startAyah: 88, endSurahName: "Al-Anfal", endAyah: 40 },
   { number: 10, nameArabic: 'الجزء ١٠', startSurahNumber: 8, startSurahName: "Al-Anfal", startAyah: 41, endSurahName: "At-Taubah", endAyah: 92 },
-  { number: 11, nameArabic: 'الجزء ١١', startSurahNumber: 9, startSurahName: "At-Taubah", startAyah: 93, endSurahName: 'Hud', endAyah: 5 },
-  { number: 12, nameArabic: 'الجزء ١٢', startSurahNumber: 11, startSurahName: 'Hud', startAyah: 6, endSurahName: 'Yusuf', endAyah: 52 },
-  { number: 13, nameArabic: 'الجزء ١٣', startSurahNumber: 12, startSurahName: 'Yusuf', startAyah: 53, endSurahName: 'Ibrahim', endAyah: 52 },
-  { number: 14, nameArabic: 'الجزء ١٤', startSurahNumber: 15, startSurahName: 'Al-Hijr', startAyah: 1, endSurahName: 'An-Nahl', endAyah: 128 },
-  { number: 15, nameArabic: 'الجزء ١٥', startSurahNumber: 17, startSurahName: "Al-Isra'", startAyah: 1, endSurahName: 'Al-Kahf', endAyah: 74 },
-  { number: 16, nameArabic: 'الجزء ١٦', startSurahNumber: 18, startSurahName: 'Al-Kahf', startAyah: 75, endSurahName: 'Ta-Ha', endAyah: 135 },
-  { number: 17, nameArabic: 'الجزء ١٧', startSurahNumber: 21, startSurahName: 'Al-Anbiya', startAyah: 1, endSurahName: 'Al-Hajj', endAyah: 78 },
-  { number: 18, nameArabic: 'الجزء ١٨', startSurahNumber: 23, startSurahName: "Al-Mu'minun", startAyah: 1, endSurahName: 'Al-Furqan', endAyah: 20 },
-  { number: 19, nameArabic: 'الجزء ١٩', startSurahNumber: 25, startSurahName: 'Al-Furqan', startAyah: 21, endSurahName: 'An-Naml', endAyah: 55 },
-  { number: 20, nameArabic: 'الجزء ٢٠', startSurahNumber: 27, startSurahName: 'An-Naml', startAyah: 56, endSurahName: "Al-'Ankabut", endAyah: 45 },
-  { number: 21, nameArabic: 'الجزء ٢١', startSurahNumber: 29, startSurahName: "Al-'Ankabut", startAyah: 46, endSurahName: 'Al-Ahzab', endAyah: 30 },
-  { number: 22, nameArabic: 'الجزء ٢٢', startSurahNumber: 33, startSurahName: 'Al-Ahzab', startAyah: 31, endSurahName: 'Ya-Sin', endAyah: 27 },
-  { number: 23, nameArabic: 'الجزء ٢٣', startSurahNumber: 36, startSurahName: 'Ya-Sin', startAyah: 28, endSurahName: 'Az-Zumar', endAyah: 31 },
-  { number: 24, nameArabic: 'الجزء ٢٤', startSurahNumber: 39, startSurahName: 'Az-Zumar', startAyah: 32, endSurahName: 'Fussilat', endAyah: 46 },
-  { number: 25, nameArabic: 'الجزء ٢٥', startSurahNumber: 41, startSurahName: 'Fussilat', startAyah: 47, endSurahName: 'Al-Jasiyah', endAyah: 37 },
-  { number: 26, nameArabic: 'الجزء ٢٦', startSurahNumber: 46, startSurahName: 'Al-Ahqaf', startAyah: 1, endSurahName: 'Az-Zariyat', endAyah: 30 },
-  { number: 27, nameArabic: 'الجزء ٢٧', startSurahNumber: 51, startSurahName: 'Az-Zariyat', startAyah: 31, endSurahName: 'Al-Hadid', endAyah: 29 },
-  { number: 28, nameArabic: 'الجزء ٢٨', startSurahNumber: 58, startSurahName: 'Al-Mujadilah', startAyah: 1, endSurahName: 'At-Tahrim', endAyah: 12 },
-  { number: 29, nameArabic: 'الجزء ٢٩', startSurahNumber: 67, startSurahName: 'Al-Mulk', startAyah: 1, endSurahName: 'Al-Mursalat', endAyah: 50 },
-  { number: 30, nameArabic: 'الجزء ٣٠', startSurahNumber: 78, startSurahName: "An-Naba'", startAyah: 1, endSurahName: 'An-Nas', endAyah: 6 },
+  { number: 11, nameArabic: 'الجزء ١١', startSurahNumber: 9, startSurahName: "At-Taubah", startAyah: 93, endSurahName: "Hud", endAyah: 5 },
+  { number: 12, nameArabic: 'الجزء ١٢', startSurahNumber: 11, startSurahName: "Hud", startAyah: 6, endSurahName: "Yusuf", endAyah: 52 },
+  { number: 13, nameArabic: 'الجزء ١٣', startSurahNumber: 12, startSurahName: "Yusuf", startAyah: 53, endSurahName: "Ibrahim", endAyah: 52 },
+  { number: 14, nameArabic: 'الجزء ١٤', startSurahNumber: 15, startSurahName: "Al-Hijr", startAyah: 1, endSurahName: "An-Nahl", endAyah: 128 },
+  { number: 15, nameArabic: 'الجزء ١٥', startSurahNumber: 17, startSurahName: "Al-Isra'", startAyah: 1, endSurahName: "Al-Kahf", endAyah: 74 },
+  { number: 16, nameArabic: 'الجزء ١٦', startSurahNumber: 18, startSurahName: "Al-Kahf", startAyah: 75, endSurahName: "Ta-Ha", endAyah: 135 },
+  { number: 17, nameArabic: 'الجزء ١٧', startSurahNumber: 21, startSurahName: "Al-Anbiya", startAyah: 1, endSurahName: "Al-Hajj", endAyah: 78 },
+  { number: 18, nameArabic: 'الجزء ١٨', startSurahNumber: 23, startSurahName: "Al-Mu'minun", startAyah: 1, endSurahName: "Al-Furqan", endAyah: 20 },
+  { number: 19, nameArabic: 'الجزء ١٩', startSurahNumber: 25, startSurahName: "Al-Furqan", startAyah: 21, endSurahName: "An-Naml", endAyah: 55 },
+  { number: 20, nameArabic: 'الجزء ٢٠', startSurahNumber: 27, startSurahName: "An-Naml", startAyah: 56, endSurahName: "Al-'Ankabut", endAyah: 45 },
+  { number: 21, nameArabic: 'الجزء ٢١', startSurahNumber: 29, startSurahName: "Al-'Ankabut", startAyah: 46, endSurahName: "Al-Ahzab", endAyah: 30 },
+  { number: 22, nameArabic: 'الجزء ٢٢', startSurahNumber: 33, startSurahName: "Al-Ahzab", startAyah: 31, endSurahName: "Ya-Sin", endAyah: 27 },
+  { number: 23, nameArabic: 'الجزء ٢٣', startSurahNumber: 36, startSurahName: "Ya-Sin", startAyah: 28, endSurahName: "Az-Zumar", endAyah: 31 },
+  { number: 24, nameArabic: 'الجزء ٢٤', startSurahNumber: 39, startSurahName: "Az-Zumar", startAyah: 32, endSurahName: "Fussilat", endAyah: 46 },
+  { number: 25, nameArabic: 'الجزء ٢٥', startSurahNumber: 41, startSurahName: "Fussilat", startAyah: 47, endSurahName: "Al-Jasiyah", endAyah: 37 },
+  { number: 26, nameArabic: 'الجزء ٢٦', startSurahNumber: 46, startSurahName: "Al-Ahqaf", startAyah: 1, endSurahName: "Az-Zariyat", endAyah: 30 },
+  { number: 27, nameArabic: 'الجزء ٢٧', startSurahNumber: 51, startSurahName: "Az-Zariyat", startAyah: 31, endSurahName: "Al-Hadid", endAyah: 29 },
+  { number: 28, nameArabic: 'الجزء ٢٨', startSurahNumber: 58, startSurahName: "Al-Mujadilah", startAyah: 1, endSurahName: "At-Tahrim", endAyah: 12 },
+  { number: 29, nameArabic: 'الجزء ٢٩', startSurahNumber: 67, startSurahName: "Al-Mulk", startAyah: 1, endSurahName: "Al-Mursalat", endAyah: 50 },
+  { number: 30, nameArabic: 'الجزء ٣٠', startSurahNumber: 78, startSurahName: "An-Naba'", startAyah: 1, endSurahName: "An-Nas", endAyah: 6 },
 ];
 
 export default function MushafPage() {
@@ -70,7 +70,12 @@ export default function MushafPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [targetAyahToScroll, setTargetAyahToScroll] = useState<number | null>(null);
 
-  // Audio & Modals
+  // Tafsir Feature State (EQuran.id API v2 Tafsir Kemenag RI)
+  const [expandedTafsir, setExpandedTafsir] = useState<Record<number, boolean>>({});
+  const [tafsirCache, setTafsirCache] = useState<Record<number, Record<number, string>>>({});
+  const [loadingTafsirAyah, setLoadingTafsirAyah] = useState<number | null>(null);
+
+  // Audio & Modals State
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
   const [isPlayingFull, setIsPlayingFull] = useState(false);
   const [activeMutashabih, setActiveMutashabih] = useState<MutashabihaItem[] | null>(null);
@@ -80,7 +85,7 @@ export default function MushafPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fullAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Terakhir Baca State (loaded from localStorage or default Surah ke-14 Ayat 25)
+  // Terakhir Baca State (loaded from localStorage)
   const [lastRead, setLastRead] = useState<{
     surahNumber: number;
     surahName: string;
@@ -93,44 +98,46 @@ export default function MushafPage() {
       } catch (e) {}
     }
     return {
-      surahNumber: 14,
-      surahName: 'Surah ke-14',
-      ayahNumber: 25,
+      surahNumber: 1,
+      surahName: 'Al-Fatihah',
+      ayahNumber: 1,
     };
   });
 
-  // Fetch Surah List from Backend Proxy
+  // Fetch 114 Surahs from EQuran.id API v2
   useEffect(() => {
-    fetch('/api/v1/quran/surahs')
+    setLoadingList(true);
+    fetch('https://equran.id/api/v2/surat')
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load surah list');
+        if (!res.ok) throw new Error('Gagal memuat daftar surah dari EQuran.id');
         return res.json();
       })
-      .then((data: SurahSummary[]) => {
-        setSurahs(data);
+      .then((json) => {
+        if (json.code === 200 && Array.isArray(json.data)) {
+          const mapped: SurahSummary[] = json.data.map((item: any) => ({
+            number: item.nomor,
+            nameArabic: item.nama,
+            nameLatin: item.namaLatin,
+            numberOfAyahs: item.jumlahAyat,
+            revelationType: item.tempatTurun === 'Mekah' ? 'Makkiyyah' : 'Madaniyyah',
+            translation: item.arti,
+          }));
+          setSurahs(mapped);
+        } else {
+          throw new Error('Format data tidak sesuai');
+        }
       })
       .catch((err) => {
-        console.warn('Backend proxy offline, loading standard surahs:', err);
-        // Fallback Juz 'Amma / standard surahs
-        const fallbackList: SurahSummary[] = [
-          { number: 1, nameArabic: 'الفاتحة', nameLatin: 'Al-Fatihah', numberOfAyahs: 7, revelationType: 'Makkiyyah', translation: 'Pembukaan' },
-          { number: 2, nameArabic: 'البقرة', nameLatin: 'Al-Baqarah', numberOfAyahs: 286, revelationType: 'Madaniyyah', translation: 'Sapi Betina' },
-          { number: 3, nameArabic: 'آل عمران', nameLatin: "Ali 'Imran", numberOfAyahs: 200, revelationType: 'Madaniyyah', translation: "Keluarga 'Imran" },
-          { number: 4, nameArabic: 'النساء', nameLatin: "An-Nisa'", numberOfAyahs: 176, revelationType: 'Madaniyyah', translation: 'Wanita' },
-          { number: 14, nameArabic: 'إبراهيم', nameLatin: 'Ibrahim', numberOfAyahs: 52, revelationType: 'Makkiyyah', translation: 'Nabi Ibrahim' },
-          { number: 78, nameArabic: 'النبإ', nameLatin: "An-Naba'", numberOfAyahs: 40, revelationType: 'Makkiyyah', translation: 'Berita Besar' },
-          { number: 79, nameArabic: 'النازعات', nameLatin: "An-Nazi'at", numberOfAyahs: 46, revelationType: 'Makkiyyah', translation: 'Malaikat Pencabut' },
-          { number: 80, nameArabic: 'عبس', nameLatin: "'Abasa", numberOfAyahs: 42, revelationType: 'Makkiyyah', translation: 'Ia Bermuka Masam' },
-          { number: 112, nameArabic: 'الإخلاص', nameLatin: 'Al-Ikhlas', numberOfAyahs: 4, revelationType: 'Makkiyyah', translation: 'Kemurnian Keesaan Allah' },
-          { number: 113, nameArabic: 'الفلق', nameLatin: 'Al-Falaq', numberOfAyahs: 5, revelationType: 'Makkiyyah', translation: 'Waktu Subuh' },
-          { number: 114, nameArabic: 'الناس', nameLatin: 'An-Nas', numberOfAyahs: 6, revelationType: 'Makkiyyah', translation: 'Manusia' },
-        ];
-        setSurahs(fallbackList);
+        console.warn('Fallback ke backend proxy:', err);
+        fetch('/api/v1/quran/surahs')
+          .then((res) => res.json())
+          .then((data: SurahSummary[]) => setSurahs(data))
+          .catch(() => {});
       })
       .finally(() => setLoadingList(false));
   }, []);
 
-  // Fetch Surah Detail when selected
+  // Fetch Surah Detail from EQuran.id API v2 when selected
   useEffect(() => {
     if (!selectedSurahNumber) {
       setCurrentSurah(null);
@@ -142,37 +149,58 @@ export default function MushafPage() {
     if (fullAudioRef.current) fullAudioRef.current.pause();
     setPlayingAyah(null);
     setIsPlayingFull(false);
+    setExpandedTafsir({}); // Reset tafsir toggle when changing surah
 
     setLoadingDetail(true);
-    fetch(`/api/v1/quran/surahs/${selectedSurahNumber}`)
+    fetch(`https://equran.id/api/v2/surat/${selectedSurahNumber}`)
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load surah detail');
+        if (!res.ok) throw new Error('Gagal memuat detail surah');
         return res.json();
       })
-      .then(async (data: SurahDetail) => {
-        // Enrich ayahs with real mutashabihat from backend
-        try {
-          const enrichedAyahs = await Promise.all(
-            data.ayahs.map(async (ayah) => {
-              try {
-                const mRes = await fetch(`/api/v1/quran/mutashabihat/${data.number}/${ayah.ayahNumber}`);
-                if (mRes.ok) {
-                  const mData = await mRes.json();
-                  if (mData.mutashabihat && mData.mutashabihat.length > 0) {
-                    return { ...ayah, mutashabihat: mData.mutashabihat };
+      .then(async (json) => {
+        if (json.code === 200 && json.data) {
+          const d = json.data;
+          const detail: SurahDetail = {
+            number: d.nomor,
+            nameArabic: d.nama,
+            nameLatin: d.namaLatin,
+            numberOfAyahs: d.jumlahAyat,
+            revelationType: d.tempatTurun === 'Mekah' ? 'Makkiyyah' : 'Madaniyyah',
+            translation: d.arti,
+            audioFull: d.audioFull?.['05'] || d.audioFull?.['01'] || '',
+            ayahs: d.ayat.map((a: any) => ({
+              ayahNumber: a.nomorAyat,
+              textArabic: a.teksArab,
+              textLatin: a.teksLatin,
+              translation: a.teksIndonesia,
+              audioUrl: a.audio?.['05'] || a.audio?.['01'] || '',
+            })),
+          };
+
+          // Enrich ayahs with Mutasyabihat detection from backend if available
+          try {
+            const enrichedAyahs = await Promise.all(
+              detail.ayahs.map(async (ayah) => {
+                try {
+                  const mRes = await fetch(`/api/v1/quran/mutashabihat/${detail.number}/${ayah.ayahNumber}`);
+                  if (mRes.ok) {
+                    const mData = await mRes.json();
+                    if (mData.mutashabihat && mData.mutashabihat.length > 0) {
+                      return { ...ayah, mutashabihat: mData.mutashabihat };
+                    }
                   }
-                }
-              } catch {}
-              return ayah;
-            })
-          );
-          setCurrentSurah({ ...data, ayahs: enrichedAyahs });
-        } catch {
-          setCurrentSurah(data);
+                } catch {}
+                return ayah;
+              })
+            );
+            setCurrentSurah({ ...detail, ayahs: enrichedAyahs });
+          } catch {
+            setCurrentSurah(detail);
+          }
         }
       })
       .catch((err) => {
-        console.warn('Failed to load online detail from backend:', err);
+        console.warn('Gagal memuat detail online dari EQuran.id:', err);
       })
       .finally(() => setLoadingDetail(false));
   }, [selectedSurahNumber]);
@@ -189,7 +217,43 @@ export default function MushafPage() {
     }
   }, [targetAyahToScroll, currentSurah, loadingDetail]);
 
-  // Normalize revelation type helper
+  // Handle Toggle Tafsir per Ayah (Kemenag RI)
+  const handleToggleTafsir = async (ayahNumber: number) => {
+    if (!selectedSurahNumber) return;
+
+    // If currently open, toggle to close
+    if (expandedTafsir[ayahNumber]) {
+      setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: false }));
+      return;
+    }
+
+    // If already cached for this surah, immediately open
+    if (tafsirCache[selectedSurahNumber]) {
+      setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: true }));
+      return;
+    }
+
+    // Fetch tafsir from https://equran.id/api/v2/tafsir/{selectedSurahNumber}
+    setLoadingTafsirAyah(ayahNumber);
+    try {
+      const res = await fetch(`https://equran.id/api/v2/tafsir/${selectedSurahNumber}`);
+      const json = await res.json();
+      if (json.code === 200 && json.data?.tafsir) {
+        const map: Record<number, string> = {};
+        json.data.tafsir.forEach((item: { ayat: number; teks: string }) => {
+          map[item.ayat] = item.teks;
+        });
+        setTafsirCache((prev) => ({ ...prev, [selectedSurahNumber]: map }));
+        setExpandedTafsir((prev) => ({ ...prev, [ayahNumber]: true }));
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data tafsir:', err);
+    } finally {
+      setLoadingTafsirAyah(null);
+    }
+  };
+
+  // Helper normalize revelation type
   const getNormRevelation = (type: string | undefined): 'Makkiyyah' | 'Madaniyyah' => {
     if (!type) return 'Makkiyyah';
     const lower = type.toLowerCase();
@@ -200,7 +264,6 @@ export default function MushafPage() {
   // Filtered Surahs
   const filteredSurahs = useMemo(() => {
     return surahs.filter((surah) => {
-      // 1. Text Search Filter (nameLatin or number)
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         q === '' ||
@@ -208,7 +271,6 @@ export default function MushafPage() {
         surah.number.toString() === q ||
         (surah.translation && surah.translation.toLowerCase().includes(q));
 
-      // 2. Revelation Type Filter (Makiyyah vs Madaniyyah)
       const normRev = getNormRevelation(surah.revelationType);
       let matchRev = true;
       if (revelationFilter === 'makiyyah') {
@@ -289,7 +351,7 @@ export default function MushafPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* If a surah is selected, show the Active Ayah Reader View */}
+      {/* 1. ACTIVE AYAH READER VIEW (Ketika Surah Dipilih) */}
       {selectedSurahNumber !== null ? (
         <div className="space-y-6">
           {/* Back Navigation Bar */}
@@ -367,7 +429,7 @@ export default function MushafPage() {
                   </div>
                 </div>
 
-                {/* Bismillah Header (except Surah At-Taubah 9) */}
+                {/* Bismillah Header (kecuali Surah At-Taubah 9 & Al-Fatihah 1) */}
                 {currentSurah.number !== 9 && currentSurah.number !== 1 && (
                   <div className="mt-6 pt-6 border-t border-emerald-700/60 text-center">
                     <span className="font-quran text-3xl sm:text-4xl text-emerald-100 tracking-wider">
@@ -377,13 +439,15 @@ export default function MushafPage() {
                 )}
               </div>
 
-              {/* Ayah List */}
+              {/* Ayah List (Matches the User's Image Reference with Tafsir Feature) */}
               <div className="space-y-4">
                 {currentSurah.ayahs.map((ayah) => {
                   const isCurrentPlaying = playingAyah === ayah.ayahNumber;
                   const isLastReadAyah =
                     lastRead.surahNumber === currentSurah.number &&
                     lastRead.ayahNumber === ayah.ayahNumber;
+                  const isTafsirOpen = !!expandedTafsir[ayah.ayahNumber];
+                  const isLoadingTafsirThis = loadingTafsirAyah === ayah.ayahNumber;
 
                   return (
                     <div
@@ -395,34 +459,34 @@ export default function MushafPage() {
                           : 'border-slate-200/90 shadow-xs hover:border-slate-300'
                       }`}
                     >
-                      {/* Top Bar Ayah: Actions & Mutasyabihat */}
+                      {/* Top Bar: Ayah Number on Left, Action Buttons on Right */}
                       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center text-xs font-black text-slate-800">
-                            {ayah.ayahNumber}
-                          </span>
+                        {/* Ayah Number Badge */}
+                        <span className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+                          {ayah.ayahNumber}
+                        </span>
 
-                          {/* Audio Player Button */}
-                          {ayah.audioUrl && (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleAudio(ayah.ayahNumber, ayah.audioUrl)}
-                              className={`p-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1 cursor-pointer ${
-                                isCurrentPlaying
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
-                              }`}
-                              title="Dengarkan Qari"
-                            >
-                              {isCurrentPlaying ? (
-                                <Pause className="w-3.5 h-3.5 fill-current" />
-                              ) : (
-                                <Play className="w-3.5 h-3.5 fill-current" />
-                              )}
-                            </button>
-                          )}
+                        {/* Action Icons: [ Buku/Tafsir ] [ Bookmark ] [ Play/Pause Audio ] */}
+                        <div className="flex items-center space-x-1 sm:space-x-2">
+                          {/* 1. Logo Buku: Tampilkan Tafsir Kemenag RI */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTafsir(ayah.ayahNumber)}
+                            className={`p-2 rounded-xl transition-all flex items-center space-x-1 cursor-pointer ${
+                              isTafsirOpen
+                                ? 'bg-emerald-100 text-emerald-800 font-bold'
+                                : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                            title="Tampilkan Tafsir Kemenag RI"
+                          >
+                            {isLoadingTafsirThis ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                            ) : (
+                              <BookOpen className="w-4 h-4" />
+                            )}
+                          </button>
 
-                          {/* Bookmark as Last Read */}
+                          {/* 2. Bookmark: Tandai Terakhir Baca */}
                           <button
                             type="button"
                             onClick={() =>
@@ -432,38 +496,36 @@ export default function MushafPage() {
                                 ayah.ayahNumber
                               )
                             }
-                            className={`p-1.5 rounded-lg text-xs transition-all flex items-center space-x-1 cursor-pointer ${
+                            className={`p-2 rounded-xl transition-all flex items-center space-x-1 cursor-pointer ${
                               isLastReadAyah
                                 ? 'bg-emerald-100 text-emerald-800 font-bold'
-                                : 'text-slate-400 hover:text-emerald-700 hover:bg-slate-100'
+                                : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                             }`}
-                            title="Tandai Sebagai Terakhir Dibaca"
+                            title="Tandai Terakhir Dibaca"
                           >
-                            <Bookmark className={`w-3.5 h-3.5 ${isLastReadAyah ? 'fill-current' : ''}`} />
-                            <span className="text-[11px] hidden sm:inline">
-                              {isLastReadAyah ? 'Terakhir Dibaca' : 'Tandai Baca'}
-                            </span>
+                            <Bookmark className={`w-4 h-4 ${isLastReadAyah ? 'fill-current text-emerald-700' : ''}`} />
                           </button>
-                        </div>
 
-                        {/* Mutasyabihat Detection Badge */}
-                        {ayah.mutashabihat && ayah.mutashabihat.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveMutashabih(ayah.mutashabihat || null);
-                              setActiveAyahText({
-                                number: ayah.ayahNumber,
-                                text: ayah.textArabic,
-                              });
-                            }}
-                            className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold hover:bg-amber-100 transition-all cursor-pointer shadow-2xs"
-                            title="Lihat Peringatan Ayat Serupa (Tarteel QUL)"
-                          >
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Peringatan Ayat Serupa ({ayah.mutashabihat.length})</span>
-                          </button>
-                        )}
+                          {/* 3. Audio Play/Pause */}
+                          {ayah.audioUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAudio(ayah.ayahNumber, ayah.audioUrl)}
+                              className={`p-2 rounded-xl transition-all flex items-center space-x-1 cursor-pointer ${
+                                isCurrentPlaying
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                              title="Dengarkan Qari (Misyari Rasyid Al-Afasy)"
+                            >
+                              {isCurrentPlaying ? (
+                                <Pause className="w-4 h-4 fill-current" />
+                              ) : (
+                                <Play className="w-4 h-4 fill-current" />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Arabic Verse */}
@@ -473,17 +535,66 @@ export default function MushafPage() {
                         </p>
                       </div>
 
-                      {/* Translation & Latin */}
-                      <div className="space-y-1 pt-2 border-t border-slate-100 text-left">
+                      {/* Transliteration & Indonesian Translation */}
+                      <div className="space-y-1.5 pt-2 text-left">
                         {ayah.textLatin && (
-                          <p className="text-xs font-medium text-emerald-800 italic">
+                          <p className="text-xs sm:text-sm font-medium text-emerald-800 leading-relaxed">
                             {ayah.textLatin}
                           </p>
                         )}
-                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
                           {ayah.translation}
                         </p>
                       </div>
+
+                      {/* Mutasyabihat Warning (if available) */}
+                      {ayah.mutashabihat && ayah.mutashabihat.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMutashabih(ayah.mutashabihat || null);
+                              setActiveAyahText({
+                                number: ayah.ayahNumber,
+                                text: ayah.textArabic,
+                              });
+                            }}
+                            className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition-all cursor-pointer"
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Peringatan Ayat Serupa ({ayah.mutashabihat.length})</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Tafsir Expandable Panel (Muncul tepat di bawah artinya saat logo buku diklik) */}
+                      {isTafsirOpen && (
+                        <div className="mt-4 pt-4 border-t border-emerald-100 bg-emerald-50/50 rounded-2xl p-4 sm:p-5 text-left animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between pb-2 mb-3 border-b border-emerald-200/70">
+                            <div className="flex items-center space-x-2 text-emerald-900 font-bold text-xs">
+                              <BookOpen className="w-4 h-4 text-emerald-700 shrink-0" />
+                              <span>Tafsir Kemenag RI • QS. {currentSurah.nameLatin} Ayat {ayah.ayahNumber}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTafsir(ayah.ayahNumber)}
+                              className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 px-2 py-0.5 rounded-md hover:bg-emerald-100/70 transition-colors cursor-pointer"
+                            >
+                              Tutup Tafsir
+                            </button>
+                          </div>
+
+                          {tafsirCache[currentSurah.number]?.[ayah.ayahNumber] ? (
+                            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line font-sans">
+                              {tafsirCache[currentSurah.number][ayah.ayahNumber]}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-500 italic">
+                              Tafsir untuk ayat ini sedang diproses atau tidak tersedia.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -492,7 +603,7 @@ export default function MushafPage() {
           ) : null}
         </div>
       ) : (
-        /* Main Catalog View (Matches User's Design Image) */
+        /* 2. MAIN CATALOG VIEW (Al-Qur'an Daftar Surah & Juz) */
         <div className="space-y-5">
           {/* Centered Main Title: Al-Qur'an */}
           <div className="text-center pt-2">
@@ -501,15 +612,14 @@ export default function MushafPage() {
             </h1>
           </div>
 
-          {/* Banner: TERAKHIR BACA (Matches User's Design Image) */}
+          {/* Banner: TERAKHIR BACA */}
           <div
             onClick={() => {
               setSelectedSurahNumber(lastRead.surahNumber);
               setTargetAyahToScroll(lastRead.ayahNumber);
             }}
-            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-3xl p-5 sm:p-6 shadow-md shadow-emerald-500/15 cursor-pointer relative overflow-hidden transition-all group"
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-3xl p-5 sm:p-6 shadow-md shadow-emerald-600/15 cursor-pointer relative overflow-hidden transition-all group"
           >
-            {/* Watermark Book Icon */}
             <div className="absolute right-4 bottom-2 opacity-15 pointer-events-none group-hover:scale-105 transition-transform">
               <BookOpen className="w-28 h-28" />
             </div>
@@ -528,7 +638,7 @@ export default function MushafPage() {
             </div>
           </div>
 
-          {/* Segmented Switcher: [ Surah ] | [ Juz ] (Matches User's Design Image) */}
+          {/* Segmented Switcher: [ Surah ] | [ Juz ] */}
           <div className="bg-slate-200/70 p-1 rounded-2xl grid grid-cols-2 text-xs sm:text-sm font-bold">
             <button
               type="button"
@@ -554,7 +664,7 @@ export default function MushafPage() {
             </button>
           </div>
 
-          {/* Search Bar Input (Matches User's Design Image) */}
+          {/* Search Bar Input */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
             <input
@@ -575,7 +685,7 @@ export default function MushafPage() {
             )}
           </div>
 
-          {/* Category Filter Pills: [ Semua ] [ Makiyyah ] [ Madaniyyah ] (Only on Surah Tab) */}
+          {/* Category Filter Pills: [ Semua ] [ Makiyyah ] [ Madaniyyah ] */}
           {activeTab === 'surah' && (
             <div className="flex items-center space-x-2 pt-0.5 overflow-x-auto pb-1">
               <button
@@ -618,10 +728,10 @@ export default function MushafPage() {
           {loadingList ? (
             <div className="flex items-center justify-center py-20 text-emerald-700 space-x-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm font-semibold">Memuat daftar Al-Qur'an...</span>
+              <span className="text-sm font-semibold">Memuat 114 Surah dari EQuran.id...</span>
             </div>
           ) : activeTab === 'surah' ? (
-            /* SURAH LIST (Matches User's Design Image) */
+            /* SURAH LIST */
             <div className="space-y-2.5">
               {filteredSurahs.length === 0 ? (
                 <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-500 text-xs">
@@ -648,15 +758,15 @@ export default function MushafPage() {
                           <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-emerald-800 transition-colors">
                             {surah.nameLatin}
                           </h3>
-                          <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                            {normRev.toUpperCase()} • {surah.numberOfAyahs} AYAT
-                          </span>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            <span className="text-emerald-700 font-semibold">{normRev}</span> • {surah.numberOfAyahs} Ayat • {surah.translation}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Right: Arabic Calligraphy */}
+                      {/* Right: Arabic Name */}
                       <div className="text-right">
-                        <span className="font-quran text-2xl sm:text-3xl text-emerald-700 leading-tight block">
+                        <span className="font-quran text-xl sm:text-2xl text-emerald-800 block">
                           {surah.nameArabic}
                         </span>
                       </div>
@@ -666,58 +776,52 @@ export default function MushafPage() {
               )}
             </div>
           ) : (
-            /* JUZ LIST (Matches User's Request: 'filter persurat terus juga perjuz') */
+            /* JUZ LIST (30 JUZ) */
             <div className="space-y-2.5">
-              {filteredJuz.length === 0 ? (
-                <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-500 text-xs">
-                  Juz tidak ditemukan untuk kata kunci "{searchQuery}".
-                </div>
-              ) : (
-                filteredJuz.map((juz) => (
-                  <div
-                    key={juz.number}
-                    onClick={() => {
-                      setSelectedSurahNumber(juz.startSurahNumber);
-                      setTargetAyahToScroll(juz.startAyah);
-                    }}
-                    className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-emerald-300 transition-all flex items-center justify-between cursor-pointer group"
-                  >
-                    <div className="flex items-center space-x-3.5">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center font-bold text-teal-800 text-xs sm:text-sm group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
-                        {juz.number}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-emerald-800 transition-colors">
-                          Juz {juz.number}
-                        </h3>
-                        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                          {juz.startSurahName} {juz.startAyah} - {juz.endSurahName} {juz.endAyah}
-                        </span>
-                      </div>
+              {filteredJuz.map((juz) => (
+                <div
+                  key={juz.number}
+                  onClick={() => {
+                    setSelectedSurahNumber(juz.startSurahNumber);
+                    setTargetAyahToScroll(juz.startAyah);
+                  }}
+                  className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-emerald-300 transition-all flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center font-bold text-emerald-800 text-xs sm:text-sm shrink-0">
+                      {juz.number}
                     </div>
-
-                    <div className="text-right">
-                      <span className="font-quran text-xl sm:text-2xl text-teal-700 leading-tight block">
-                        {juz.nameArabic}
-                      </span>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-emerald-800 transition-colors">
+                        Juz {juz.number}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Mulai: <span className="font-semibold text-slate-700">QS. {juz.startSurahName}:{juz.startAyah}</span> s.d. <span className="font-semibold text-slate-700">QS. {juz.endSurahName}:{juz.endAyah}</span>
+                      </p>
                     </div>
                   </div>
-                ))
-              )}
+
+                  <div className="text-right">
+                    <span className="font-quran text-xl sm:text-2xl text-emerald-800 block">
+                      {juz.nameArabic}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Tarteel QUL Mutasyabihat Comparison Modal */}
-      {activeMutashabih && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2">
+      {/* Mutasyabihat Modal Dialog */}
+      {activeMutashabih && activeAyahText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2 text-amber-900">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                  Peringatan Ayat Mutasyabihat (Tarteel QUL)
+                <h3 className="font-black text-sm sm:text-base">
+                  Peringatan Ayat Mutasyabihat
                 </h3>
               </div>
               <button
@@ -726,51 +830,41 @@ export default function MushafPage() {
                   setActiveMutashabih(null);
                   setActiveAyahText(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Currently Active Ayah */}
-            {activeAyahText && (
-              <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
-                  Ayat yang Sedang Anda Baca (Ayat {activeAyahText.number}):
-                </span>
-                <p className="font-quran text-xl text-right text-slate-900 leading-relaxed">
-                  {activeAyahText.text}
-                </p>
-              </div>
-            )}
-
-            {/* List of Similar Comparison Verses */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-700 block">
-                Perbandingan dengan Surah / Ayat Lain:
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Ayat yang sedang dibaca (Ayat {activeAyahText.number}):
               </span>
-              {activeMutashabih.map((item, idx) => (
+              <p className="font-quran text-lg text-slate-800 text-right leading-relaxed">
+                {activeAyahText.text}
+              </p>
+            </div>
+
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              {activeMutashabih.map((m, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs"
+                  className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/90 text-xs space-y-1.5"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-800">
-                      QS. {item.surahName} (Surah {item.surahNumber}): Ayat {item.ayahNumber}
+                  <div className="flex items-center justify-between text-amber-900 font-bold">
+                    <span>
+                      QS. {m.surahName} : Ayat {m.ayahNumber}
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                      {item.similarity}
+                    <span className="text-[10px] bg-amber-200/60 text-amber-900 px-2 py-0.5 rounded-full font-semibold">
+                      Kemiripan {m.similarity}
                     </span>
                   </div>
-
-                  <p className="font-quran text-lg text-right text-slate-900 leading-relaxed">
-                    {item.textArabic}
+                  <p className="font-quran text-base text-slate-900 text-right leading-relaxed">
+                    {m.textArabic}
                   </p>
-
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/60 text-slate-600 text-[11px] leading-relaxed">
-                    <span className="font-bold text-slate-800">Catatan Pembeda: </span>
-                    {item.note}
-                  </div>
+                  <p className="text-[11px] text-amber-950/80 italic font-medium pt-1 border-t border-amber-200/40">
+                    💡 Perhatian: {m.note}
+                  </p>
                 </div>
               ))}
             </div>
@@ -783,7 +877,7 @@ export default function MushafPage() {
               }}
               className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors cursor-pointer"
             >
-              Tutup Perbandingan
+              Mengerti & Lanjutkan Membaca
             </button>
           </div>
         </div>
