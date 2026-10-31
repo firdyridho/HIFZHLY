@@ -17,16 +17,22 @@
 - [x] Konfigurasi Tailwind CSS v4, konfigurasi palet warna Hifzhly (Islamic Emerald Green `#0F766E` / `#059669`, background tenang `#F8FAFC`, font *Amiri Quran* & *Plus Jakarta Sans*).
 - [x] Pemasangan Branding Resmi Hifzhly: Favicon (`icon_favicon.png`), Navbar Logo (`logo saja.png`), dan Footer Banner (`hafizhly_panjang.png`).
 - [x] Konfigurasi SPA Anti-404 Vercel ([`vercel.json`](../frontend/vercel.json)) dan Nginx ([`nginx.conf`](../frontend/nginx.conf)).
+- [x] Penerapan Aturan Desain Anti-AI-Slop & Zero Emojis ([`.agent/rules/design-rules.md`](../.agent/rules/design-rules.md) & [`AGENTS.md`](../AGENTS.md)): penggantian seluruh emoji dengan SVG Lucide/shadcn icons dan eliminasi badge pill berlebih.
 
 ### Tahap 2: Layanan UI Inti, Mushaf & Routing Modular (Jam 02:00 – 10:00)
 - [x] Setup Modular Routing (`react-router-dom` v7) di [`src/routes/index.tsx`](../frontend/src/routes/index.tsx):
-  - [x] Rute Beranda Murojaah (`/`)
-  - [x] Rute Mushaf Al-Qur'an (`/mushaf`)
-  - [x] Rute Tajwid Academy (`/tajwid`)
-  - [x] Rute Mutabaah Analytics (`/mutabaah`)
+  - [x] Rute Landing Page Publik (`/` di [`LandingPage.tsx`](../frontend/src/pages/LandingPage.tsx))
+  - [x] Rute Beranda Murojaah Santri (`/app` di [`MurojaahPage.tsx`](../frontend/src/pages/MurojaahPage.tsx))
+  - [x] Rute Mushaf Al-Qur'an (`/app/mushaf` di [`MushafPage.tsx`](../frontend/src/pages/MushafPage.tsx))
+  - [x] Rute Tajwid Academy (`/app/tajwid` di [`TajwidPage.tsx`](../frontend/src/pages/TajwidPage.tsx))
+  - [x] Rute Mutabaah Analytics (`/app/mutabaah` di [`MutabaahPage.tsx`](../frontend/src/pages/MutabaahPage.tsx))
+  - [x] Rute Login Terpadu Santri/Admin (`/login` di [`LoginPage.tsx`](../frontend/src/pages/LoginPage.tsx))
+  - [x] Rute Registrasi Santri/Admin (`/register` di [`RegisterPage.tsx`](../frontend/src/pages/RegisterPage.tsx))
+  - [x] Rute Ketentuan Layanan & Privasi Suara (`/terms` di [`TermsPage.tsx`](../frontend/src/pages/TermsPage.tsx))
+  - [x] Rute Panel Pengawasan Musyrif/Admin (`/admin` di [`AdminDashboardPage.tsx`](../frontend/src/pages/AdminDashboardPage.tsx))
   - [x] Halaman 404 Kustom Islami ([`NotFoundPage.tsx`](../frontend/src/pages/NotFoundPage.tsx))
-- [x] Komponen Tata Letak Terpusat ([`MainLayout.tsx`](../frontend/src/components/layout/MainLayout.tsx)) dengan `NavLink` Active Tab Highlighting.
-- [ ] Halaman Autentikasi: Form Login & Register dengan validasi input ramah pengguna (sesuai `REQ-FE-02`).
+- [x] Komponen Tata Letak Terpusat ([`MainLayout.tsx`](../frontend/src/components/layout/MainLayout.tsx)) dengan `NavLink` Active Tab Highlighting dan icon Lucide (`Flame`, `Home`, `LogOut`).
+- [x] Halaman Autentikasi: Form Login & Register dengan tab switcher Santri / Ustaz, validasi input, dan token storage.
 - [x] Komponen Mushaf Al-Qur'an:
   - [x] Fetch data surah Juz 'Amma dari API backend `/api/v1/quran/surahs`.
   - [x] Rendering tipografi huruf Arab berukuran besar dan lega (font *Amiri Quran*).
