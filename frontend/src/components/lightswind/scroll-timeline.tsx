@@ -106,7 +106,7 @@ export const ScrollTimeline = ({
     const initialStates = {
       fade: { opacity: 0, y: 30 },
       slide: {
-        x: cardAlignment === "left" ? -60 : cardAlignment === "right" ? 60 : isEven ? -60 : 60,
+        x: cardAlignment === "left" ? -40 : cardAlignment === "right" ? 40 : isEven ? -40 : 40,
         opacity: 0,
       },
       scale: { scale: 0.85, opacity: 0 },
@@ -133,16 +133,16 @@ export const ScrollTimeline = ({
   };
 
   return (
-    <div className={cn("w-full py-16", className)}>
+    <div className={cn("w-full py-16 overflow-hidden", className)}>
       {(title || subtitle) && (
         <div className="text-center max-w-2xl mx-auto mb-16 px-4">
           {title && (
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
               {title}
             </h2>
           )}
           {subtitle && (
-            <p className="text-slate-600 text-sm sm:text-base mt-2">
+            <p className="text-slate-600 text-xs sm:text-sm md:text-base mt-2">
               {subtitle}
             </p>
           )}
@@ -156,10 +156,10 @@ export const ScrollTimeline = ({
             "absolute top-0 bottom-0 z-0",
             lineColor,
             cardAlignment === "left"
-              ? "left-8"
+              ? "left-6 sm:left-8"
               : cardAlignment === "right"
-              ? "right-8"
-              : "left-8 lg:left-1/2 -translate-x-1/2"
+              ? "right-6 sm:right-8"
+              : "left-6 sm:left-8 lg:left-1/2 -translate-x-1/2"
           )}
           style={{ width: `${progressLineWidth}px` }}
         >
@@ -174,7 +174,7 @@ export const ScrollTimeline = ({
         </div>
 
         {/* Timeline Events List */}
-        <div className="relative z-10 space-y-16">
+        <div className="relative z-10 space-y-12 sm:space-y-16">
           {events.map((event, index) => {
             const isLeft = cardAlignment === "left" || (cardAlignment === "alternating" && index % 2 === 0);
             const isEventActive = index <= activeIndex;
@@ -202,15 +202,15 @@ export const ScrollTimeline = ({
                   className={cn(
                     "absolute top-8 lg:top-1/2 -translate-y-1/2 z-20",
                     cardAlignment === "left"
-                      ? "left-8 -translate-x-1/2"
+                      ? "left-6 sm:left-8 -translate-x-1/2"
                       : cardAlignment === "right"
-                      ? "right-8 translate-x-1/2"
-                      : "left-8 lg:left-1/2 -translate-x-1/2"
+                      ? "right-6 sm:right-8 translate-x-1/2"
+                      : "left-6 sm:left-8 lg:left-1/2 -translate-x-1/2"
                   )}
                 >
                   <motion.div
                     className={cn(
-                      "w-6 h-6 rounded-full border-4 bg-white flex items-center justify-center transition-colors duration-300",
+                      "w-5 h-5 sm:w-6 sm:h-6 rounded-full border-4 bg-white flex items-center justify-center transition-colors duration-300",
                       isEventActive
                         ? "border-emerald-600 bg-emerald-600 shadow-md shadow-emerald-600/30 ring-4 ring-emerald-100"
                         : "border-slate-300 bg-white"
@@ -229,10 +229,10 @@ export const ScrollTimeline = ({
                   />
                 </div>
 
-                {/* Event Card Container */}
+                {/* Event Card Container (Fixed 100% calculation prevents offside on mobile!) */}
                 <motion.div
                   className={cn(
-                    "w-full lg:w-[calc(50%-2.5rem)] ml-16 lg:ml-0",
+                    "w-[calc(100%-2.5rem)] ml-10 sm:ml-16 sm:w-[calc(100%-4rem)] lg:w-[calc(50%-2.5rem)] lg:ml-0",
                     isLeft ? "lg:mr-auto" : "lg:ml-auto"
                   )}
                   variants={getCardVariants(index)}
@@ -240,8 +240,8 @@ export const ScrollTimeline = ({
                   whileInView="whileInView"
                   viewport={{ once: true, margin: "-60px" }}
                 >
-                  <Card className="bg-white/95 backdrop-blur-sm border border-slate-200/90 shadow-sm hover:shadow-md hover:border-emerald-500/50 transition-all rounded-3xl overflow-hidden">
-                    <CardContent className="p-6 sm:p-7">
+                  <Card className="bg-white/95 backdrop-blur-sm border border-slate-200/90 shadow-sm hover:shadow-md hover:border-emerald-500/50 transition-all rounded-2xl sm:rounded-3xl overflow-hidden">
+                    <CardContent className="p-4 sm:p-7">
                       <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
                         {dateFormat === "badge" ? (
                           <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800">
@@ -255,13 +255,13 @@ export const ScrollTimeline = ({
                         )}
 
                         {event.subtitle && (
-                          <span className="text-[11px] font-medium text-slate-500">
+                          <span className="text-[10px] sm:text-[11px] font-medium text-slate-500 truncate max-w-[150px] sm:max-w-none">
                             {event.subtitle}
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mb-2">
                         {event.title}
                       </h3>
 
@@ -269,7 +269,7 @@ export const ScrollTimeline = ({
                         {event.description}
                       </p>
 
-                      {/* Custom Content slot (e.g., Quran diff, comparative cards) */}
+                      {/* Custom Content slot */}
                       {event.customContent && (
                         <div className="pt-3 border-t border-slate-100 mt-2">
                           {event.customContent}
