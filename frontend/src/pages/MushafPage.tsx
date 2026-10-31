@@ -928,148 +928,167 @@ export default function MushafPage() {
         ) : (
           /* ======================================================== */
           /* MODE 2: MUSHAF PER HALAMAN (Madinah Mushaf 604 Halaman)  */
-          /* 15 Baris Rapi, Sama Panjang Penuh (Justified Edge-to-Edge)*/
+          /* 15 Baris Presisi Mushaf Pojok, Bebas Kotak, Pas di HP    */
           /* ======================================================== */
-          <div className="space-y-6">
-            {/* Mushaf Page Framed Container */}
-            <div className="relative bg-[#FCFBF7] rounded-3xl border-2 border-emerald-700/20 p-5 sm:p-8 md:p-10 shadow-lg shadow-emerald-900/5 min-h-[640px] flex flex-col justify-between">
-              <div>
-                {/* Mushaf Top Frame Header */}
-                <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-emerald-700/20 text-xs font-bold text-slate-700">
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                    {pageVerses[0]?.juz_number ? `Juz ${pageVerses[0].juz_number}` : 'Juz Al-Qur\'an'}
+          <div className="w-full max-w-[580px] mx-auto py-1 px-1 sm:px-2 space-y-4">
+            {/* Mushaf Header Navigation Bar (Clean & Borderless) */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 text-xs font-bold text-slate-700">
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-semibold">
+                {pageVerses[0]?.juz_number ? `Juz ${pageVerses[0].juz_number}` : 'Juz Al-Qur\'an'}
+              </span>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="p-1 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4 text-emerald-800" />
+                </button>
+
+                <div className="text-center">
+                  <span className="font-bold text-slate-900 text-sm block">
+                    {currentMushafSurahName}
                   </span>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage <= 1}
-                      className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
-                      title="Halaman Sebelumnya"
-                    >
-                      <ChevronLeft className="w-4 h-4 text-emerald-800" />
-                    </button>
-
-                    <div className="text-center">
-                      <span className="font-bold text-emerald-900 text-sm block">
-                        {currentMushafSurahName}
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Hal. {currentPage} / 604
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
-                      disabled={currentPage >= 604}
-                      className="p-1 rounded-lg hover:bg-emerald-100 disabled:opacity-30 cursor-pointer"
-                      title="Halaman Selanjutnya"
-                    >
-                      <ChevronRight className="w-4 h-4 text-emerald-800" />
-                    </button>
-                  </div>
-
-                  <span className="text-slate-500 font-medium hidden sm:inline">
-                    Mushaf Madinah
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Hal. {currentPage} / 604
                   </span>
                 </div>
 
-                {/* Page Content: Exact 15 Lines Structure */}
-                {loadingPage ? (
-                  <div className="flex flex-col items-center justify-center py-32 text-emerald-700 space-y-2">
-                    <Loader2 className="w-7 h-7 animate-spin" />
-                    <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
-                  </div>
-                ) : Object.keys(pageLines).length > 0 ? (
-                  <div className="space-y-1.5 sm:space-y-2 py-2">
-                    {/* Bismillah Header jika awal surah ada di halaman ini (kecuali surah 1 dan surah 9) */}
-                    {pageVerses.some((v) => v.verse_key?.endsWith(':1')) && currentPage !== 1 && currentPage !== 187 && (
-                      <div className="text-center py-2.5 border-y border-emerald-700/15 mb-3">
-                        <span className="font-quran text-2xl sm:text-3xl text-emerald-900">
-                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                        </span>
-                      </div>
-                    )}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
+                  disabled={currentPage >= 604}
+                  className="p-1 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                  title="Halaman Selanjutnya"
+                >
+                  <ChevronRight className="w-4 h-4 text-emerald-800" />
+                </button>
+              </div>
 
-                    {/* Exact 15 Lines: Full Width Alignment (Sama Panjang Sisi Kiri & Kanan) */}
-                    {Object.entries(pageLines).map(([lineStr, words]) => {
-                      const lineNum = parseInt(lineStr, 10);
-                      const totalLines = Object.keys(pageLines).length;
-                      // Line terakhir atau baris sangat pendek dipusatkan
-                      const isShortLine = words.length <= 4 || (lineNum === totalLines && words.length <= 8);
+              <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">
+                Standar Madinah 15 Baris
+              </span>
+            </div>
 
-                      return (
-                        <div
-                          key={lineNum}
-                          dir="rtl"
-                          style={{ fontSize: `${fontSize}px` }}
-                          className={`w-full flex items-center font-quran select-none transition-all ${
-                            isShortLine ? 'justify-center gap-3 sm:gap-5' : 'justify-between'
-                          }`}
-                        >
-                          {words.map((w: any, idx: number) => {
-                            if (w.char_type_name === 'end') {
-                              return (
-                                <span
-                                  key={idx}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedMushafAyah(w.ayahObj);
-                                  }}
-                                  className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50/90 text-[11px] sm:text-xs font-sans font-bold text-amber-900 shadow-2xs cursor-pointer hover:scale-110 hover:bg-amber-100 transition-all shrink-0 align-middle"
-                                  title={`Ayat ${w.text_uthmani} - Klik untuk audio & terjemah`}
-                                >
-                                  {w.text_uthmani}
-                                </span>
-                              );
-                            }
-
-                            const tajweedHtml = showTajwid && w.text_uthmani_tajweed ? formatTajweedHtml(w.text_uthmani_tajweed, true) : null;
-
-                            return (
-                              <span
-                                key={idx}
-                                onClick={() => setSelectedMushafAyah(w.ayahObj)}
-                                className="cursor-pointer hover:text-emerald-700 transition-colors inline-block"
-                              >
-                                {tajweedHtml ? (
-                                  <span dangerouslySetInnerHTML={{ __html: tajweedHtml }} />
-                                ) : (
-                                  w.text_uthmani
-                                )}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-24 text-slate-500 text-sm">
-                    Gagal memuat ayat untuk halaman {currentPage}.
+            {/* Page Content: Exact 15 Lines Structure without Bulky Box */}
+            {loadingPage ? (
+              <div className="flex flex-col items-center justify-center py-24 text-emerald-700 space-y-2">
+                <Loader2 className="w-7 h-7 animate-spin" />
+                <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
+              </div>
+            ) : Object.keys(pageLines).length > 0 ? (
+              <div className="space-y-0.5 sm:space-y-1 py-1">
+                {/* Bismillah Header jika awal surah ada di halaman ini (kecuali surah 1 dan surah 9) */}
+                {pageVerses.some((v) => v.verse_key?.endsWith(':1')) && currentPage !== 1 && currentPage !== 187 && (
+                  <div className="text-center py-2 border-y border-slate-200/80 mb-2">
+                    <span className="font-quran text-xl sm:text-2xl text-emerald-900">
+                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                    </span>
                   </div>
                 )}
-              </div>
 
-              {/* Bottom Caption */}
-              <div className="mt-8 pt-4 border-t border-emerald-700/20 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
-                <span>
-                  Gunakan tombol panah kiri-kanan untuk pindah halaman (1 - 604)
-                </span>
-                <span className="font-medium text-emerald-800">
-                  Ketuk teks ayat atau lingkaran nomor untuk memutar audio & terjemahan
-                </span>
+                {/* Exact 15 Lines: Full Width Responsive Alignment (Posisi Baris Tetap 100% Mushaf Asli) */}
+                {Object.entries(pageLines).map(([lineStr, words]) => {
+                  const lineNum = parseInt(lineStr, 10);
+                  const totalLines = Object.keys(pageLines).length;
+                  const isShortLine = words.length <= 4 || (lineNum === totalLines && words.length <= 8);
+
+                  return (
+                    <div
+                      key={lineNum}
+                      dir="rtl"
+                      style={{
+                        fontSize: `clamp(13px, calc(10px + 1.2vw), ${fontSize}px)`,
+                        lineHeight: '2.3',
+                      }}
+                      className={`w-full flex items-center font-quran select-none whitespace-nowrap transition-all ${
+                        isShortLine ? 'justify-center gap-2.5 sm:gap-4' : 'justify-between'
+                      }`}
+                    >
+                      {words.map((w: any, idx: number) => {
+                        if (w.char_type_name === 'end') {
+                          return (
+                            <span
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMushafAyah(w.ayahObj);
+                              }}
+                              className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50/90 text-[10px] sm:text-xs font-sans font-bold text-amber-900 shadow-2xs cursor-pointer hover:scale-110 hover:bg-amber-100 transition-all shrink-0 align-middle"
+                              title={`Ayat ${w.text_uthmani} - Klik untuk audio & terjemah`}
+                            >
+                              {w.text_uthmani}
+                            </span>
+                          );
+                        }
+
+                        const tajweedHtml = showTajwid && w.text_uthmani_tajweed ? formatTajweedHtml(w.text_uthmani_tajweed, true) : null;
+
+                        return (
+                          <span
+                            key={idx}
+                            onClick={() => setSelectedMushafAyah(w.ayahObj)}
+                            className="cursor-pointer hover:text-emerald-700 transition-colors inline-block"
+                          >
+                            {tajweedHtml ? (
+                              <span dangerouslySetInnerHTML={{ __html: tajweedHtml }} />
+                            ) : (
+                              w.text_uthmani
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
+            ) : (
+              <div className="text-center py-24 text-slate-500 text-sm">
+                Gagal memuat ayat untuk halaman {currentPage}.
+              </div>
+            )}
+
+            {/* Bottom Navigation Pagination Bar */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 text-xs font-semibold text-slate-600">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Hal. Sebelumnya</span>
+              </button>
+
+              <span className="font-mono text-[11px] text-slate-400">
+                Hal. {currentPage} / 604
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
+                disabled={currentPage >= 604}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 cursor-pointer transition-colors"
+              >
+                <span>Hal. Selanjutnya</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
+
+            {/* Bottom Helper Hint */}
+            <p className="text-center text-[11px] text-slate-400">
+              Ketuk teks ayat atau nomor untuk audio & terjemah • Posisi 15 baris standar Mushaf Madinah
+            </p>
 
             {/* Quick Action Drawer for Selected Verse in Mushaf View */}
             {selectedMushafAyah && (
-              <div className="p-5 rounded-3xl bg-white border border-emerald-200 shadow-xl space-y-3 animate-in slide-in-from-bottom-2">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200 shadow-xl space-y-2.5 animate-in slide-in-from-bottom-2">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div className="flex items-center space-x-2">
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">
                       QS. {selectedMushafAyah.verse_key}
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
