@@ -14,6 +14,10 @@ type TajwidRepository interface {
 	GetQuizByModuleID(ctx context.Context, moduleID string) (*model.TajwidQuiz, error)
 	GetQuizByID(ctx context.Context, quizID string) (*model.TajwidQuiz, error)
 	SaveQuizAttempt(ctx context.Context, userID, quizID string, score float64, totalQuestions, correctAnswers int) error
+	CreateModule(ctx context.Context, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error)
+	UpdateModule(ctx context.Context, id string, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error)
+	DeleteModule(ctx context.Context, id string) error
+	UpsertQuizWithQuestions(ctx context.Context, moduleID string, req model.CreateOrUpdateQuizRequest) (*model.TajwidQuiz, error)
 }
 
 type tajwidRepository struct {
@@ -212,6 +216,134 @@ func (r *tajwidRepository) SaveQuizAttempt(ctx context.Context, userID, quizID s
 	return err
 }
 
+func (r *tajwidRepository) CreateModule(ctx context.Context, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error) {
+	now := time.Now()
+	m := &model.TajwidModule{
+		Title:          req.Title,
+		Slug:           req.Slug,
+		Summary:        req.Summary,
+		ContentBody:    req.ContentBody,
+		YoutubeVideoID: req.YoutubeVideoID,
+		OrderIndex:     req.OrderIndex,
+		IsActive:       req.IsActive,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	if r.db == nil {
+		m.ID = "mod-" + req.Slug
+		return m, nil
+	}
+
+	query := `
+		INSERT INTO tajwid_modules (title, slug, summary, content_body, youtube_video_id, order_index, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, created_at, updated_at
+	`
+	err := r.db.QueryRow(ctx, query, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive).
+		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (r *tajwidRepository) UpdateModule(ctx context.Context, id string, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error) {
+	now := time.Now()
+	m := &model.TajwidModule{
+		ID:             id,
+		Title:          req.Title,
+		Slug:           req.Slug,
+		Summary:        req.Summary,
+		ContentBody:    req.ContentBody,
+		YoutubeVideoID: req.YoutubeVideoID,
+		OrderIndex:     req.OrderIndex,
+		IsActive:       req.IsActive,
+		UpdatedAt:      now,
+	}
+
+	if r.db == nil {
+		return m, nil
+	}
+
+	query := `
+		UPDATE tajwid_modules
+		SET title = $1, slug = $2, summary = $3, content_body = $4, youtube_video_id = $5, order_index = $6, is_active = $7, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $8
+		RETURNING created_at, updated_at
+	`
+	err := r.db.QueryRow(ctx, query, req.Title, req.Slug, req.Summary, req.ContentBody, req.YoutubeVideoID, req.OrderIndex, req.IsActive, id).
+		Scan(&m.CreatedAt, &m.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (r *tajwidRepository) DeleteModule(ctx context.Context, id string) error {
+	if r.db == nil {
+		return nil
+	}
+	query := `DELETE FROM tajwid_modules WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}
+
+func (r *tajwidRepository) UpsertQuizWithQuestions(ctx context.Context, moduleID string, req model.CreateOrUpdateQuizRequest) (*model.TajwidQuiz, error) {
+	quiz := &model.TajwidQuiz{
+		ModuleID:     moduleID,
+		Title:        req.Title,
+		Description:  req.Description,
+		PassingScore: req.PassingScore,
+	}
+
+	if r.db == nil {
+		quiz.ID = "quiz-" + moduleID
+		return quiz, nil
+	}
+
+	// 1. Upsert tajwid_quizzes
+	queryQuiz := `
+		INSERT INTO tajwid_quizzes (module_id, title, description, passing_score)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (module_id) DO UPDATE
+		SET title = EXCLUDED.title, description = EXCLUDED.description, passing_score = EXCLUDED.passing_score, updated_at = CURRENT_TIMESTAMP
+		RETURNING id
+	`
+	err := r.db.QueryRow(ctx, queryQuiz, moduleID, req.Title, req.Description, req.PassingScore).Scan(&quiz.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Hapus soal-soal lama untuk modul ini lalu masukkan yang baru
+	deleteOld := `DELETE FROM quiz_questions WHERE quiz_id = $1`
+	_, _ = r.db.Exec(ctx, deleteOld, quiz.ID)
+
+	// 3. Masukkan questions dan options baru
+	for _, qReq := range req.Questions {
+		var qID string
+		insertQ := `
+			INSERT INTO quiz_questions (quiz_id, question_text, audio_sample_url, explanation, order_index)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING id
+		`
+		err := r.db.QueryRow(ctx, insertQ, quiz.ID, qReq.QuestionText, qReq.AudioSampleURL, qReq.Explanation, qReq.OrderIndex).Scan(&qID)
+		if err != nil {
+			continue
+		}
+
+		for _, optReq := range qReq.Options {
+			insertOpt := `
+				INSERT INTO quiz_options (question_id, option_text, is_correct, option_explanation)
+				VALUES ($1, $2, $3, $4)
+			`
+			_, _ = r.db.Exec(ctx, insertOpt, qID, optReq.OptionText, optReq.IsCorrect, optReq.OptionExplanation)
+		}
+	}
+
+	return quiz, nil
+}
+
 // Fallback seed modules jika DB belum terisi
 func (r *tajwidRepository) getFallbackModules() []model.TajwidModule {
 	now := time.Now()
@@ -299,3 +431,4 @@ func (r *tajwidRepository) getFallbackQuiz(moduleID string) *model.TajwidQuiz {
 func (r *tajwidRepository) getFallbackQuizByID(quizID string) *model.TajwidQuiz {
 	return r.getFallbackQuiz("1d8b5a04-9426-47b8-b4b3-d2a93ff7ef21")
 }
+

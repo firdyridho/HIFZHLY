@@ -42,8 +42,9 @@ func main() {
 	mutashabihatService := service.NewMutashabihatService()
 	quranService := service.NewQuranService(mutashabihatService)
 	murojaahService := service.NewMurojaahService(quranService)
+	geminiService := service.NewGeminiService(cfg.GeminiAPIKey)
 	tajwidRepo := repository.NewTajwidRepository(pgPool)
-	tajwidService := service.NewTajwidService(tajwidRepo)
+	tajwidService := service.NewTajwidService(tajwidRepo, geminiService)
 
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
@@ -149,6 +150,15 @@ func main() {
 		r.Get("/tajwid/modules", tajwidHandler.GetModules)
 		r.Get("/tajwid/modules/{slug}", tajwidHandler.GetModuleDetail)
 		r.Post("/tajwid/quizzes/{quizId}/submit", tajwidHandler.SubmitQuiz)
+
+		// Admin Tajwid Management & AI Quiz Generator (Gemini)
+		r.Route("/admin/tajwid", func(adminRouter chi.Router) {
+			adminRouter.Post("/modules", tajwidHandler.CreateModule)
+			adminRouter.Put("/modules/{id}", tajwidHandler.UpdateModule)
+			adminRouter.Delete("/modules/{id}", tajwidHandler.DeleteModule)
+			adminRouter.Post("/modules/{id}/quizzes", tajwidHandler.SaveQuiz)
+			adminRouter.Post("/generate-quiz", tajwidHandler.GenerateAIQuiz)
+		})
 	})
 
 	serverAddr := fmt.Sprintf(":%s", cfg.AppPort)

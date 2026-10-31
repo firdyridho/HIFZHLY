@@ -13,14 +13,20 @@ type TajwidService interface {
 	GetModules(ctx context.Context) ([]model.TajwidModule, error)
 	GetModuleDetail(ctx context.Context, slug string) (*model.TajwidModule, *model.TajwidQuiz, error)
 	SubmitQuiz(ctx context.Context, userID, quizID string, req model.QuizSubmissionRequest) (*model.QuizSubmissionResponse, error)
+	CreateModule(ctx context.Context, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error)
+	UpdateModule(ctx context.Context, id string, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error)
+	DeleteModule(ctx context.Context, id string) error
+	SaveQuiz(ctx context.Context, moduleID string, req model.CreateOrUpdateQuizRequest) (*model.TajwidQuiz, error)
+	GenerateAIQuiz(ctx context.Context, req model.GenerateAIQuizRequest) (*model.GenerateAIQuizResponse, error)
 }
 
 type tajwidService struct {
-	repo repository.TajwidRepository
+	repo   repository.TajwidRepository
+	gemini GeminiService
 }
 
-func NewTajwidService(repo repository.TajwidRepository) TajwidService {
-	return &tajwidService{repo: repo}
+func NewTajwidService(repo repository.TajwidRepository, gemini GeminiService) TajwidService {
+	return &tajwidService{repo: repo, gemini: gemini}
 }
 
 func (s *tajwidService) GetModules(ctx context.Context) ([]model.TajwidModule, error) {
@@ -126,3 +132,39 @@ func (s *tajwidService) SubmitQuiz(ctx context.Context, userID, quizID string, r
 		Reviews:        reviews,
 	}, nil
 }
+
+func (s *tajwidService) CreateModule(ctx context.Context, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error) {
+	if req.Title == "" || req.Slug == "" {
+		return nil, errors.New("judul dan slug modul wajib diisi")
+	}
+	return s.repo.CreateModule(ctx, req)
+}
+
+func (s *tajwidService) UpdateModule(ctx context.Context, id string, req model.CreateOrUpdateModuleRequest) (*model.TajwidModule, error) {
+	if req.Title == "" || req.Slug == "" {
+		return nil, errors.New("judul dan slug modul wajib diisi")
+	}
+	return s.repo.UpdateModule(ctx, id, req)
+}
+
+func (s *tajwidService) DeleteModule(ctx context.Context, id string) error {
+	return s.repo.DeleteModule(ctx, id)
+}
+
+func (s *tajwidService) SaveQuiz(ctx context.Context, moduleID string, req model.CreateOrUpdateQuizRequest) (*model.TajwidQuiz, error) {
+	if req.Title == "" {
+		return nil, errors.New("judul kuis wajib diisi")
+	}
+	return s.repo.UpsertQuizWithQuestions(ctx, moduleID, req)
+}
+
+func (s *tajwidService) GenerateAIQuiz(ctx context.Context, req model.GenerateAIQuizRequest) (*model.GenerateAIQuizResponse, error) {
+	if req.Topic == "" {
+		return nil, errors.New("topik materi kuis wajib diisi")
+	}
+	if s.gemini == nil {
+		return nil, errors.New("layanan AI tidak tersedia")
+	}
+	return s.gemini.GenerateTajwidQuiz(ctx, req)
+}
+
