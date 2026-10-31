@@ -26,16 +26,54 @@ export function TubelightNavbar({
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(items[0]?.name || "");
 
-  // Auto sync activeTab with location.pathname
+  // Intersection & Scrollspy tracking for in-page hash links
   useEffect(() => {
-    const current = items.find((item) => item.url === location.pathname);
-    if (current) {
-      setActiveTab(current.name);
+    const hashItems = items.filter((item) => item.url.startsWith("#"));
+    if (hashItems.length === 0) {
+      const current = items.find((item) => item.url === location.pathname);
+      if (current) setActiveTab(current.name);
+      return;
     }
-  }, [location.pathname, items]);
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 140; // offset for sticky navbar
+      for (let i = hashItems.length - 1; i >= 0; i--) {
+        const item = hashItems[i];
+        const el = document.getElementById(item.url.slice(1));
+        if (el) {
+          const top = el.offsetTop;
+          if (scrollPosition >= top) {
+            setActiveTab(item.name);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [items, location.pathname]);
+
+  const handleNavClick = (e: React.MouseEvent, item: NavItem) => {
+    setActiveTab(item.name);
+    if (item.url.startsWith("#")) {
+      e.preventDefault();
+      const targetId = item.url.slice(1);
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        const navHeight = 76;
+        const targetTop = targetEl.getBoundingClientRect().top + window.pageYOffset - navHeight;
+        window.scrollTo({
+          top: targetTop,
+          behavior: "smooth",
+        });
+      }
+    }
+  };
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 transition-all", className)}>
+    <header className={cn("sticky top-0 z-50 w-full bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all", className)}>
       <div className="max-w-6xl mx-auto px-4 h-18 flex items-center justify-between">
         {/* Brand / Logo */}
         {brand ? (
@@ -60,21 +98,21 @@ export function TubelightNavbar({
         <nav className="flex items-center bg-slate-100/90 border border-slate-200/90 backdrop-blur-lg p-1 rounded-full shadow-xs">
           {items.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.name || location.pathname === item.url;
+            const isActive = activeTab === item.name;
 
             return (
-              <Link
+              <a
                 key={item.name}
-                to={item.url}
-                onClick={() => setActiveTab(item.name)}
+                href={item.url}
+                onClick={(e) => handleNavClick(e, item)}
                 className={cn(
-                  "relative cursor-pointer text-xs font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors flex items-center space-x-2 select-none",
+                  "relative cursor-pointer text-xs font-semibold px-3 sm:px-4.5 py-2 rounded-full transition-colors flex items-center space-x-1.5 select-none",
                   "text-slate-600 hover:text-emerald-700",
                   isActive && "text-emerald-950 font-bold"
                 )}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">{item.name}</span>
+                <span className="hidden md:inline">{item.name}</span>
 
                 {/* Tubelight Lamp Indicator with Glowing Beam */}
                 {isActive && (
@@ -94,7 +132,7 @@ export function TubelightNavbar({
                     </div>
                   </motion.div>
                 )}
-              </Link>
+              </a>
             );
           })}
         </nav>
