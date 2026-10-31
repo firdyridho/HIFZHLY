@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   Layers
 } from 'lucide-react';
-import type { SrsDueItem } from '../types';
+import type { SrsDueItem, SurahSummary } from '../types';
 
 interface AyahWord {
   raw: string;       // Lafal asli berharakat lengkap (contoh: ذَٰلِكَ)
@@ -141,8 +141,9 @@ const DEFAULT_SURAHS: { number: number; name: string; page: number; juz: number;
 ];
 
 export default function MurojaahPage() {
-  const [selectedSurahIndex, setSelectedSurahIndex] = useState(0);
-  const currentSurah = DEFAULT_SURAHS[selectedSurahIndex];
+  const [surahs, setSurahs] = useState<SurahSummary[]>([]);
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number>(78);
+  const [currentSurah, setCurrentSurah] = useState<{ number: number; name: string; page: number; juz: number; ayahs: MushafAyah[] }>(DEFAULT_SURAHS[1]);
 
   const [activeAyahIndex, setActiveAyahIndex] = useState(0);
   const activeAyah = currentSurah.ayahs[activeAyahIndex] || currentSurah.ayahs[0];
@@ -195,7 +196,44 @@ export default function MurojaahPage() {
 
   useEffect(() => {
     fetchSrsQueue();
+
+    // Fetch Real Surah List from Backend Proxy API
+    fetch('/api/v1/quran/surahs')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: SurahSummary[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setSurahs(data);
+        }
+      })
+      .catch((err) => console.warn('Failed to fetch surah list from backend:', err));
   }, []);
+
+  // Fetch Real Surah Ayahs from Backend API
+  useEffect(() => {
+    fetch(`/api/v1/quran/surahs/${selectedSurahNumber}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.ayahs && Array.isArray(data.ayahs)) {
+          const parsed: MushafAyah[] = data.ayahs.map((a: any) => ({
+            ayahNumber: a.ayahNumber,
+            textArabic: a.textArabic,
+            textLatin: a.textLatin,
+            translation: a.translation,
+            audioUrl: a.audioUrl,
+            words: parseAyahWords(a.textArabic),
+          }));
+          setCurrentSurah({
+            number: data.number,
+            name: data.nameLatin,
+            page: 1,
+            juz: 30,
+            ayahs: parsed,
+          });
+        }
+      })
+      .catch((err) => console.warn('Failed to load surah detail from backend:', err))
+;
+  }, [selectedSurahNumber]);
 
   // Reset kata terbuka setiap ganti ayat
   useEffect(() => {
@@ -203,7 +241,7 @@ export default function MurojaahPage() {
     setIsCompletedAyah(false);
     setLiveTranscript('');
     setLiveStatusText(isLiveListening ? '...Menunggu suara' : 'Tekan mikrofon untuk melafalkan');
-  }, [activeAyahIndex, selectedSurahIndex]);
+  }, [activeAyahIndex, selectedSurahNumber]);
 
   // Sync selesai ayat ke backend SRS
   const handleAyahCompleted = async (ayah: MushafAyah) => {
@@ -424,18 +462,24 @@ export default function MurojaahPage() {
             Pilih Surah:
           </span>
           <select
-            value={selectedSurahIndex}
+            value={selectedSurahNumber}
             onChange={(e) => {
-              setSelectedSurahIndex(Number(e.target.value));
+              setSelectedSurahNumber(Number(e.target.value));
               setActiveAyahIndex(0);
             }}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 cursor-pointer"
           >
-            {DEFAULT_SURAHS.map((s, idx) => (
-              <option key={s.number} value={idx}>
-                {s.number}. {s.name} (Halaman {s.page})
-              </option>
-            ))}
+            {surahs.length > 0
+              ? surahs.map((s) => (
+                  <option key={s.number} value={s.number}>
+                    {s.number}. {s.nameLatin} ({s.numberOfAyahs} Ayat)
+                  </option>
+                ))
+              : DEFAULT_SURAHS.map((s) => (
+                  <option key={s.number} value={s.number}>
+                    {s.number}. {s.name}
+                  </option>
+                ))}
           </select>
         </div>
 

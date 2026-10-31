@@ -214,11 +214,25 @@ export default function TajwidPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleOpenModule = (mod: TajwidModule) => {
-    setActiveModule(mod);
+  const handleOpenModule = async (mod: TajwidModule) => {
     setActiveTab('lesson');
     setSelectedAnswers({});
     setQuizReview(null);
+    try {
+      const res = await fetch(`/api/v1/tajwid/modules/${mod.slug}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveModule({
+          ...mod,
+          contentBody: data.contentBody || mod.contentBody,
+          quiz: data.quiz || mod.quiz,
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to load real module detail from backend:', e);
+    }
+    setActiveModule(mod);
   };
 
   const handleSelectOption = (questionId: string, optionId: string) => {

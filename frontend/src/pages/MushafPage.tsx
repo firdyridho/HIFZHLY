@@ -13,94 +13,6 @@ import {
 } from 'lucide-react';
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
 
-// Fallback high-fidelity data for Surah An-Naba' (78) with Tarteel QUL Mutasyabihat
-const FALLBACK_AN_NABA: SurahDetail = {
-  number: 78,
-  nameArabic: 'النبإ',
-  nameLatin: "An-Naba'",
-  numberOfAyahs: 40,
-  revelationType: 'Makkiyyah',
-  translation: 'Berita Besar',
-  audioFull: 'https://equran.nos.wjv-1.neo.id/audio-full/Misyari-Rasyid-Al-Afasi/078.mp3',
-  ayahs: [
-    {
-      ayahNumber: 1,
-      textArabic: 'عَمَّ يَتَسَآءَلُونَ',
-      textLatin: "'Amma yatasaa'aluun",
-      translation: 'Tentang apakah mereka saling bertanya-tanya?',
-      audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3',
-      mutashabihat: [
-        {
-          surahNumber: 77,
-          surahName: 'Al-Mursalat',
-          ayahNumber: 1,
-          textArabic: 'وَالْمُرْسَلَٰتِ عُرْفًا',
-          similarity: 'Kemiripan Irama Pembuka Surah',
-          note: "Hati-hati waqaf; akhir ayat An-Naba' 1 menggunakan madd wajib muttashil panjang, jangan melompat ke surah Al-Mursalat.",
-        },
-      ],
-    },
-    {
-      ayahNumber: 2,
-      textArabic: 'عَنِ النَّبَإِ الْعَظِيمِ',
-      textLatin: "'Anin-naba'il-'azhiim",
-      translation: 'Tentang berita yang besar (hari berbangkit),',
-      audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078002.mp3',
-      mutashabihat: [],
-    },
-    {
-      ayahNumber: 3,
-      textArabic: 'الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ',
-      textLatin: "Alladzii hum fiihi mukhtalifuun",
-      translation: 'yang dalam hal itu mereka berselisih.',
-      audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078003.mp3',
-      mutashabihat: [],
-    },
-    {
-      ayahNumber: 4,
-      textArabic: 'كَلَّا سَيَعْلَمُونَ',
-      textLatin: 'Kallaa saya’lamuun',
-      translation: 'Sekali-kali tidak! Kelak mereka akan mengetahui,',
-      audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078004.mp3',
-      mutashabihat: [
-        {
-          surahNumber: 78,
-          surahName: "An-Naba'",
-          ayahNumber: 5,
-          textArabic: 'ثُمَّ كَلَّا سَيَعْلَمُونَ',
-          similarity: 'Penekanan Berulang (Tawkid)',
-          note: "Ayat 4 diawali langsung dengan 'كَلَّا', sedangkan ayat 5 ada tambahan kata penegas 'ثُمَّ'. Jangan terbalik urutannya.",
-        },
-      ],
-    },
-    {
-      ayahNumber: 5,
-      textArabic: 'ثُمَّ كَلَّا سَيَعْلَمُونَ',
-      textLatin: 'Tsumma kallaa saya’lamuun',
-      translation: 'kemudian sekali-kali tidak! Kelak mereka akan mengetahui.',
-      audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078005.mp3',
-      mutashabihat: [
-        {
-          surahNumber: 78,
-          surahName: "An-Naba'",
-          ayahNumber: 4,
-          textArabic: 'كَلَّا سَيَعْلَمُونَ',
-          similarity: 'Penekanan Berulang (Tawkid)',
-          note: "Ayat 5 menggunakan awalan 'ثُمَّ', sebagai penguat dari ayat 4 sebelumnya.",
-        },
-        {
-          surahNumber: 102,
-          surahName: 'At-Takatsur',
-          ayahNumber: 3,
-          textArabic: 'كَلَّا سَوْفَ تَعْلَمُونَ',
-          similarity: 'Wazan Ancaman / Peringatan',
-          note: "QS. At-Takatsur menggunakan lafal 'سَوْفَ تَعْلَمُونَ' (huruf Ta), sedangkan An-Naba' menggunakan 'سَيَعْلَمُونَ' (huruf Sin + Ya).",
-        },
-      ],
-    },
-  ],
-};
-
 // 30 Juz Mapping Data
 interface JuzInfo {
   number: number;
@@ -231,23 +143,36 @@ export default function MushafPage() {
     setPlayingAyah(null);
     setIsPlayingFull(false);
 
-    if (selectedSurahNumber === 78) {
-      setCurrentSurah(FALLBACK_AN_NABA);
-      return;
-    }
-
     setLoadingDetail(true);
     fetch(`/api/v1/quran/surahs/${selectedSurahNumber}`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load surah detail');
         return res.json();
       })
-      .then((data: SurahDetail) => {
-        setCurrentSurah(data);
+      .then(async (data: SurahDetail) => {
+        // Enrich ayahs with real mutashabihat from backend
+        try {
+          const enrichedAyahs = await Promise.all(
+            data.ayahs.map(async (ayah) => {
+              try {
+                const mRes = await fetch(`/api/v1/quran/mutashabihat/${data.number}/${ayah.ayahNumber}`);
+                if (mRes.ok) {
+                  const mData = await mRes.json();
+                  if (mData.mutashabihat && mData.mutashabihat.length > 0) {
+                    return { ...ayah, mutashabihat: mData.mutashabihat };
+                  }
+                }
+              } catch {}
+              return ayah;
+            })
+          );
+          setCurrentSurah({ ...data, ayahs: enrichedAyahs });
+        } catch {
+          setCurrentSurah(data);
+        }
       })
       .catch((err) => {
-        console.warn('Failed to load online detail, showing fallback:', err);
-        setCurrentSurah(FALLBACK_AN_NABA);
+        console.warn('Failed to load online detail from backend:', err);
       })
       .finally(() => setLoadingDetail(false));
   }, [selectedSurahNumber]);

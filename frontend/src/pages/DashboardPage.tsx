@@ -24,7 +24,7 @@ import {
   ChevronRight,
   X,
 } from 'lucide-react';
-import type { UserProfile } from '../types';
+import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 
 interface PrayerSchedule {
   name: string;
@@ -48,6 +48,8 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showDzikirModal, setShowDzikirModal] = useState(false);
+  const [srsItems, setSrsItems] = useState<SrsDueItem[]>([]);
+  const [activeTajwidModule, setActiveTajwidModule] = useState<TajwidModule | null>(null);
   const [prayerTimes, setPrayerTimes] = useState<PrayerSchedule[]>(DEFAULT_PRAYER_TIMES);
   const [cityName, setCityName] = useState('Serang, Banten');
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
@@ -55,8 +57,9 @@ export default function DashboardPage() {
   // Load Real Prayer Times and Doa from Backend API
   useEffect(() => {
     fetch('/api/v1/prayer-times')
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (!data) return;
         if (data.city) setCityName(data.city);
         if (data.schedules && Array.isArray(data.schedules)) {
           const iconMap: Record<string, typeof Sun> = {
@@ -76,9 +79,9 @@ export default function DashboardPage() {
       .catch(() => {});
 
     fetch('/api/v1/doa')
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data.doa && Array.isArray(data.doa)) {
+        if (data?.doa && Array.isArray(data.doa)) {
           setDoaList(data.doa);
         }
       })
@@ -110,6 +113,29 @@ export default function DashboardPage() {
         })
         .catch(() => {});
     }
+
+    // 1. Fetch Real SRS Queue from Backend API
+    fetch('/api/v1/srs/today', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.items && Array.isArray(data.items)) {
+          setSrsItems(data.items);
+        }
+      })
+      .catch((err) => console.warn('Failed to load real SRS items:', err));
+
+    // 2. Fetch Real Tajwid Module from Backend API
+    fetch('/api/v1/tajwid/modules')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setActiveTajwidModule(data[0]);
+        }
+      })
+      .catch((err) => console.warn('Failed to load real Tajwid modules:', err))
+      ;
   }, []);
 
   // Real-time Clock
@@ -381,7 +407,7 @@ export default function DashboardPage() {
           <span className="text-xs text-slate-500">Progres Santri</span>
         </div>
 
-        {/* Highlight Card: Belajar Tajwid Terjadwal */}
+        {/* Highlight Card: Belajar Tajwid Terjadwal (Real Data from GET /api/v1/tajwid/modules) */}
         <div className="bg-gradient-to-r from-teal-900 to-emerald-900 rounded-3xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
           <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-6 translate-y-6">
             <GraduationCap className="w-48 h-48" />
@@ -393,10 +419,12 @@ export default function DashboardPage() {
                 Tajwid Academy Terintegrasi
               </span>
               <h3 className="text-lg sm:text-xl font-black text-white">
-                Modul 1: Hukum Nun Sukun &amp; Tanwin
+                {activeTajwidModule ? activeTajwidModule.title : 'Modul 1: Hukum Nun Sukun & Tanwin'}
               </h3>
               <p className="text-xs text-teal-100/80 max-w-lg leading-relaxed">
-                Pelajari kaidah Idzhar Halqi, Idgham Bighunnah, Iqlab, dan Ikhfa Haqiqi dilengkapi video penjelasan ustadz dan kuis pembahasan otomatis.
+                {activeTajwidModule
+                  ? activeTajwidModule.summary
+                  : 'Pelajari kaidah ilmu tajwid dilengkapi penjelasan video asatidz dan evaluasi kuis terintegrasi.'}
               </p>
             </div>
 
@@ -412,7 +440,7 @@ export default function DashboardPage() {
 
         {/* Two-Column Grid: Antrean Murojaah SRS & Target Harian */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Card Aktivitas 1: Jadwal Murojaah Hari Ini (SRS Queue) */}
+          {/* Card Aktivitas 1: Jadwal Murojaah Hari Ini (SRS Queue - Real Data from GET /api/v1/srs/today) */}
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
@@ -429,46 +457,48 @@ export default function DashboardPage() {
                 </div>
               </div>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                2 Surah
+                {srsItems.length} Ayat Jatuh Tempo
               </span>
             </div>
 
             <div className="space-y-2 pt-1">
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-900 block">
-                    QS. An-Naba' (Ayat 1-10)
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Interval SRS: 3 Hari • Retensi 92%
-                  </span>
+              {srsItems.length > 0 ? (
+                srsItems.slice(0, 3).map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        QS. {item.surahName || `Surah ${item.surahNumber}`} (Ayat {item.ayahNumber})
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Interval: {item.intervalDays || 1} Hari • Repetisi ke-{item.repetitionCount || 1}
+                      </span>
+                    </div>
+                    <Link
+                      to="/app/murojaah"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1 transition-all"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>Mulai</span>
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 text-center space-y-2">
+                  <p className="text-xs text-slate-600">
+                    Semua ayat SRS hari ini telah berhasil dimurojaah!
+                  </p>
+                  <Link
+                    to="/app/murojaah"
+                    className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    <span>Ulangi Hafalan Bebas</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-                <Link
-                  to="/app/murojaah"
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1 transition-all"
-                >
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>Mulai</span>
-                </Link>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-900 block">
-                    QS. An-Nazi'at (Ayat 1-15)
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Interval SRS: 1 Hari • Pengulangan Baru
-                  </span>
-                </div>
-                <Link
-                  to="/app/murojaah"
-                  className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-emerald-600 hover:text-white text-slate-700 font-bold text-xs flex items-center space-x-1 transition-all"
-                >
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>Mulai</span>
-                </Link>
-              </div>
+              )}
             </div>
           </div>
 
