@@ -398,7 +398,6 @@ export default function AdminDashboardPage() {
       />
     );
   }
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-emerald-100 selection:text-emerald-900">
