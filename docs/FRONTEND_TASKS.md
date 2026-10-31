@@ -88,4 +88,5 @@
 * [x] **2026-10-31 (05:00)**: Pemisahan seluruh halaman view ke dalam folder terisolasi `src/pages/` (MurojaahPage, MushafPage, TajwidPage, MutabaahPage, NotFoundPage).
 * [x] **2026-10-31 (13:55)**: Refactor & upgrade Landing Page interaktif: integrasi Lenis smooth scroll, live Hero Sandbox 'Sedang Mendengarkan' (QS. An-Naba 1-2 dengan Levenshtein word diff), 3D Mushaf scrollytelling, Bento Grid interaktif dengan kuis mini langsung, dan timeline alur murojaah 4 tahap sesuai Zero Emojis Policy.
 * [x] **2026-10-31 (14:45)**: Refactor Hero copywriting simpel & punchy, implementasi Lightswind InteractiveCard (3D tilt & cursor radial glow), dan animasi scroll-reveal viewport di seluruh card landing page.
+* [x] **2026-10-31 (15:00)**: Implementasi 3D Scroll-Driven Deck Carousel (kartu maju/mundur mengikuti scroll atas-bawah menggunakan InteractiveCard) & integrasi Lightswind ScrollTimeline pada seksi arsitektur evaluasi Hifzhly.
 

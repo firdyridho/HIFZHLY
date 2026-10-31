@@ -4,7 +4,7 @@ import { Mic, Award, ArrowRight, CheckCircle2, ShieldCheck, Sparkles, BookOpen }
 import HeroSandbox from '../components/landing/HeroSandbox';
 import ScholarlyStats from '../components/landing/ScholarlyStats';
 import MushafScrollytelling from '../components/landing/MushafScrollytelling';
-import BentoFeatures from '../components/landing/BentoFeatures';
+import Scroll3DCarousel from '../components/landing/Scroll3DCarousel';
 import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
 
@@ -148,11 +148,11 @@ export default function LandingPage() {
       {/* Scholarly Scientific Metrics Section */}
       <ScholarlyStats />
 
-      {/* Sticky 3D Scrollytelling Mushaf Section */}
-      <MushafScrollytelling />
+      {/* 3D Scroll-Driven Carousel Section ("Semua yang Kamu Butuhkan untuk Menjaga Hafalan") */}
+      <Scroll3DCarousel />
 
-      {/* Interactive Bento Grid Features Section with InteractiveCard */}
-      <BentoFeatures />
+      {/* Scroll Timeline Section ("Terus Gulir, Selami Arsitektur Evaluasi Hifzhly") */}
+      <MushafScrollytelling />
 
       {/* Step-by-Step Interactive Workflow Timeline */}
       <TimelineWorkflow />
