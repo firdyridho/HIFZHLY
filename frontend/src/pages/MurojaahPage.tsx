@@ -11,11 +11,12 @@ import {
   EyeOff,
   CheckCircle2,
   Layers,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 import type { SrsDueItem, SurahSummary } from '../types';
 import { recordMurojaahSingleAyah, recordMutabaahReport } from '../lib/mutabaahService';
-import { calculateAyahPage, getJuzFromPage } from '../lib/quranMeta';
+import { calculateAyahPage, getJuzFromPage, normalizeArabicQuran, isArabicWordMatch } from '../lib/quranMeta';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 import { playTengChime } from '../lib/soundUtils';
 
@@ -49,7 +50,7 @@ export function parseAyahWords(textArabic: string): AyahWord[] {
   const tokens = textArabic.trim().split(/\s+/);
   return tokens.map((token) => ({
     raw: token,
-    clean: normalizeArabic(token),
+    clean: normalizeArabicQuran(token) || normalizeArabic(token),
   }));
 }
 
@@ -186,6 +187,7 @@ export default function MurojaahPage() {
 
   // Mode Ghaib: kata tertutup '...' vs terbuka semua
   const [isBlindMode, setIsBlindMode] = useState(true);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Kata yang sudah berhasil dibuka/dilafalkan benar pada ayat aktif
   const [revealedWordIndices, setRevealedWordIndices] = useState<Set<number>>(new Set());
@@ -330,6 +332,7 @@ export default function MurojaahPage() {
     isCompletedAyahRef.current = false;
     isTransitioningRef.current = false;
     setLiveTranscript('');
+    setShowHelpModal(false);
   }, [activeAyahIndex, selectedSurahNumber]);
 
   // Sync selesai ayat ke backend SRS & Mutabaah
@@ -404,41 +407,54 @@ export default function MurojaahPage() {
     if (spokenTokens.length === 0) return;
 
     const currentRevealed = revealedWordsRef.current;
-    let targetIndex = -1;
+    const unrevealedIndices: number[] = [];
     for (let i = 0; i < currentTargetAyah.words.length; i++) {
       if (!currentRevealed.has(i)) {
-        targetIndex = i;
+        unrevealedIndices.push(i);
+      }
+    }
+
+    if (unrevealedIndices.length === 0) {
+      if (!isCompletedAyahRef.current) {
+        handleAyahCompleted(currentTargetAyah);
+      }
+      return;
+    }
+
+    let spokenPtr = 0;
+    const nextSet = new Set(currentRevealed);
+    let matchedAny = false;
+
+    for (let u = 0; u < unrevealedIndices.length; u++) {
+      const wIdx = unrevealedIndices[u];
+      const targetWord = currentTargetAyah.words[wIdx];
+      const isLastWord = u === unrevealedIndices.length - 1;
+      let foundIdx = -1;
+
+      // Scan seluruh sisa token suara yang masuk (agar santri bicara cepat langsung cocok seketika)
+      for (let s = spokenPtr; s < spokenTokens.length; s++) {
+        if (isArabicWordMatch(targetWord.clean, spokenTokens[s], isLastWord)) {
+          foundIdx = s;
+          break;
+        }
+      }
+
+      if (foundIdx !== -1) {
+        nextSet.add(wIdx);
+        matchedAny = true;
+        spokenPtr = foundIdx + 1;
+      } else {
         break;
       }
     }
 
-    if (targetIndex === -1) return;
-
-    const targetWord = currentTargetAyah.words[targetIndex];
-    const latestToken = spokenTokens[spokenTokens.length - 1];
-
-    const isMatched =
-      latestToken === targetWord.clean ||
-      (latestToken.startsWith('و') && latestToken.slice(1) === targetWord.clean) ||
-      (latestToken.startsWith('ف') && latestToken.slice(1) === targetWord.clean) ||
-      (targetWord.clean.startsWith(latestToken) && latestToken.length >= 3) ||
-      (latestToken.startsWith(targetWord.clean) && targetWord.clean.length >= 3);
-
-    if (isMatched) {
+    if (matchedAny) {
       setWrongWordIndex(null);
-      setRevealedWordIndices((prev) => {
-        const next = new Set(prev);
-        next.add(targetIndex);
-        if (next.size === currentTargetAyah.words.length && !isCompletedAyahRef.current) {
-          handleAyahCompleted(currentTargetAyah);
-        }
-        return next;
-      });
-    } else {
-      if (latestToken.length >= 2) {
-        setWrongWordIndex(targetIndex);
-        setShakeIteration((prev) => prev + 1);
-        playTengChime();
+      revealedWordsRef.current = nextSet;
+      setRevealedWordIndices(new Set(nextSet));
+
+      if (nextSet.size === currentTargetAyah.words.length && !isCompletedAyahRef.current) {
+        handleAyahCompleted(currentTargetAyah);
       }
     }
   };
@@ -465,19 +481,14 @@ export default function MurojaahPage() {
       };
 
       recognition.onresult = (event: any) => {
-        let interimText = '';
-        let finalText = '';
+        if (isTransitioningRef.current || isCompletedAyahRef.current) return;
 
+        let activePhrase = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalText += transcript + ' ';
-          } else {
-            interimText += transcript;
-          }
+          activePhrase += event.results[i][0].transcript + ' ';
         }
 
-        const currentSpoken = (finalText + ' ' + interimText).trim();
+        const currentSpoken = activePhrase.trim();
         if (currentSpoken) {
           setLiveTranscript(currentSpoken);
           processSpokenArabic(currentSpoken);
@@ -701,14 +712,49 @@ export default function MurojaahPage() {
                 >
                   {/* Status header ayat aktif */}
                   {isCurrent && (
-                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-emerald-100 text-xs font-semibold text-emerald-800">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                        Sedang Murojaah: Ayat {ayah.ayahNumber}
-                      </span>
-                      <span className="text-slate-400 font-sans font-normal text-[11px]">
-                        Kata terbuka: {revealedWordIndices.size}/{ayah.words.length}
-                      </span>
+                    <div className="space-y-3 pb-3 mb-4 border-b border-emerald-100">
+                      <div className="flex items-center justify-between text-xs font-semibold text-emerald-800">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                          Sedang Murojaah: Ayat {ayah.ayahNumber}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowHelpModal((prev) => !prev)}
+                            className="px-3 py-1 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Buka bantuan teks ayat bila lupa atau mentok"
+                          >
+                            <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
+                            <span>{showHelpModal ? 'Tutup Bantuan' : 'Bantuan (Lihat Teks)'}</span>
+                          </button>
+                          <span className="text-slate-400 font-sans font-normal text-[11px] hidden sm:inline">
+                            Kata terbuka: {revealedWordIndices.size}/{ayah.words.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Panel Bantuan Intip Teks Asli (Jika santri butuh bantuan) */}
+                      {showHelpModal && (
+                        <div className="bg-amber-50/95 border border-amber-300/90 rounded-2xl p-4 text-center space-y-1.5 shadow-xs animate-in fade-in">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-amber-800 uppercase tracking-wider">
+                            <span>Bantuan Teks Asli: Ayat {ayah.ayahNumber}</span>
+                            <button
+                              type="button"
+                              onClick={() => setShowHelpModal(false)}
+                              className="text-amber-700 hover:text-amber-950 font-bold hover:underline"
+                            >
+                              Tutup
+                            </button>
+                          </div>
+                          <p className="font-quran text-2xl sm:text-3xl text-amber-950 leading-relaxed select-text" dir="rtl">
+                            {ayah.textArabic}
+                          </p>
+                          <p className="text-xs text-slate-600 font-sans italic" dir="ltr">
+                            "{ayah.translation}"
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
