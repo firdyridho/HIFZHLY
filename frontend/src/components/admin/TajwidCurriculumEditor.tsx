@@ -168,15 +168,22 @@ export default function TajwidCurriculumEditor({
   );
   const [questions, setQuestions] = useState<QuestionForm[]>(() => {
     if (initialModule?.quiz?.questions && initialModule.quiz.questions.length > 0) {
-      return initialModule.quiz.questions.map((q) => ({
-        questionText: q.questionText,
-        verseArabic: '',
-        syarahExplanation: 'Kaidah tajwid berlaku sesuai hukum makharijul huruf dan sifatul huruf.',
-        options: q.options.map((opt, i) => ({
-          optionText: opt.optionText,
-          isCorrect: i === 0,
-        })),
-      }));
+      return initialModule.quiz.questions.map((q) => {
+        const hasExplicitCorrect = q.options.some((o: any) => o.isCorrect === true);
+        return {
+          questionText: q.questionText,
+          verseArabic: (q as any).verseArabic || '',
+          syarahExplanation:
+            (q as any).syarahExplanation ||
+            'Kaidah tajwid berlaku sesuai hukum makharijul huruf dan sifatul huruf.',
+          options: q.options.map((opt, i) => ({
+            optionText: opt.optionText,
+            isCorrect: hasExplicitCorrect
+              ? Boolean((opt as any).isCorrect)
+              : i === 0,
+          })),
+        };
+      });
     }
     return [
       {

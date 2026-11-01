@@ -2,6 +2,61 @@ import type { TajwidModule } from '../types';
 
 export const TAJWID_STORAGE_KEY = 'hifzhly_local_tajwid_modules';
 export const TAJWID_UPDATED_EVENT = 'hifzhly_tajwid_modules_updated';
+export const TAJWID_ANSWER_KEYS_STORAGE_KEY = 'hifzhly_tajwid_answer_keys';
+
+// Real-time Cross-Tab BroadcastChannel
+let syncChannel: BroadcastChannel | null = null;
+try {
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    syncChannel = new BroadcastChannel('hifzhly_tajwid_sync_channel');
+    syncChannel.onmessage = (event) => {
+      if (event.data?.type === 'TAJWID_UPDATED' && Array.isArray(event.data?.modules)) {
+        try {
+          localStorage.setItem(TAJWID_STORAGE_KEY, JSON.stringify(event.data.modules));
+        } catch {}
+        window.dispatchEvent(new CustomEvent(TAJWID_UPDATED_EVENT, { detail: event.data.modules }));
+      }
+    };
+  }
+} catch {}
+
+/**
+ * Permanently stores author's correct answer keys so user evaluation is 100% accurate.
+ */
+export function saveTajwidAnswerKeysFromQuiz(quiz: any) {
+  if (!quiz || !Array.isArray(quiz.questions)) return;
+  try {
+    const raw = localStorage.getItem(TAJWID_ANSWER_KEYS_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    quiz.questions.forEach((q: any) => {
+      const correctOpt = (q.options || []).find((o: any) => o.isCorrect);
+      if (correctOpt) {
+        const item = {
+          correctOptionId: correctOpt.id,
+          correctOptionText: (correctOpt.optionText || '').trim(),
+          explanation: q.syarahExplanation || '',
+        };
+        map[q.id] = item;
+        if (q.questionText) {
+          map[q.questionText.trim().toLowerCase()] = item;
+        }
+      }
+    });
+    localStorage.setItem(TAJWID_ANSWER_KEYS_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+export function getStoredAnswerKey(q: any): { correctOptionId?: string; correctOptionText?: string; explanation?: string } | null {
+  try {
+    const raw = localStorage.getItem(TAJWID_ANSWER_KEYS_STORAGE_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    if (map[q.id]) return map[q.id];
+    const qKey = (q.questionText || '').trim().toLowerCase();
+    if (map[qKey]) return map[qKey];
+  } catch {}
+  return null;
+}
 
 // Default Comprehensive Curated Fallback Modules (5 Questions Each with exact isCorrect flags)
 export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
@@ -334,9 +389,15 @@ export function resolveQuestionCorrectAnswer(
 } {
   const options: any[] = q.options || [];
 
-  // 1. Identify correct option from explicit isCorrect flag, backend, or mock keys:
+  const storedKey = getStoredAnswerKey(q);
+
+  // 1. Identify correct option from explicit isCorrect flag, stored key, backend, or mock keys:
   let correctOpt =
     options.find((o) => o.isCorrect === true) ||
+    (storedKey?.correctOptionId ? options.find((o) => o.id === storedKey.correctOptionId) : null) ||
+    (storedKey?.correctOptionText
+      ? options.find((o) => (o.optionText || '').trim().toLowerCase() === storedKey.correctOptionText?.trim().toLowerCase())
+      : null) ||
     (backendItem?.correctOptionId ? options.find((o) => o.id === backendItem.correctOptionId) : null) ||
     (MOCK_CORRECT_KEYS[q.id]?.correctOptionId
       ? options.find((o) => o.id === MOCK_CORRECT_KEYS[q.id].correctOptionId)
@@ -495,9 +556,15 @@ export function saveStoredTajwidModule(mod: TajwidModule): TajwidModule[] {
   // Sort by orderIndex
   updated.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
+  // Permanently preserve author's answer keys for reliable student evaluation
+  if (mod.quiz) {
+    saveTajwidAnswerKeysFromQuiz(mod.quiz);
+  }
+
   try {
     localStorage.setItem(TAJWID_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent(TAJWID_UPDATED_EVENT, { detail: updated }));
+    syncChannel?.postMessage({ type: 'TAJWID_UPDATED', modules: updated });
   } catch (err) {
     console.error('Failed saving tajwid module to storage:', err);
   }
@@ -515,6 +582,7 @@ export function deleteStoredTajwidModule(id: string): TajwidModule[] {
   try {
     localStorage.setItem(TAJWID_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent(TAJWID_UPDATED_EVENT, { detail: updated }));
+    syncChannel?.postMessage({ type: 'TAJWID_UPDATED', modules: updated });
   } catch (err) {
     console.error('Failed deleting tajwid module from storage:', err);
   }

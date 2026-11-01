@@ -30,6 +30,7 @@ import {
   getStoredTajwidModules,
   fetchSynchronizedTajwidModules,
   TAJWID_UPDATED_EVENT,
+  TAJWID_STORAGE_KEY,
   resolveQuestionCorrectAnswer,
 } from '../lib/tajwidStore';
 
@@ -270,10 +271,31 @@ export default function TajwidPage() {
       }
     };
 
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === TAJWID_STORAGE_KEY) {
+        setModules(getStoredTajwidModules());
+      }
+    };
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('hifzhly_tajwid_sync_channel');
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'TAJWID_UPDATED' && Array.isArray(event.data?.modules)) {
+            setModules(event.data.modules);
+          }
+        };
+      }
+    } catch {}
+
     window.addEventListener(TAJWID_UPDATED_EVENT, handleTajwidUpdated);
+    window.addEventListener('storage', handleStorage);
     return () => {
       isMounted = false;
       window.removeEventListener(TAJWID_UPDATED_EVENT, handleTajwidUpdated);
+      window.removeEventListener('storage', handleStorage);
+      channel?.close();
     };
   }, []);
 
@@ -294,11 +316,40 @@ export default function TajwidPage() {
       const res = await fetch(`/api/v1/tajwid/modules/${baseModule.slug}`);
       if (res.ok) {
         const data = await res.json();
+        const serverMod = data.module || data;
+        const serverQuiz = data.quiz || serverMod.quiz;
+
+        let resolvedQuiz = serverQuiz || baseModule.quiz;
+        if (resolvedQuiz && baseModule.quiz) {
+          resolvedQuiz = {
+            ...resolvedQuiz,
+            questions: resolvedQuiz.questions.map((sq: any) => {
+              const lq = baseModule.quiz?.questions.find(
+                (q) => q.id === sq.id || (q.questionText || '').trim() === (sq.questionText || '').trim()
+              );
+              return {
+                ...sq,
+                syarahExplanation: sq.syarahExplanation || (lq as any)?.syarahExplanation || '',
+                options: sq.options.map((so: any) => {
+                  const lo = lq?.options.find(
+                    (o) => o.id === so.id || (o.optionText || '').trim() === (so.optionText || '').trim()
+                  );
+                  return {
+                    ...so,
+                    isCorrect: typeof so.isCorrect === 'boolean' ? so.isCorrect : Boolean(lo?.isCorrect),
+                  };
+                }),
+              };
+            }),
+          };
+        }
+
         setActiveModule({
           ...baseModule,
-          thumbnailUrl: baseModule.thumbnailUrl || data.thumbnailUrl,
-          contentBody: baseModule.contentBody || data.contentBody,
-          quiz: baseModule.quiz || data.quiz,
+          ...serverMod,
+          thumbnailUrl: serverMod.thumbnailUrl || baseModule.thumbnailUrl,
+          contentBody: serverMod.contentBody || baseModule.contentBody,
+          quiz: resolvedQuiz,
         });
         return;
       }

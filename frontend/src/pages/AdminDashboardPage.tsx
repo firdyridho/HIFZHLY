@@ -313,16 +313,20 @@ export default function AdminDashboardPage() {
         youtubeVideoId: moduleData.youtubeVideoId,
         orderIndex: moduleData.orderIndex,
         quiz: {
-          id: 'quiz-' + Date.now(),
+          id: (targetId ? `quiz-${targetId}` : `quiz-${Date.now()}`),
           title: moduleData.quizTitle || `Kuis Evaluasi ${moduleData.title}`,
           description: `Evaluasi pemahaman materi ${moduleData.title}`,
           passingScore: moduleData.quizPassingScore || 70,
           questions: moduleData.questions.map((q, idx) => ({
-            id: 'q-' + idx,
+            id: q.id || `q-${idx + 1}-${Date.now()}`,
             questionText: q.questionText,
+            verseArabic: q.verseArabic || '',
+            syarahExplanation:
+              q.syarahExplanation ||
+              'Kaidah tajwid diterapkan sesuai hukum makharijul huruf dan sifatul huruf.',
             orderIndex: idx + 1,
             options: q.options.map((opt: any, oIdx: number) => ({
-              id: 'opt-' + oIdx,
+              id: opt.id || `opt-${idx + 1}-${oIdx + 1}-${Date.now()}`,
               optionText: opt.optionText,
               isCorrect: Boolean(opt.isCorrect),
             })),

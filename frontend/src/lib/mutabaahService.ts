@@ -10,7 +10,7 @@ export interface MutabaahReportItem {
   ayahEnd: number;
   totalAyahs: number;
   score: number;
-  type: 'murojaah_ai' | 'murojaah' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
+  type: 'murojaah_ai' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
   notes?: string;
   verifier?: string; // Ustadz Pembimbing / Mandiri
   pagesCount?: number;
@@ -54,10 +54,6 @@ export interface UserCommitment {
   targetDeadline: string;
   currentStreak: number;
   maxStreak: number;
-  progressionOrder?: 'juz_30' | 'juz_1_asc' | 'custom_surah';
-  murojaahTargetUnit?: 'surah' | 'ayah' | 'page';
-  dailyTargetMurojaahCount?: number;
-  targetJuzNumber?: number;
 }
 
 export interface AdminSantriMonitoringItem {
@@ -86,6 +82,7 @@ export interface AdminSantriMonitoringItem {
 
 const STORAGE_KEY = 'hifzhly_mutabaah_logs';
 const COMMITMENT_STORAGE_KEY = 'hifzhly_user_commitments';
+const ADMIN_MONITORING_KEY = 'hifzhly_admin_monitoring';
 
 export const INDONESIAN_MONTHS = [
   'Januari',
@@ -418,7 +415,7 @@ export async function recordMutabaahReport(params: {
     try {
       const p = JSON.parse(cachedProfile);
       if (p.dailyTargetAyahs) dailyTarget = p.dailyTargetAyahs;
-    } catch {}
+    } catch { }
   }
 
   const updatedReports = [reportItem, ...existingDay.reports];
@@ -467,8 +464,8 @@ export async function recordMutabaahReport(params: {
         score,
         santriNotes: params.santriNotes || params.notes,
       }),
-    }).catch(() => {});
-  } catch {}
+    }).catch(() => { });
+  } catch { }
 
   return updatedDay;
 }
@@ -511,10 +508,6 @@ export function getUserCommitments(): UserCommitment {
     targetDeadline: '2026-11-30',
     currentStreak: 5,
     maxStreak: 14,
-    progressionOrder: 'juz_30',
-    murojaahTargetUnit: 'surah',
-    dailyTargetMurojaahCount: 1,
-    targetJuzNumber: 30,
   };
 
   try {
@@ -523,7 +516,8 @@ export function getUserCommitments(): UserCommitment {
       localStorage.setItem(COMMITMENT_STORAGE_KEY, JSON.stringify(defaultCommitment));
       return defaultCommitment;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return { ...defaultCommitment, ...parsed };
   } catch {
     return defaultCommitment;
   }
@@ -561,8 +555,8 @@ export async function saveUserCommitments(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(updated),
-    }).catch(() => {});
-  } catch {}
+    }).catch(() => { });
+  } catch { }
 
   return updated;
 }
@@ -618,8 +612,8 @@ export async function submitUstadzEvaluation(
         ustadzNotes,
         ustadzName,
       }),
-    }).catch(() => {});
-  } catch {}
+    }).catch(() => { });
+  } catch { }
 
   return found;
 }
@@ -638,7 +632,7 @@ export async function getAdminSantriMonitoring(): Promise<AdminSantriMonitoringI
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) return data;
     }
-  } catch {}
+  } catch { }
 
   // Fallback realistic monitoring list connected to real mutabaah logs
   const history = getMutabaahHistory();
