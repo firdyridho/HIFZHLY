@@ -300,14 +300,13 @@ export default function HafalanPage() {
     let spokenPtr = 0;
 
     // Periksa token pelafalan secara berurutan hanya pada kata-kata ayat aktif
-    for (let u = 0; u < unrevealedWords.length && spokenPtr < spokenTokens.length; u++) {
+    for (let u = 0; u < unrevealedWords.length; u++) {
       const targetWord = unrevealedWords[u];
       const isLastWord = u === unrevealedWords.length - 1;
       let foundIdx = -1;
 
-      // Window pencarian 4 token suara (agar waqaf / lafal akhir tidak terlewat)
-      const limit = Math.min(spokenTokens.length, spokenPtr + 4);
-      for (let s = spokenPtr; s < limit; s++) {
+      // Scan seluruh sisa token suara yang masuk (agar santri bicara cepat langsung cocok seketika)
+      for (let s = spokenPtr; s < spokenTokens.length; s++) {
         if (isArabicWordMatch(targetWord.clean, spokenTokens[s], isLastWord)) {
           foundIdx = s;
           break;
@@ -361,6 +360,10 @@ export default function HafalanPage() {
    * Pindah ke Ayat Berikutnya secara Otomatis dan Mulus
    */
   const advanceToNextAyah = (currentIdx: number, verses: any[]) => {
+    // Reset transkrip suara seketika agar ayat baru mulai dari kanvas bersih
+    setLiveTranscript('');
+    setLiveStatusText('...Menunggu suara');
+
     const nextIdx = currentIdx + 1;
     if (nextIdx < verses.length) {
       // Otomatis pindah fokus ke ayat setelahnya
@@ -418,12 +421,13 @@ export default function HafalanPage() {
       recognition.onresult = (event: any) => {
         if (isTransitioningRef.current) return;
 
-        let fullTranscript = '';
-        for (let i = 0; i < event.results.length; ++i) {
-          fullTranscript += event.results[i][0].transcript + ' ';
+        // Ambil frasa yang sedang aktif diucapkan setelah jeda (dimulai dari resultIndex terbaru)
+        let activePhrase = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          activePhrase += event.results[i][0].transcript + ' ';
         }
 
-        const currentSpoken = fullTranscript.trim();
+        const currentSpoken = activePhrase.trim();
         if (currentSpoken) {
           setLiveTranscript(currentSpoken);
           setLiveStatusText(currentSpoken);
