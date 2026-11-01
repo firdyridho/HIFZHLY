@@ -8,10 +8,7 @@ import {
   LogOut,
   GraduationCap,
   AlertCircle,
-  RotateCcw,
-  Target,
   Settings,
-  Trophy,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -132,166 +129,33 @@ export default function MainLayout() {
               </span>
             </Link>
 
-            {/* Desktop Minimalist Navigation (Murojaah with Mic icon in header, no Hafalan here) */}
-            <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5">
-              <NavLink
-                to="/app"
-                end
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <Home className="w-4 h-4" />
-                <span>Beranda</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/mushaf"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>Qur'an</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/hafalan"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <Mic className="w-4 h-4" />
-                <span>Hafalan</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/murojaah"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Murojaah</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/mutabaah"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Mutabaah</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/target"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <Target className="w-4 h-4" />
-                <span>Target</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/tajwid"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>Tajwid</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/quiz"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <Trophy className="w-4 h-4 text-amber-600" />
-                <span>Kuis Qur'an</span>
-              </NavLink>
-
+            {/* Header Right Actions: Hanya Pengaturan & Keluar */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
               <NavLink
                 to="/app/settings"
                 className={({ isActive }) =>
-                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  `flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      ? 'bg-emerald-50 text-emerald-800'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`
                 }
-              >
-                <Settings className="w-4 h-4" />
-                <span>Pengaturan</span>
-              </NavLink>
-
-              {/* Subtle Vertical Divider */}
-              <div className="h-5 w-px bg-slate-200 mx-2" />
-
-              {/* Keluar Action (Opens SweetAlert Confirmation Modal) */}
-              <button
-                type="button"
-                onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                title="Keluar dari Akun"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Keluar</span>
-              </button>
-            </nav>
-
-            {/* Mobile Quick Action */}
-            <div className="flex md:hidden items-center space-x-1">
-              <Link
-                to="/app/settings"
-                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                 title="Pengaturan Akun"
               >
                 <Settings className="w-4 h-4" />
-              </Link>
+                <span className="hidden sm:inline">Pengaturan</span>
+              </NavLink>
+
+              <div className="h-4 w-px bg-slate-200 mx-1" />
+
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="p-2 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                className="flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                 title="Keluar dari Akun"
               >
                 <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Keluar</span>
               </button>
             </div>
           </div>
