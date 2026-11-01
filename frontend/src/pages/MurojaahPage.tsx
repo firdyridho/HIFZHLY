@@ -1,320 +1,124 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Mic,
   Square,
-  Volume2,
-  Pause,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
-  CheckCircle2,
-  Layers,
   BookOpen,
-  FileText
+  Search,
+  Settings,
+  Bookmark,
+  RotateCcw,
+  CheckCircle2,
+  Loader2,
+  X,
+  Volume2,
+  Pause,
+  Menu,
 } from 'lucide-react';
 import type { SrsDueItem, SurahSummary } from '../types';
 import { recordMurojaahSingleAyah, recordMutabaahReport } from '../lib/mutabaahService';
-import { calculateAyahPage, getJuzFromPage, SURAH_START_PAGES } from '../lib/quranMeta';
+import {
+  getJuzFromPage,
+  getHizbFromPage,
+  getSurahStartPage,
+  toArabicDigits,
+  SURAH_ARABIC_NAMES,
+  normalizeArabicQuran,
+  isArabicWordMatch,
+} from '../lib/quranMeta';
+import { TilawaVoiceService, TilawaProgressEvent } from '../lib/tilawaService';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
-import { playDengSound } from '../lib/soundUtils';
 
-export interface AyahWord {
-  raw: string;       // Lafal asli berharakat lengkap (contoh: ذَٰلِكَ)
-  clean: string;     // Teks Arab tanpa harakat untuk pencocokan (contoh: ذلك)
+interface QuranWordItem {
+  id: number;
+  position: number;
+  text_uthmani: string;
+  line_number: number;
+  char_type_name: string; // 'word' | 'end'
+  verse_key: string;      // e.g. '1:1'
+  clean: string;
 }
-
-export interface MushafAyah {
-  ayahNumber: number;
-  textArabic: string;
-  textLatin: string;
-  translation: string;
-  audioUrl: string;
-  words: AyahWord[];
-}
-
-// Helper normalisasi teks Arab untuk pencocokan suara
-export function normalizeArabic(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/[\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '')
-    .replace(/[إأآٱ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .replace(/[^\u0621-\u064A\s]/g, '')
-    .trim();
-}
-
-export function parseAyahWords(textArabic: string): AyahWord[] {
-  const tokens = textArabic.trim().split(/\s+/);
-  return tokens.map((token) => ({
-    raw: token,
-    clean: normalizeArabic(token),
-  }));
-}
-
-// Menemukan nomor surah dari nomor halaman Mushaf Madinah
-export function getSurahFromPage(page: number): number {
-  if (page <= 1) return 1;
-  if (page >= 604) return 114;
-  for (let s = 114; s >= 1; s--) {
-    if (page >= (SURAH_START_PAGES[s] || 1)) {
-      return s;
-    }
-  }
-  return 1;
-}
-
-// Ubah suara user menjadi teks Arab berharakat sesuai ayat Al-Qur'an
-export function getSpokenArabicWithHarakat(spokenText: string, words: AyahWord[]): string {
-  if (!spokenText || !spokenText.trim()) {
-    return '';
-  }
-
-  const spokenTokens = normalizeArabic(spokenText).split(/\s+/).filter(Boolean);
-  if (spokenTokens.length === 0) {
-    return '';
-  }
-
-  const resultWords: string[] = [];
-  spokenTokens.forEach((token) => {
-    const matched = words.find((w) => {
-      if (w.clean === token) return true;
-      if (token.startsWith('و') && token.slice(1) === w.clean) return true;
-      if (token.startsWith('ف') && token.slice(1) === w.clean) return true;
-      if (token.startsWith('ب') && token.slice(1) === w.clean) return true;
-      if (token.startsWith('ل') && token.slice(1) === w.clean) return true;
-      if (w.clean.startsWith(token) && token.length >= 3) return true;
-      return false;
-    });
-
-    if (matched) {
-      resultWords.push(matched.raw);
-    } else {
-      resultWords.push(token);
-    }
-  });
-
-  return resultWords.join(' ');
-}
-
-// Data fallback Al-Baqarah & An-Naba'
-export const DEFAULT_SURAHS: { number: number; name: string; page: number; juz: number; ayahs: MushafAyah[] }[] = [
-  {
-    number: 2,
-    name: 'Al-Baqarah',
-    page: 2,
-    juz: 1,
-    ayahs: [
-      {
-        ayahNumber: 1,
-        textArabic: 'الٓمٓ',
-        textLatin: 'Alif Laam Miim',
-        translation: 'Alif Lam Mim.',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002001.mp3',
-        words: parseAyahWords('الٓمٓ'),
-      },
-      {
-        ayahNumber: 2,
-        textArabic: 'ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ',
-        textLatin: "Dzaalikal-kitaabu laa rayba fiih, hudal lil-muttaqiin",
-        translation: 'Kitab (Al-Qur\'an) ini tidak ada keraguan padanya; petunjuk bagi mereka yang bertakwa,',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002002.mp3',
-        words: parseAyahWords('ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ'),
-      },
-      {
-        ayahNumber: 3,
-        textArabic: 'ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَـٰهُمْ يُنفِقُونَ',
-        textLatin: "Alladziina yu'minuuna bil-ghaybi wa yuqiimuunash-shalaata wa mimmaa razaqnaahum yunfiquun",
-        translation: '(yaitu) mereka yang beriman kepada yang gaib, melaksanakan salat, dan menginfakkan sebagian rezeki yang Kami berikan kepada mereka,',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002003.mp3',
-        words: parseAyahWords('ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَـٰهُمْ يُنفِقُونَ'),
-      },
-      {
-        ayahNumber: 4,
-        textArabic: 'وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْـَٔاخِرَةِ هُمْ يُوقِنُونَ',
-        textLatin: "Walladziina yu'minuuna bimaa unzila ilayka wa maa unzila min qablika wa bil-aakhirati hum yuuqinuun",
-        translation: 'dan mereka yang beriman kepada (Al-Qur\'an) yang diturunkan kepadamu dan (kitab-kitab) yang telah diturunkan sebelum engkau, serta mereka yakin akan adanya akhirat.',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002004.mp3',
-        words: parseAyahWords('وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْـَٔاخِرَةِ هُمْ يُوقِنُونَ'),
-      },
-      {
-        ayahNumber: 5,
-        textArabic: 'أُو۟لَـٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ',
-        textLatin: "Ulaa'ika 'alaa hudam mir rabbihim wa ulaa'ika humul-muflihuun",
-        translation: 'Merekalah yang mendapat petunjuk dari Tuhannya, dan mereka itulah orang-orang yang beruntung.',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/002005.mp3',
-        words: parseAyahWords('أُو۟لَـٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَـٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ'),
-      },
-    ],
-  },
-  {
-    number: 78,
-    name: "An-Naba'",
-    page: 582,
-    juz: 30,
-    ayahs: [
-      {
-        ayahNumber: 1,
-        textArabic: 'عَمَّ يَتَسَآءَلُونَ',
-        textLatin: "'Amma yatasaa'aluun",
-        translation: 'Tentang apakah mereka saling bertanya-tanya?',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078001.mp3',
-        words: parseAyahWords('عَمَّ يَتَسَآءَلُونَ'),
-      },
-      {
-        ayahNumber: 2,
-        textArabic: 'عَنِ النَّبَإِ الْعَظِيمِ',
-        textLatin: "'Anin-naba'il-'azhiim",
-        translation: 'Tentang berita yang besar (hari berbangkit),',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078002.mp3',
-        words: parseAyahWords('عَنِ النَّبَإِ الْعَظِيمِ'),
-      },
-      {
-        ayahNumber: 3,
-        textArabic: 'الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ',
-        textLatin: 'Alladzii hum fiihi mukhtalifuun',
-        translation: 'yang dalam hal itu mereka berselisih.',
-        audioUrl: 'https://equran.nos.wjv-1.neo.id/audio-partial/Misyari-Rasyid-Al-Afasi/078003.mp3',
-        words: parseAyahWords('الَّذِي هُمْ فِيهِ مُخْتَلِفُونَ'),
-      },
-    ],
-  },
-];
 
 export default function MurojaahPage() {
+  // Navigation Flow State: 'catalog' (Daftar 114 Surah) | 'mushaf' (Halaman Mushaf Madinah 1-604)
+  const [viewState, setViewState] = useState<'catalog' | 'mushaf'>('mushaf');
+
+  // Madinah Mushaf Page (1 - 604)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageVerses, setPageVerses] = useState<any[]>([]);
+  const [loadingPage, setLoadingPage] = useState<boolean>(false);
+
+  // Strict Per-Ayat Flow State:
+  // activeVerseIndex: index ayat yang SEDANG dibaca/dites pada halaman ini (0..pageVerses.length - 1)
+  const [activeVerseIndex, setActiveVerseIndex] = useState<number>(0);
+  const [completedVerseKeys, setCompletedVerseKeys] = useState<Set<string>>(new Set());
+
+  // 114 Surahs catalog list
   const [surahs, setSurahs] = useState<SurahSummary[]>([]);
-  const [selectedSurahNumber, setSelectedSurahNumber] = useState<number>(78);
-  const [currentSurah, setCurrentSurah] = useState<{ number: number; name: string; page: number; juz: number; ayahs: MushafAyah[] }>(DEFAULT_SURAHS[1]);
+  const [surahSearchQuery, setSurahSearchQuery] = useState('');
+  const [pageJumpInput, setPageJumpInput] = useState<string>('');
+  const [isJumpModalOpen, setIsJumpModalOpen] = useState(false);
 
-  // Mode Tampilan: Mode Ayat (fokus card per ayat) vs Mode Halaman Mushaf (tampilan perhalaman seperti Al-Qur'an)
-  const [viewMode, setViewMode] = useState<'ayah' | 'mushaf'>('ayah');
-  const [currentMushafPage, setCurrentMushafPage] = useState<number>(582);
+  // Progressive Memorization Mode (3 Levels - Tadrij Hafalan):
+  // 1 = Teks Penuh (DEFAULT - semua kata terlihat agar tidak langsung kosong!)
+  // 2 = Sebagian Samar (kata tertentu disamarkan)
+  // 3 = Ghaib Penuh (garis horizontal per-ayat persis screenshot referensi!)
+  const [memorizationLevel, setMemorizationLevel] = useState<1 | 2 | 3>(1);
 
-  const [activeAyahIndex, setActiveAyahIndex] = useState(0);
-  const activeAyah = currentSurah.ayahs[activeAyahIndex] || currentSurah.ayahs[0];
+  // Set of revealed word keys on current page: `${verse_key}_${position}`
+  const [revealedWordKeys, setRevealedWordKeys] = useState<Set<string>>(new Set());
 
-  // Dynamic Madinah Mushaf Page & Juz calculation
-  const activeAyahPage = calculateAyahPage(
-    currentSurah.number,
-    activeAyah ? activeAyah.ayahNumber : 1,
-    currentSurah.ayahs ? currentSurah.ayahs.length : 1
-  );
-  const activeAyahJuz = getJuzFromPage(viewMode === 'mushaf' ? currentMushafPage : activeAyahPage);
-
-  // Sinkronisasi halaman mushaf saat ayat aktif berganti
-  useEffect(() => {
-    if (activeAyahPage) {
-      setCurrentMushafPage(activeAyahPage);
-    }
-  }, [activeAyahPage]);
-
-  // Mode Ghaib: kata tertutup '...' vs terbuka semua
-  const [isBlindMode, setIsBlindMode] = useState(true);
-
-  // Kata yang sudah berhasil dibuka/dilafalkan benar pada ayat aktif
-  const [revealedWordIndices, setRevealedWordIndices] = useState<Set<number>>(new Set());
-
-  // Indeks kata yang salah diucapkan (ganti warna merah + getar dikit + audio 'deng' tanpa mengubah tata letak card)
-  const [wrongWordIndex, setWrongWordIndex] = useState<number | null>(null);
-  const [shakeIteration, setShakeIteration] = useState(0);
-
-  // Real-time Voice Recognition State
+  // Real-time Voice & Audio State
   const [isLiveListening, setIsLiveListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [isCompletedAyah, setIsCompletedAyah] = useState(false);
-  const [scoreNotification, setScoreNotification] = useState<string | null>(null);
+  const [liveStatusText, setLiveStatusText] = useState('...Menunggu suara');
+  const [mistakesCount, setMistakesCount] = useState(0);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Refs untuk mencegah stale closure & debounce audio salah
-  const activeAyahRef = useRef<MushafAyah>(activeAyah);
-  const activeAyahIndexRef = useRef<number>(activeAyahIndex);
-  const currentSurahRef = useRef(currentSurah);
-  const isCompletedAyahRef = useRef<boolean>(false);
-  const isTransitioningRef = useRef<boolean>(false);
-  const revealedWordsRef = useRef<Set<number>>(new Set());
+  // AI Model Status & Download Progress (Hugging Face / Tilawa)
+  const [aiProgress, setAiProgress] = useState<TilawaProgressEvent | null>(null);
+
+  // Audio Qari Player State
+  const [isPlayingQari, setIsPlayingQari] = useState(false);
+  const qariAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Synchronized Refs for Web Speech API and Tilawa AI
+  const revealedWordsRef = useRef<Set<string>>(new Set());
+  const activeVerseIndexRef = useRef<number>(0);
+  const pageVersesRef = useRef<any[]>([]);
   const isLiveListeningRef = useRef<boolean>(false);
+  const isTransitioningRef = useRef<boolean>(false);
   const recognitionRef = useRef<any>(null);
-
-  // Debounce & Cooldown Timer untuk audio kesalahan ('deng')
-  const pendingErrorTimerRef = useRef<any>(null);
-  const lastErrorSoundTimeRef = useRef<number>(0);
+  const tilawaServiceRef = useRef<TilawaVoiceService | null>(null);
 
   useEffect(() => {
-    activeAyahRef.current = activeAyah;
-    activeAyahIndexRef.current = activeAyahIndex;
-  }, [activeAyah, activeAyahIndex]);
+    revealedWordsRef.current = revealedWordKeys;
+  }, [revealedWordKeys]);
 
   useEffect(() => {
-    currentSurahRef.current = currentSurah;
-  }, [currentSurah]);
+    activeVerseIndexRef.current = activeVerseIndex;
+  }, [activeVerseIndex]);
+
+  useEffect(() => {
+    pageVersesRef.current = pageVerses;
+  }, [pageVerses]);
 
   useEffect(() => {
     isLiveListeningRef.current = isLiveListening;
   }, [isLiveListening]);
 
-  useEffect(() => {
-    isCompletedAyahRef.current = isCompletedAyah;
-  }, [isCompletedAyah]);
-
-  useEffect(() => {
-    revealedWordsRef.current = revealedWordIndices;
-  }, [revealedWordIndices]);
-
   // Mutabaah Session & Exit-Intent Modal
   const sessionStartTimeRef = useRef<number>(Date.now());
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [exitPayload, setExitPayload] = useState<ExitMutabaahPayload | null>(null);
-
-  const handleOpenExitModal = () => {
-    const duration = Math.round((Date.now() - sessionStartTimeRef.current) / 1000);
-    const ayahsCount = activeAyahIndex + 1;
-    setExitPayload({
-      activityType: 'murojaah',
-      surahNumber: currentSurah.number,
-      surahName: currentSurah.name,
-      startAyah: 1,
-      endAyah: ayahsCount,
-      totalAyahs: ayahsCount,
-      pagesCount: Math.max(1, Math.ceil(ayahsCount / 15)),
-      durationSeconds: Math.max(duration, 10),
-      score: 96.5,
-    });
-    setIsExitModalOpen(true);
-  };
-
-  // SRS due items from backend
   const [dueAyahs, setDueAyahs] = useState<SrsDueItem[]>([]);
-  const [isLoadingSrs, setIsLoadingSrs] = useState(false);
 
-  // Audio Qari player
-  const [isPlayingQari, setIsPlayingQari] = useState(false);
-  const qariAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Fetch SRS due items from PostgreSQL
-  const fetchSrsQueue = async () => {
-    setIsLoadingSrs(true);
-    try {
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const res = await fetch('/api/v1/srs/today', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.items && Array.isArray(data.items)) {
-          setDueAyahs(data.items);
-        }
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoadingSrs(false);
-    }
-  };
-
+  // Fetch 114 Surahs catalog from Backend API
   useEffect(() => {
-    fetchSrsQueue();
-
     fetch('/api/v1/quran/surahs')
       .then((res) => (res.ok ? res.json() : []))
       .then((data: SurahSummary[]) => {
@@ -322,218 +126,240 @@ export default function MurojaahPage() {
           setSurahs(data);
         }
       })
-      .catch((err) => console.warn('Failed to fetch surah list from backend:', err));
-  }, []);
+      .catch((err) => console.warn('Failed to fetch surah list:', err));
 
-  // Fetch Real Surah Ayahs from Backend API
-  useEffect(() => {
-    fetch(`/api/v1/quran/surahs/${selectedSurahNumber}`)
+    // Fetch SRS due items
+    const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+    fetch('/api/v1/srs/today', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.ayahs && Array.isArray(data.ayahs)) {
-          const parsed: MushafAyah[] = data.ayahs.map((a: any) => ({
-            ayahNumber: a.ayahNumber,
-            textArabic: a.textArabic,
-            textLatin: a.textLatin,
-            translation: a.translation,
-            audioUrl: a.audioUrl,
-            words: parseAyahWords(a.textArabic),
-          }));
-          setCurrentSurah({
-            number: data.number,
-            name: data.nameLatin,
-            page: 1,
-            juz: 30,
-            ayahs: parsed,
-          });
+        if (data?.items && Array.isArray(data.items)) {
+          setDueAyahs(data.items);
         }
       })
-      .catch((err) => console.warn('Failed to load surah detail from backend:', err));
-  }, [selectedSurahNumber]);
+      .catch(() => {});
+  }, []);
 
-  // Reset status kata setiap ganti ayat
+  // Fetch Madinah Mushaf Page Verses (1 - 604)
   useEffect(() => {
-    if (pendingErrorTimerRef.current) {
-      clearTimeout(pendingErrorTimerRef.current);
-      pendingErrorTimerRef.current = null;
-    }
+    setLoadingPage(true);
+    // Reset state saat halaman berganti
     revealedWordsRef.current = new Set();
-    setRevealedWordIndices(new Set());
-    setWrongWordIndex(null);
-    setIsCompletedAyah(false);
-    isCompletedAyahRef.current = false;
-    isTransitioningRef.current = false;
+    setRevealedWordKeys(new Set());
+    setActiveVerseIndex(0);
+    setCompletedVerseKeys(new Set());
     setLiveTranscript('');
-  }, [activeAyahIndex, selectedSurahNumber]);
 
-  // Sync selesai ayat ke backend SRS & Mutabaah
-  const handleAyahCompleted = async (ayah: MushafAyah) => {
-    if (pendingErrorTimerRef.current) {
-      clearTimeout(pendingErrorTimerRef.current);
-      pendingErrorTimerRef.current = null;
-    }
-
-    setIsCompletedAyah(true);
-    isCompletedAyahRef.current = true;
-    isTransitioningRef.current = true;
-    setWrongWordIndex(null);
-    setScoreNotification(`Alhamdulillah! Ayat ${ayah.ayahNumber} Mutqin (Skor 100%)`);
-
-    try {
-      recordMurojaahSingleAyah(
-        currentSurah.number,
-        currentSurah.name,
-        ayah.ayahNumber,
-        100
-      );
-    } catch (e) {
-      console.warn('Failed to record mutabaah locally:', e);
-    }
-
-    try {
-      const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      await fetch('/api/v1/murojaah/evaluate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          surahNumber: currentSurah.number,
-          ayahNumber: ayah.ayahNumber,
-          userText: ayah.textArabic,
-        }),
+    fetch(
+      `https://api.quran.com/api/v4/verses/by_page/${currentPage}?words=true&word_fields=text_uthmani,line_number,char_type_name&translations=33&fields=chapter_id,page_number,juz_number`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.verses) {
+          setPageVerses(data.verses);
+        }
+      })
+      .catch((err) => console.warn('Failed to fetch page verses:', err))
+      .finally(() => {
+        setLoadingPage(false);
       });
-      fetchSrsQueue();
-    } catch {}
+  }, [currentPage]);
 
-    setTimeout(() => {
-      setScoreNotification(null);
-      isTransitioningRef.current = false;
-      if (activeAyahIndexRef.current < currentSurahRef.current.ayahs.length - 1) {
-        setActiveAyahIndex((prev) => prev + 1);
-      }
-    }, 1800);
-  };
+  // Parse surahs starting on the current Madinah Mushaf page
+  const { surahsStartingByVerse } = useMemo(() => {
+    const surahStartMap: Record<string, { number: number; nameLatin: string; nameArabic: string; totalAyahs: number }> = {};
 
-  // User klik kata yang kosong/mentok -> Buka perkata saja bukan seayat
-  const handleRevealSingleWord = (wordIndex: number) => {
-    if (pendingErrorTimerRef.current) {
-      clearTimeout(pendingErrorTimerRef.current);
-      pendingErrorTimerRef.current = null;
-    }
+    pageVerses.forEach((verse: any) => {
+      const parts = verse.verse_key?.split(':') || [];
+      const surahNum = parseInt(parts[0], 10);
+      const ayahNum = parseInt(parts[1], 10);
 
-    setRevealedWordIndices((prev) => {
-      const next = new Set(prev);
-      next.add(wordIndex);
-      if (wrongWordIndex === wordIndex) {
-        setWrongWordIndex(null);
+      // Cek apakah surah baru dimulai di ayat ini (ayat 1)
+      if (ayahNum === 1) {
+        const sMeta = surahs.find((s) => s.number === surahNum);
+        surahStartMap[verse.verse_key] = {
+          number: surahNum,
+          nameLatin: sMeta?.nameLatin || `Surah ${surahNum}`,
+          nameArabic: SURAH_ARABIC_NAMES[surahNum] || sMeta?.nameArabic || '',
+          totalAyahs: sMeta?.numberOfAyahs || 7,
+        };
       }
-      if (next.size === activeAyah.words.length && !isCompletedAyahRef.current) {
-        handleAyahCompleted(activeAyah);
-      }
-      return next;
     });
+
+    return {
+      surahsStartingByVerse: surahStartMap,
+    };
+  }, [pageVerses, surahs]);
+
+  // Current Page Metadata (Juz, Hizb, Active Surah)
+  const currentJuz = getJuzFromPage(currentPage);
+  const currentHizb = getHizbFromPage(currentPage);
+  const firstSurahNumOnPage = pageVerses[0]?.chapter_id || 1;
+  const currentSurahMeta = surahs.find((s) => s.number === firstSurahNumOnPage) || {
+    number: firstSurahNumOnPage,
+    nameLatin: firstSurahNumOnPage === 1 ? 'Al-Fatihah' : `Surah ${firstSurahNumOnPage}`,
+    nameArabic: SURAH_ARABIC_NAMES[firstSurahNumOnPage] || 'الفاتحة',
+    numberOfAyahs: 7,
   };
 
-  // Navigasi halaman Mushaf Madinah
-  const handleMushafPageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > 604) return;
-    setCurrentMushafPage(newPage);
+  // Inisialisasi Tilawa AI Engine (Model Hugging Face dengan Progress Monitoring)
+  useEffect(() => {
+    const tilawa = new TilawaVoiceService();
+    tilawaServiceRef.current = tilawa;
 
-    // Otomatis sesuaikan surah bila halaman berada di surah lain
-    const targetSurah = getSurahFromPage(newPage);
-    if (targetSurah !== selectedSurahNumber) {
-      setSelectedSurahNumber(targetSurah);
-      setActiveAyahIndex(0);
-    } else {
-      const matchIdx = currentSurah.ayahs.findIndex(
-        (a) => calculateAyahPage(currentSurah.number, a.ayahNumber, currentSurah.ayahs.length) === newPage
-      );
-      if (matchIdx !== -1) {
-        setActiveAyahIndex(matchIdx);
-      }
-    }
-  };
+    tilawa.onProgress((p) => {
+      setAiProgress(p);
+    });
 
-  // Algoritma Pencocokan Real-time Kata Suara vs Ayat (Dengan jeda validasi dan cooldown suara 'deng')
+    // Inisialisasi model di background (CORS aktif dari Hugging Face)
+    tilawa.initEngine().catch(() => {});
+
+    return () => {
+      tilawa.stopListening();
+    };
+  }, []);
+
+  /**
+   * ALGORITMA PENCOCOKAN STRICT PER-AYAT:
+   * Hanya mencocokkan kata-kata pada activeVerseIndex.
+   * Ayat setelahnya TIDAK AKAN PERNAH tersentuh sebelum ayat aktif selesai 100%!
+   */
   const processSpokenArabic = (spokenText: string) => {
-    if (!spokenText || isCompletedAyahRef.current || isTransitioningRef.current) return;
+    if (!spokenText || isTransitioningRef.current) return;
 
-    const currentTargetAyah = activeAyahRef.current;
-    if (!currentTargetAyah || !currentTargetAyah.words) return;
+    const normalizedSpoken = normalizeArabicQuran(spokenText);
+    if (!normalizedSpoken) return;
 
-    const normalizedSpoken = normalizeArabic(spokenText);
-    const spokenTokens = normalizedSpoken.split(/\s+/).filter(Boolean);
+    const spokenTokens = normalizedSpoken.split(/\s+/).filter((t) => t.length >= 2);
     if (spokenTokens.length === 0) return;
 
+    const currentVerses = pageVersesRef.current;
+    const curIdx = activeVerseIndexRef.current;
+    if (curIdx >= currentVerses.length) return;
+
+    const targetVerse = currentVerses[curIdx];
+    if (!targetVerse || !targetVerse.words) return;
+
+    // Filter kata-kata ayat aktif yang bukan nomor ayat
+    const targetWords: QuranWordItem[] = targetVerse.words
+      .filter((w: any) => w.char_type_name !== 'end')
+      .map((w: any) => ({
+        id: w.id,
+        position: w.position,
+        text_uthmani: w.text_uthmani,
+        line_number: w.line_number || 1,
+        char_type_name: 'word',
+        verse_key: targetVerse.verse_key,
+        clean: normalizeArabicQuran(w.text_uthmani),
+      }));
+
+    if (targetWords.length === 0) return;
+
     const currentRevealed = revealedWordsRef.current;
-    let targetIndex = -1;
-    for (let i = 0; i < currentTargetAyah.words.length; i++) {
-      if (!currentRevealed.has(i)) {
-        targetIndex = i;
+    const nextSet = new Set(currentRevealed);
+
+    // Cari kata-kata ayat aktif yang belum terbuka secara berurutan
+    const unrevealedWords = targetWords.filter(
+      (w) => !nextSet.has(`${targetVerse.verse_key}_${w.position}`)
+    );
+
+    if (unrevealedWords.length === 0) {
+      // Ayat aktif ini sudah selesai seluruhnya! Otomatis lanjut ke ayat berikutnya
+      advanceToNextAyah(curIdx, currentVerses);
+      return;
+    }
+
+    let matchedAny = false;
+    let spokenPtr = 0;
+
+    // Periksa token pelafalan secara berurutan hanya pada kata-kata ayat aktif
+    for (let u = 0; u < unrevealedWords.length && spokenPtr < spokenTokens.length; u++) {
+      const targetWord = unrevealedWords[u];
+      let foundIdx = -1;
+
+      // Window pencarian 3 token suara
+      const limit = Math.min(spokenTokens.length, spokenPtr + 3);
+      for (let s = spokenPtr; s < limit; s++) {
+        if (isArabicWordMatch(targetWord.clean, spokenTokens[s])) {
+          foundIdx = s;
+          break;
+        }
+      }
+
+      if (foundIdx !== -1) {
+        nextSet.add(`${targetVerse.verse_key}_${targetWord.position}`);
+        matchedAny = true;
+        spokenPtr = foundIdx + 1;
+      } else {
+        // Jika kata berikutnya belum cocok, jangan melompati kata di dalam ayat
         break;
       }
     }
 
-    if (targetIndex === -1) return;
+    if (matchedAny) {
+      revealedWordsRef.current = nextSet;
+      setRevealedWordKeys(new Set(nextSet));
 
-    const targetWord = currentTargetAyah.words[targetIndex];
-    const latestToken = spokenTokens[spokenTokens.length - 1];
+      // Cek apakah seluruh kata pada ayat aktif ini sudah lengkap terbuka
+      const remainingInActiveVerse = targetWords.filter(
+        (w) => !nextSet.has(`${targetVerse.verse_key}_${w.position}`)
+      );
 
-    // Cek apakah suara cocok dengan kata target
-    const isMatched =
-      latestToken === targetWord.clean ||
-      (latestToken.startsWith('و') && latestToken.slice(1) === targetWord.clean) ||
-      (latestToken.startsWith('ف') && latestToken.slice(1) === targetWord.clean) ||
-      (latestToken.startsWith('ب') && latestToken.slice(1) === targetWord.clean) ||
-      (latestToken.startsWith('ل') && latestToken.slice(1) === targetWord.clean) ||
-      (targetWord.clean.startsWith(latestToken) && latestToken.length >= 3) ||
-      (latestToken.startsWith(targetWord.clean) && targetWord.clean.length >= 3);
-
-    if (isMatched) {
-      // Benar: batalkan timer error jika ada yang tertunda
-      if (pendingErrorTimerRef.current) {
-        clearTimeout(pendingErrorTimerRef.current);
-        pendingErrorTimerRef.current = null;
+      if (remainingInActiveVerse.length === 0) {
+        // Ayat aktif selesai 100%!
+        setCompletedVerseKeys((prev) => new Set(prev).add(targetVerse.verse_key));
+        advanceToNextAyah(curIdx, currentVerses);
       }
-
-      setWrongWordIndex(null);
-      setRevealedWordIndices((prev) => {
-        const next = new Set(prev);
-        next.add(targetIndex);
-        if (next.size === currentTargetAyah.words.length && !isCompletedAyahRef.current) {
-          handleAyahCompleted(currentTargetAyah);
-        }
-        return next;
-      });
-    } else {
-      // Salah / Belum selesai lafal: Berikan jeda (debounce 1600ms) untuk memastikan user benar-benar salah
-      if (latestToken.length >= 2) {
-        if (!pendingErrorTimerRef.current) {
-          pendingErrorTimerRef.current = setTimeout(() => {
-            const now = Date.now();
-            // Cooldown minimal 2.8 detik agar tidak berbunyi terlalu sering
-            if (now - lastErrorSoundTimeRef.current >= 2800) {
-              setWrongWordIndex(targetIndex);
-              setShakeIteration((prev) => prev + 1);
-              playDengSound(); // Bunyi 'deng' bass resonan ala Netflix
-              lastErrorSoundTimeRef.current = now;
-            }
-            pendingErrorTimerRef.current = null;
-          }, 1600);
-        }
-      }
+    } else if (spokenTokens.length >= 2 && !isTransitioningRef.current) {
+      setMistakesCount((prev) => prev + 1);
     }
   };
 
-  // Web Speech Recognition
-  const startLiveListening = () => {
+  /**
+   * Pindah ke Ayat Berikutnya secara Otomatis dan Mulus
+   */
+  const advanceToNextAyah = (currentIdx: number, verses: any[]) => {
+    const nextIdx = currentIdx + 1;
+    if (nextIdx < verses.length) {
+      // Otomatis pindah fokus ke ayat setelahnya
+      setActiveVerseIndex(nextIdx);
+      activeVerseIndexRef.current = nextIdx;
+    } else {
+      // Seluruh ayat pada halaman mushaf ini sudah selesai!
+      isTransitioningRef.current = true;
+      recordMurojaahSingleAyah(currentSurahMeta.number, currentSurahMeta.nameLatin, 1, 100);
+
+      // Pindah otomatis ke halaman berikutnya setelah jeda 2 detik
+      setTimeout(() => {
+        if (currentPage < 604) {
+          setCurrentPage((p) => p + 1);
+        }
+        isTransitioningRef.current = false;
+      }, 2000);
+    }
+  };
+
+  const processSpokenArabicRef = useRef(processSpokenArabic);
+  useEffect(() => {
+    processSpokenArabicRef.current = processSpokenArabic;
+  });
+
+  // Start / Stop Live Listening (Web Speech API + Tilawa AI)
+  const startLiveListening = async () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
+    // Aktifkan Tilawa AI Microphone Stream
+    if (tilawaServiceRef.current) {
+      tilawaServiceRef.current.startListening().catch(() => {});
+    }
+
     if (!SpeechRecognition) {
-      alert('Browser Anda belum mendukung Web Speech API real-time. Silakan gunakan Google Chrome, Microsoft Edge, atau Safari iOS terbaru.');
+      setIsLiveListening(true);
+      isLiveListeningRef.current = true;
+      setLiveStatusText('Tilawa AI Engine aktif mendengarkan...');
       return;
     }
 
@@ -546,9 +372,12 @@ export default function MurojaahPage() {
       recognition.onstart = () => {
         setIsLiveListening(true);
         isLiveListeningRef.current = true;
+        setLiveStatusText('...Menunggu suara pelafalan');
       };
 
       recognition.onresult = (event: any) => {
+        if (isTransitioningRef.current) return;
+
         let interimText = '';
         let finalText = '';
 
@@ -564,49 +393,48 @@ export default function MurojaahPage() {
         const currentSpoken = (finalText + ' ' + interimText).trim();
         if (currentSpoken) {
           setLiveTranscript(currentSpoken);
-          processSpokenArabic(currentSpoken);
+          setLiveStatusText(currentSpoken);
+          processSpokenArabicRef.current(currentSpoken);
         }
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition warning:', event.error);
+        if (event.error !== 'no-speech') {
+          console.warn('Speech recognition status:', event.error);
+        }
       };
 
       recognition.onend = () => {
-        if (isLiveListeningRef.current && !isCompletedAyahRef.current && !isTransitioningRef.current) {
+        if (isLiveListeningRef.current && !isTransitioningRef.current) {
           try {
             recognition.start();
           } catch {
             setIsLiveListening(false);
             isLiveListeningRef.current = false;
           }
-        } else if (!isLiveListeningRef.current) {
-          setIsLiveListening(false);
-          isLiveListeningRef.current = false;
         }
       };
 
       recognition.start();
       recognitionRef.current = recognition;
-    } catch (err) {
-      console.error('Error starting live speech recognition:', err);
-      setIsLiveListening(false);
-      isLiveListeningRef.current = false;
+    } catch {
+      setIsLiveListening(true);
+      isLiveListeningRef.current = true;
     }
   };
 
   const stopLiveListening = () => {
     setIsLiveListening(false);
     isLiveListeningRef.current = false;
-    if (pendingErrorTimerRef.current) {
-      clearTimeout(pendingErrorTimerRef.current);
-      pendingErrorTimerRef.current = null;
-    }
+    setLiveStatusText('...Menunggu suara');
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.abort();
+        recognitionRef.current.stop();
       } catch {}
       recognitionRef.current = null;
+    }
+    if (tilawaServiceRef.current) {
+      tilawaServiceRef.current.stopListening();
     }
   };
 
@@ -618,15 +446,25 @@ export default function MurojaahPage() {
     }
   };
 
-  // Play audio qari resmi
+  // Dengarkan Tilawah Qari Misyari Rasyid Al-Afasi
   const handleToggleQari = () => {
     if (isPlayingQari) {
-      if (qariAudioRef.current) qariAudioRef.current.pause();
+      if (qariAudioRef.current) {
+        qariAudioRef.current.pause();
+      }
       setIsPlayingQari(false);
       return;
     }
 
-    const audio = new Audio(activeAyah.audioUrl);
+    const curAyah = pageVerses[activeVerseIndex];
+    const surahNum = curAyah?.chapter_id || currentSurahMeta.number;
+    const ayahNum = parseInt(curAyah?.verse_key?.split(':')[1] || '1', 10);
+
+    const sPad = String(surahNum).padStart(3, '0');
+    const aPad = String(ayahNum).padStart(3, '0');
+    const audioUrl = `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`;
+
+    const audio = new Audio(audioUrl);
     qariAudioRef.current = audio;
     audio.play();
     setIsPlayingQari(true);
@@ -635,433 +473,633 @@ export default function MurojaahPage() {
     audio.onerror = () => setIsPlayingQari(false);
   };
 
-  // Simulasi testing: Buka kata perkata
-  const handleSimulateWordReveal = () => {
-    for (let i = 0; i < activeAyah.words.length; i++) {
-      if (!revealedWordIndices.has(i)) {
-        handleRevealSingleWord(i);
-        break;
-      }
-    }
+  // Reset active page state
+  const handleResetPage = () => {
+    revealedWordsRef.current = new Set();
+    setRevealedWordKeys(new Set());
+    setActiveVerseIndex(0);
+    setCompletedVerseKeys(new Set());
+    setLiveTranscript('');
   };
 
-  // Simulasi testing: Uji salah kata (warna merah + getar dikit + suara 'deng')
-  const handleSimulateWordError = () => {
-    for (let i = 0; i < activeAyah.words.length; i++) {
-      if (!revealedWordIndices.has(i)) {
-        setWrongWordIndex(i);
-        setShakeIteration((prev) => prev + 1);
-        playDengSound();
-        break;
-      }
-    }
+  const handleOpenExitModal = () => {
+    const duration = Math.round((Date.now() - sessionStartTimeRef.current) / 1000);
+    setExitPayload({
+      activityType: 'murojaah',
+      surahNumber: currentSurahMeta.number,
+      surahName: currentSurahMeta.nameLatin,
+      startAyah: 1,
+      endAyah: pageVerses.length || 7,
+      totalAyahs: pageVerses.length || 7,
+      pagesCount: 1,
+      durationSeconds: Math.max(duration, 10),
+      score: Math.max(80, 100 - mistakesCount * 2),
+    });
+    setIsExitModalOpen(true);
   };
 
-  // Filter ayat-ayat yang berada di halaman mushaf aktif
-  const mushafPageAyahs = currentSurah.ayahs.filter(
-    (a) => calculateAyahPage(currentSurah.number, a.ayahNumber, currentSurah.ayahs.length) === currentMushafPage
-  );
-  const displayAyahs = viewMode === 'mushaf' && mushafPageAyahs.length > 0 ? mushafPageAyahs : currentSurah.ayahs;
+  // Filter surahs for catalog view
+  const filteredSurahs = surahs.filter((s) => {
+    const q = surahSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      s.number.toString().includes(q) ||
+      s.nameLatin.toLowerCase().includes(q) ||
+      s.nameArabic.includes(q) ||
+      s.translation.toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-28 font-sans">
-      {/* Toast Notifikasi Keberhasilan Ayat */}
-      {scoreNotification && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-400 text-sm font-semibold animate-in zoom-in-95">
-          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-          <span>{scoreNotification}</span>
-        </div>
-      )}
-
-      {/* Surah, Mode Switcher & SRS Queue Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          {/* Pemilihan Surah */}
-          <div className="flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-emerald-700" />
-            <select
-              value={selectedSurahNumber}
-              onChange={(e) => {
-                setSelectedSurahNumber(Number(e.target.value));
-                setActiveAyahIndex(0);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 cursor-pointer"
-            >
-              {surahs.length > 0
-                ? surahs.map((s) => (
-                    <option key={s.number} value={s.number}>
-                      {s.number}. {s.nameLatin} ({s.numberOfAyahs} Ayat)
-                    </option>
-                  ))
-                : DEFAULT_SURAHS.map((s) => (
-                    <option key={s.number} value={s.number}>
-                      {s.number}. {s.name}
-                    </option>
-                  ))}
-            </select>
-          </div>
-
-          {/* Toggle Mode: Mode Ayat vs Mode Halaman Mushaf */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setViewMode('ayah')}
-              className={`px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-                viewMode === 'ayah'
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Mode Ayat</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('mushaf')}
-              className={`px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-                viewMode === 'mushaf'
-                  ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Halaman Mushaf</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tombol Selesai Murojaah & Catat Mutabaah */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button
-            type="button"
-            onClick={handleOpenExitModal}
-            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Selesai Sesi &amp; Catat</span>
-          </button>
-        </div>
-      </div>
-
-      {/* SRS Due Banner bila ada */}
-      {dueAyahs.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl">
-          <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>
-            <strong>{dueAyahs.length} Ayat</strong> terjadwal di SRS hari ini {isLoadingSrs ? '...' : ''}
-          </span>
-        </div>
-      )}
-
-      {/* Mushaf Page Container */}
-      <div className={`bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px] ${viewMode === 'mushaf' ? 'bg-[#FFFDF9]' : ''}`}>
-        {/* Mushaf Top Header Navigation */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <button
-            onClick={() => {
-              if (viewMode === 'mushaf') {
-                handleMushafPageChange(currentMushafPage - 1);
-              } else if (activeAyahIndex > 0) {
-                setActiveAyahIndex((prev) => prev - 1);
-              }
-            }}
-            disabled={viewMode === 'mushaf' ? currentMushafPage <= 1 : activeAyahIndex === 0}
-            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition disabled:opacity-30 disabled:hover:bg-transparent"
-            title={viewMode === 'mushaf' ? 'Halaman Sebelumnya' : 'Ayat Sebelumnya'}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-              {currentSurah.name}
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">
-              {viewMode === 'mushaf'
-                ? `Halaman Mushaf ${currentMushafPage} / 604 • Juz ${activeAyahJuz}`
-                : `Ayat ${activeAyah.ayahNumber} dari ${currentSurah.ayahs.length} • Halaman ${activeAyahPage} • Juz ${activeAyahJuz}`}
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              if (viewMode === 'mushaf') {
-                handleMushafPageChange(currentMushafPage + 1);
-              } else if (activeAyahIndex < currentSurah.ayahs.length - 1) {
-                setActiveAyahIndex((prev) => prev + 1);
-              }
-            }}
-            disabled={viewMode === 'mushaf' ? currentMushafPage >= 604 : activeAyahIndex >= currentSurah.ayahs.length - 1}
-            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition disabled:opacity-30 disabled:hover:bg-transparent"
-            title={viewMode === 'mushaf' ? 'Halaman Selanjutnya' : 'Ayat Selanjutnya'}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Mushaf Body: Basmalah & Konten Ayat */}
-        <div className="p-5 sm:p-9 flex-1 flex flex-col justify-center space-y-6 select-none">
-          {/* Basmalah */}
-          {currentSurah.number !== 9 && (
-            <div className="text-center py-1">
-              <p className="font-quran text-2xl sm:text-3xl text-slate-800 tracking-wide" dir="rtl">
-                بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+    <div className="max-w-2xl mx-auto space-y-3 pb-28 font-sans select-none">
+      {/* ========================================================================= */}
+      {/* FLOW 1: DAFTAR 114 SURAH PENUH (KATALOG SURAT - TANPA POP-UP)             */}
+      {/* ========================================================================= */}
+      {viewState === 'catalog' && (
+        <div className="space-y-4 animate-in fade-in">
+          {/* Header Katalog */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Katalog Surah Al-Qur'an</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Pilih surah untuk langsung membuka lembaran Mushaf Madinah per halaman (Halaman 1 - 604)
               </p>
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setViewState('mushaf')}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <span>Buka Halaman {currentPage}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
 
-          {/* DAFTAR AYAT DENGAN LAYOUT STABIL (TIDAK BERUBAH BENTUK SAAT SALAH) */}
-          <div className="space-y-6">
-            {displayAyahs.map((ayah, aIdx) => {
-              const isCurrent = ayah.ayahNumber === activeAyah.ayahNumber;
-              const isPast = ayah.ayahNumber < activeAyah.ayahNumber;
+          {/* Kolom Pencarian Surah */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={surahSearchQuery}
+              onChange={(e) => setSurahSearchQuery(e.target.value)}
+              placeholder="Cari nama surat (contoh: Al-Baqarah, Yasin, 36)..."
+              className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs text-slate-800"
+            />
+          </div>
 
-              if (viewMode === 'ayah' && !isCurrent && !isPast && aIdx > activeAyahIndex + 1) {
-                return null;
-              }
-
+          {/* Grid 114 Surahs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {filteredSurahs.map((s) => {
+              const startPg = getSurahStartPage(s.number);
               return (
-                <div
-                  key={ayah.ayahNumber}
+                <button
+                  key={s.number}
+                  type="button"
                   onClick={() => {
-                    if (viewMode === 'mushaf' && !isCurrent) {
-                      const foundIdx = currentSurah.ayahs.findIndex((x) => x.ayahNumber === ayah.ayahNumber);
-                      if (foundIdx !== -1) setActiveAyahIndex(foundIdx);
-                    }
+                    setCurrentPage(startPg);
+                    setViewState('mushaf');
                   }}
-                  className={`p-5 sm:p-6 rounded-3xl transition-all duration-300 ${
-                    isCurrent
-                      ? 'bg-emerald-50/80 border-2 border-emerald-300 shadow-sm ring-1 ring-emerald-200/50'
-                      : isPast
-                      ? 'bg-white border border-slate-200/90 opacity-75'
-                      : 'bg-slate-50/40 border border-slate-200/50 opacity-40 hover:opacity-70 cursor-pointer'
-                  }`}
+                  className="p-3.5 bg-white hover:bg-emerald-50/50 rounded-2xl border border-slate-200/80 hover:border-emerald-300 transition-all text-left flex items-center justify-between shadow-2xs group cursor-pointer"
                 >
-                  {/* Status header ayat aktif */}
-                  {isCurrent && (
-                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-emerald-100 text-xs font-semibold text-emerald-800">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                        Sedang Murojaah: Ayat {ayah.ayahNumber}
-                      </span>
-                      <span className="text-slate-400 font-sans font-normal text-[11px]">
-                        Kata terbuka: {revealedWordIndices.size}/{ayah.words.length}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* KONTEN AYAT: LAYOUT TETAP STABIL DAN TERUSAN, HANYA KATA SALAH YANG MENJADI MERAH */}
-                  <div
-                    className="flex flex-wrap items-center gap-x-3.5 gap-y-3 font-quran text-3xl sm:text-4xl leading-loose justify-start text-right select-none"
-                    dir="rtl"
-                  >
-                    {ayah.words.map((w, wIdx) => {
-                      const isWordRevealed =
-                        isPast ||
-                        !isBlindMode ||
-                        (isCurrent && revealedWordIndices.has(wIdx));
-
-                      const isWordWrong = isCurrent && wrongWordIndex === wIdx;
-
-                      return (
-                        <span
-                          key={isWordWrong ? `wrong-${shakeIteration}-${wIdx}` : wIdx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isCurrent && !isWordRevealed) {
-                              handleRevealSingleWord(wIdx);
-                            }
-                          }}
-                          className={`inline-block transition-all duration-200 select-none ${
-                            isWordRevealed
-                              ? 'text-emerald-950 font-medium scale-100 animate-in fade-in'
-                              : isWordWrong
-                              ? 'bg-rose-100/95 text-rose-800 border-2 border-rose-500 rounded-2xl px-3 py-0.5 animate-shake shadow-xs cursor-pointer'
-                              : 'text-slate-400 hover:text-emerald-700 bg-emerald-100/60 hover:bg-emerald-200/70 border border-emerald-200/80 px-3 py-0.5 rounded-xl text-2xl font-normal cursor-pointer'
-                          }`}
-                          title={
-                            isWordRevealed
-                              ? w.raw
-                              : isWordWrong
-                              ? 'Salah sebut kata ini (klik jika mentok untuk membuka)'
-                              : 'Klik jika mentok untuk melihat kata ini'
-                          }
-                        >
-                          {isWordRevealed ? w.raw : '...'}
-                        </span>
-                      );
-                    })}
-
-                    {/* Nomor Ayat Mushaf ۝ */}
-                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full border-2 border-emerald-400 bg-white font-sans text-xs font-bold text-emerald-900 mx-2 shadow-xs select-none">
-                      {ayah.ayahNumber}
+                  <div className="flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-emerald-100 text-slate-700 group-hover:text-emerald-800 flex items-center justify-center text-xs font-bold font-sans transition-colors">
+                      {s.number}
                     </span>
-                  </div>
-
-                  {/* Terjemahan & Latin hanya pada ayat aktif saat tidak blind mode */}
-                  {isCurrent && !isBlindMode && (
-                    <div className="mt-4 pt-3 border-t border-emerald-100 text-left font-sans" dir="ltr">
-                      <p className="text-xs font-semibold text-emerald-800">{ayah.textLatin}</p>
-                      <p className="text-xs text-slate-500 italic mt-0.5">{ayah.translation}</p>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 group-hover:text-emerald-900 transition-colors">
+                        {s.nameLatin}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {s.translation} • {s.numberOfAyahs} Ayat • Hal. {startPg}
+                      </p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                  <span className="font-quran text-2xl text-slate-800 group-hover:text-emerald-950 transition-colors" dir="rtl">
+                    {s.nameArabic}
+                  </span>
+                </button>
               );
             })}
           </div>
         </div>
+      )}
 
-        {/* Indikator Mode & Bantuan Testing */}
-        <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isBlindMode ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-            />
-            <span>
-              {isBlindMode
-                ? 'Mode Hafalan Ghaib: Kata muncul seketika setelah dilafalkan (Klik kata jika mentok)'
-                : 'Mode Bimbingan Teks: Seluruh kata ditampilkan'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
+      {/* ========================================================================= */}
+      {/* FLOW 2: TAMPILAN MUSHAF MADINAH ASLI (PERSIS SCREENSHOT REFERENSI)         */}
+      {/* ========================================================================= */}
+      {viewState === 'mushaf' && (
+        <div className="space-y-2 animate-in fade-in">
+          {/* 1. TOP HEADER (Persis screenshot: ≡ [Al-Fatihah | Hal 1 | Juz 1 | Hizb 1 🔖] 🔍 ⚙) */}
+          <header className="flex items-center justify-between gap-2 px-1 py-1">
+            {/* Tombol Menu / Kembali ke Katalog 114 Surah */}
             <button
-              onClick={handleSimulateWordReveal}
-              className="text-[11px] text-emerald-700 hover:underline font-semibold"
-              title="Uji coba buka 1 kata berikutnya bila tanpa mikrofon"
+              type="button"
+              onClick={() => setViewState('catalog')}
+              className="p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              title="Buka Daftar 114 Surah"
             >
-              Uji Buka Kata
+              <Menu className="w-5 h-5" />
             </button>
-            <span className="text-slate-300">•</span>
-            <button
-              onClick={handleSimulateWordError}
-              className="text-[11px] text-rose-600 hover:underline font-semibold"
-              title="Uji coba efek salah sebut kata (warna merah + getar dikit + bunyi 'deng')"
-            >
-              Uji Salah Sebut
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Floating Bottom Live Dock (Responsive bottom spacing to avoid bottom nav overlap on mobile) */}
-      <div className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 px-4">
-        <div className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3 shadow-2xl shadow-slate-950/15 flex flex-col items-center space-y-3">
-          {/* Kotak Pendeteksi Suara User: Bahasa Indonesia saat menunggu, Font Quran & Harakat saat user mulai melafalkan */}
-          <div className="w-full bg-emerald-950/95 border border-emerald-800 rounded-2xl py-2.5 px-4 text-center shadow-inner">
-            <div className="flex flex-col items-center justify-center gap-1">
-              {isLiveListening && (
-                <div className="flex items-center gap-2 self-center mb-0.5" dir="ltr">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="text-[10px] font-semibold text-emerald-300 uppercase tracking-wider">
-                    Pendeteksi Suara Real-time
-                  </span>
+            {/* Center Pill: Kartu Surah & Info Halaman / Juz / Hizb (Persis screenshot) */}
+            <div className="flex-1 max-w-sm bg-slate-100/90 border border-slate-200/90 rounded-2xl px-4 py-1.5 flex items-center justify-between shadow-2xs">
+              <div className="text-left">
+                <p className="text-xs font-bold text-slate-900 leading-tight">
+                  {currentSurahMeta.nameLatin}
+                </p>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  Halaman {currentPage} | Juz {currentJuz} | Hizb {currentHizb}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBookmarked((b) => !b)}
+                className="p-1 text-slate-400 hover:text-emerald-600 transition cursor-pointer"
+                title="Tandai Halaman Ini"
+              >
+                <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-emerald-600 text-emerald-600' : ''}`} />
+              </button>
+            </div>
+
+            {/* Tombol Cari Halaman (🔍) & Pengaturan (⚙) */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setIsJumpModalOpen(true)}
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                title="Lompat ke Nomor Halaman (1-604)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                title="Pengaturan Mode Hafalan"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+          </header>
+
+          {/* AI Status / Progress Bar (Transparan jika sedang mengunduh model dari Hugging Face) */}
+          {aiProgress && aiProgress.status === 'downloading' && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                <span className="truncate">{aiProgress.message || 'Mengunduh model Quran AI...'}</span>
+              </div>
+              <span className="font-bold text-[11px] ml-2">{aiProgress.percent}%</span>
+            </div>
+          )}
+
+          {/* 2. LEMBARAN MUSHAF PER HALAMAN (Canvas Mushaf Madinah - Tanpa Box Kotak Modern) */}
+          <div className="bg-white border-x-4 border-slate-700/80 px-4 sm:px-8 py-5 min-h-[80vh] relative shadow-xs">
+            {/* Fine Inner Page Margin Border (Khas Mushaf Madinah) */}
+            <div className="border border-slate-300/80 p-3 sm:p-5 min-h-[72vh] flex flex-col justify-start">
+              {loadingPage ? (
+                <div className="py-32 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                  <p className="text-xs">Memuat lembaran Mushaf Halaman {currentPage}...</p>
                 </div>
-              )}
+              ) : pageVerses.length > 0 ? (
+                <div className="space-y-4">
+                  {pageVerses.map((verse: any, vIdx: number) => {
+                    const startingSurah = surahsStartingByVerse[verse.verse_key];
+                    const isCurrentActive = vIdx === activeVerseIndex;
+                    const isCompleted = completedVerseKeys.has(verse.verse_key);
+                    const words: any[] = verse.words || [];
+                    const ayahNum = parseInt(verse.verse_key?.split(':')[1] || String(vIdx + 1), 10);
 
-              {liveTranscript && isLiveListening ? (
-                /* Saat user sudah menyebutkan ayat: Tampilkan dengan font Al-Qur'an dan harakat lengkap */
-                <div
-                  className="font-quran text-2xl sm:text-3xl text-emerald-100 tracking-wide leading-relaxed min-h-[38px] flex items-center justify-center animate-in fade-in"
-                  dir="rtl"
-                >
-                  {getSpokenArabicWithHarakat(liveTranscript, activeAyah.words)}
+                    return (
+                      <div key={verse.verse_key || vIdx} className="space-y-3">
+                        {/* Frame Ornamen Judul Surah Klasik (Persis Mushaf - Bukan Box Web) */}
+                        {startingSurah && (
+                          <div className="relative mx-auto w-full max-w-xl my-4 text-center select-none">
+                            <div className="border-2 border-slate-900 py-2.5 px-4 bg-[#fbf9f4] flex items-center justify-between">
+                              {/* Ornamen Rosette Kiri */}
+                              <div className="text-slate-800">
+                                <svg className="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 40 40" fill="none" stroke="currentColor">
+                                  <circle cx="20" cy="20" r="15" strokeWidth="1.5" />
+                                  <circle cx="20" cy="20" r="11" strokeWidth="1" strokeDasharray="2,2" />
+                                  <path d="M20 5 L23 15 L33 15 L25 21 L28 31 L20 25 L12 31 L15 21 L7 15 L17 15 Z" strokeWidth="1" />
+                                </svg>
+                              </div>
+
+                              {/* Kaligrafi Judul Surah */}
+                              <div className="flex-1 text-center">
+                                <h2 className="font-quran text-2xl sm:text-3xl font-bold text-slate-900 tracking-wide" dir="rtl">
+                                  سُورَةُ {startingSurah.nameArabic}
+                                </h2>
+                              </div>
+
+                              {/* Ornamen Rosette Kanan */}
+                              <div className="text-slate-800">
+                                <svg className="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 40 40" fill="none" stroke="currentColor">
+                                  <circle cx="20" cy="20" r="15" strokeWidth="1.5" />
+                                  <circle cx="20" cy="20" r="11" strokeWidth="1" strokeDasharray="2,2" />
+                                  <path d="M20 5 L23 15 L33 15 L25 21 L28 31 L20 25 L12 31 L15 21 L7 15 L17 15 Z" strokeWidth="1" />
+                                </svg>
+                              </div>
+                            </div>
+
+                            {/* Basmalah Klasik (Khusus Surah 2-114 selain At-Tawbah. Al-Fatihah ayat 1 sudah merupakan basmalah) */}
+                            {startingSurah.number !== 1 && startingSurah.number !== 9 && (
+                              <p className="font-quran text-xl sm:text-2xl text-slate-900 mt-3 tracking-wide" dir="rtl">
+                                بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* MODE GHAIB PENUH (Level 3) PADA AYAT YANG BELUM AKTIF / BELUM SELESAI */}
+                        {memorizationLevel === 3 && !isCompleted && !isCurrentActive ? (
+                          <div
+                            onClick={() => {
+                              setActiveVerseIndex(vIdx);
+                              activeVerseIndexRef.current = vIdx;
+                            }}
+                            className="flex items-center justify-end gap-3 py-2.5 px-2 cursor-pointer hover:bg-slate-50/70 rounded-lg transition group"
+                            title={`Ayat ${ayahNum} (Klik untuk aktifkan)`}
+                          >
+                            <div className="flex-1 border-b-2 border-slate-300 max-w-sm sm:max-w-md ml-auto group-hover:border-emerald-400 transition-colors" />
+                            <span className="font-quran text-lg w-8 h-8 rounded-full border border-slate-300 text-slate-700 flex items-center justify-center select-none bg-slate-50/60 shadow-2xs group-hover:border-emerald-500 group-hover:text-emerald-700 transition-colors">
+                              ۝{toArabicDigits(ayahNum)}
+                            </span>
+                          </div>
+                        ) : (
+                          /* TAMPILAN KATA AYAT (Level 1, Level 2, atau Ayat Aktif Level 3) */
+                          <div
+                            onClick={() => {
+                              setActiveVerseIndex(vIdx);
+                              activeVerseIndexRef.current = vIdx;
+                            }}
+                            className={`text-right leading-loose py-1 px-2 rounded-xl transition cursor-pointer ${
+                              isCurrentActive
+                                ? 'bg-emerald-50/40 ring-1 ring-emerald-300/60'
+                                : 'hover:bg-slate-50/60'
+                            }`}
+                          >
+                            {words.map((w: any, wIdx: number) => {
+                              if (w.char_type_name === 'end') {
+                                return (
+                                  <span
+                                    key={w.id || wIdx}
+                                    className={`inline-flex items-center justify-center font-quran text-lg w-8 h-8 rounded-full border mx-1.5 align-middle select-none transition-colors ${
+                                      isCompleted
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
+                                        : isCurrentActive
+                                        ? 'border-emerald-400 bg-emerald-50/60 text-emerald-700'
+                                        : 'border-slate-300 text-slate-800 bg-slate-50/50'
+                                    }`}
+                                  >
+                                    ۝{toArabicDigits(ayahNum)}
+                                  </span>
+                                );
+                              }
+
+                              const wordKey = `${verse.verse_key}_${w.position}`;
+                              const isRevealed = revealedWordKeys.has(wordKey);
+
+                              let isVisible = false;
+                              if (memorizationLevel === 1) {
+                                isVisible = true;
+                              } else if (memorizationLevel === 2) {
+                                isVisible = w.position % 2 === 1 || isRevealed || isCompleted;
+                              } else {
+                                // Level 3: Terlihat jika sudah dilafalkan atau ayat sudah komplit
+                                isVisible = isRevealed || isCompleted;
+                              }
+
+                              if (isVisible) {
+                                return (
+                                  <span
+                                    key={w.id || wIdx}
+                                    className={`inline-block mx-1 font-quran text-2xl sm:text-3xl transition-colors duration-200 ${
+                                      isRevealed
+                                        ? 'text-emerald-700 font-bold'
+                                        : 'text-slate-800'
+                                    }`}
+                                  >
+                                    {w.text_uthmani}
+                                  </span>
+                                );
+                              }
+
+                              // Garis halus kata yang belum terlafalkan
+                              return (
+                                <span
+                                  key={w.id || wIdx}
+                                  className="inline-block mx-1.5 align-middle border-b-2 border-slate-300 w-10 sm:w-14 h-6 transition-all"
+                                  title="Kata tersembunyi (lafalkan untuk membuka)"
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
-                /* Saat belum ada suara / sedang menunggu suara: Gunakan Bahasa Indonesia */
-                <div className="text-xs sm:text-sm font-medium text-emerald-200/80 min-h-[38px] flex items-center justify-center font-sans tracking-wide">
-                  {isLiveListening
-                    ? 'Mendengarkan lantunan ayat Anda...'
-                    : 'Tekan tombol mikrofon untuk mulai melafalkan'}
+                <div className="py-24 text-center text-slate-400 text-xs">
+                  Gagal memuat lembaran mushaf halaman {currentPage}.
                 </div>
               )}
             </div>
           </div>
 
-          {/* Action Dock Controls */}
-          <div className="flex items-center justify-between w-full px-4 sm:px-6">
-            {/* Tombol Mata (Eye Toggle): Mode Hafalan Ghaib vs Buka Teks */}
-            <button
-              type="button"
-              onClick={() => setIsBlindMode(!isBlindMode)}
-              className={`p-3 rounded-2xl border transition ${
-                isBlindMode
-                  ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                  : 'bg-emerald-100 border-emerald-300 text-emerald-800'
-              }`}
-              title={isBlindMode ? 'Buka Teks Bantuan' : 'Tutup Kata (Uji Hafalan)'}
-            >
-              {isBlindMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+          {/* 3. FLOATING BOTTOM ACTION BAR (Persis screenshot referensi: [Kesalahan] [📖] [👁️] [<] [>] + [MIC HIJAU]) */}
+          <div className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 px-4 pointer-events-none">
+            <div className="max-w-xl mx-auto flex items-center justify-between pointer-events-auto">
+              {/* KIRI: Badge Kesalahan */}
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md text-xs font-semibold text-slate-700">
+                <span>Kesalahan</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[11px] ${
+                    mistakesCount > 0
+                      ? 'bg-amber-100 text-amber-800 font-bold'
+                      : 'bg-emerald-100 text-emerald-800 font-bold'
+                  }`}
+                >
+                  {mistakesCount}
+                </span>
+              </div>
 
-            {/* Tombol Ayat Sebelumnya */}
-            <button
-              type="button"
-              disabled={activeAyahIndex === 0}
-              onClick={() => setActiveAyahIndex((prev) => Math.max(0, prev - 1))}
-              className="p-3 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-600 transition cursor-pointer"
-              title="Ayat Sebelumnya"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+              {/* TENGAH: Dock Navigasi Lembar & Mode Tampilan */}
+              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-full px-2 py-1 shadow-md">
+                {/* Mode Baca Mushaf (Teks Penuh) */}
+                <button
+                  type="button"
+                  onClick={() => setMemorizationLevel((prev) => (prev === 1 ? 3 : 1))}
+                  className={`p-2.5 rounded-full transition cursor-pointer ${
+                    memorizationLevel === 1
+                      ? 'text-emerald-700 bg-emerald-50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                  title={memorizationLevel === 1 ? 'Beralih ke Mode Ghaib' : 'Tampilkan Teks Penuh (Mode Baca)'}
+                >
+                  <BookOpen className="w-4 h-4" />
+                </button>
 
-            {/* Tombol Mikrofon Utama */}
-            <button
-              type="button"
-              onClick={handleToggleListening}
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 active:scale-95 cursor-pointer ${
-                isLiveListening
-                  ? 'bg-rose-600 hover:bg-rose-700 ring-4 ring-rose-300 animate-pulse'
-                  : 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-200'
-              }`}
-              title={isLiveListening ? 'Hentikan Live Listening' : 'Mulai Hafalan Real-time'}
-            >
-              {isLiveListening ? (
-                <Square className="w-6 h-6 fill-white" />
-              ) : (
-                <Mic className="w-7 h-7" />
-              )}
-            </button>
+                {/* Dengarkan Qari Resmi */}
+                <button
+                  type="button"
+                  onClick={handleToggleQari}
+                  className={`p-2.5 rounded-full transition cursor-pointer ${
+                    isPlayingQari
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                  title={isPlayingQari ? 'Jeda Audio Qari' : 'Dengarkan Bacaan Qari'}
+                >
+                  {isPlayingQari ? <Pause className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
 
-            {/* Tombol Ayat Selanjutnya */}
-            <button
-              type="button"
-              disabled={activeAyahIndex === currentSurah.ayahs.length - 1}
-              onClick={() =>
-                setActiveAyahIndex((prev) =>
-                  Math.min(currentSurah.ayahs.length - 1, prev + 1)
-                )
-              }
-              className="p-3 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-600 transition cursor-pointer"
-              title="Ayat Selanjutnya"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+                {/* Siklus Mode Hafalan Bertingkat (1: Teks Lengkap -> 2: Samar -> 3: Ghaib) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMemorizationLevel((prev) => (prev === 3 ? 1 : ((prev + 1) as 1 | 2 | 3)));
+                  }}
+                  className="p-2.5 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer relative"
+                  title={`Mode Hafalan: Level ${memorizationLevel} (${
+                    memorizationLevel === 1 ? 'Teks Lengkap' : memorizationLevel === 2 ? 'Sebagian Samar' : 'Ghaib Total'
+                  })`}
+                >
+                  {memorizationLevel === 1 ? (
+                    <Eye className="w-4 h-4 text-emerald-700" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-slate-700" />
+                  )}
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-600 text-white text-[9px] flex items-center justify-center font-bold">
+                    {memorizationLevel}
+                  </span>
+                </button>
 
-            {/* Tombol Audio Qari */}
+                {/* Ulangi Halaman / Reset Hafalan Halaman Ini */}
+                <button
+                  type="button"
+                  onClick={handleResetPage}
+                  className="p-2.5 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+                  title="Ulangi dari Awal Halaman Ini"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                {/* Halaman Sebelumnya (<) */}
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="p-2.5 rounded-full text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Halaman Selanjutnya (>) */}
+                <button
+                  type="button"
+                  disabled={currentPage >= 604}
+                  onClick={() => setCurrentPage((p) => Math.min(604, p + 1))}
+                  className="p-2.5 rounded-full text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                  title="Halaman Selanjutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* KANAN: Tombol Mikrofon Utama (Persis screenshot: floating green glowing circle) */}
+              <button
+                type="button"
+                onClick={handleToggleListening}
+                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white shadow-xl cursor-pointer transition-all duration-300 ${
+                  isLiveListening
+                    ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 ring-4 ring-emerald-300/60 shadow-emerald-500/40 animate-pulse scale-105'
+                    : 'bg-gradient-to-tr from-emerald-600 to-teal-500 hover:scale-105 active:scale-95 shadow-emerald-900/20'
+                }`}
+                title={isLiveListening ? 'Hentikan Mendengarkan' : 'Mulai Hafalan Suara'}
+              >
+                {isLiveListening ? (
+                  <Square className="w-5 h-5 fill-white" />
+                ) : (
+                  <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
+                )}
+              </button>
+            </div>
+
+            {/* Status Suara Ringkas Khusyu' (Tanpa Bunyi) */}
+            {isLiveListening && (
+              <div className="max-w-xs mx-auto mt-2 bg-slate-900/80 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full text-center truncate pointer-events-auto shadow-md">
+                {liveTranscript ? `Mendengarkan: "${liveTranscript}"` : liveStatusText}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL LOMPAT KE NOMOR HALAMAN (1 - 604) */}
+      {isJumpModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">Buka Halaman Mushaf</h3>
+              <button
+                type="button"
+                onClick={() => setIsJumpModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-slate-500">Nomor Halaman (1 - 604):</label>
+              <input
+                type="number"
+                min={1}
+                max={604}
+                value={pageJumpInput}
+                onChange={(e) => setPageJumpInput(e.target.value)}
+                placeholder="Contoh: 1, 50, 582"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center font-bold"
+                autoFocus
+              />
+            </div>
             <button
               type="button"
-              onClick={handleToggleQari}
-              className={`p-3 rounded-2xl border transition cursor-pointer ${
-                isPlayingQari
-                  ? 'bg-emerald-600 text-white border-emerald-700'
-                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-              }`}
-              title={isPlayingQari ? 'Jeda Qari' : 'Dengar Pelafalan Qari'}
+              onClick={() => {
+                const pg = parseInt(pageJumpInput, 10);
+                if (pg >= 1 && pg <= 604) {
+                  setCurrentPage(pg);
+                  setViewState('mushaf');
+                  setIsJumpModalOpen(false);
+                  setPageJumpInput('');
+                }
+              }}
+              className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition"
             >
-              {isPlayingQari ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Volume2 className="w-5 h-5" />
-              )}
+              Buka Halaman
             </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Exit-Intent Logger Modal Mutabaah */}
+      {/* MODAL PENGATURAN HAFALAN & CATAT MUTABAAH */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-emerald-700" />
+                <h3 className="text-base font-bold text-slate-900">Pengaturan Hafalan</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pilihan Level Hafalan (Tadrij) */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                Tingkat Kesulitan Hafalan:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMemorizationLevel(1)}
+                  className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                    memorizationLevel === 1
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <p className="text-xs font-bold">Level 1</p>
+                  <p className="text-[10px] text-slate-500">Teks Penuh</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMemorizationLevel(2)}
+                  className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                    memorizationLevel === 2
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <p className="text-xs font-bold">Level 2</p>
+                  <p className="text-[10px] text-slate-500">Sebagian Samar</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMemorizationLevel(3)}
+                  className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                    memorizationLevel === 3
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <p className="text-xs font-bold">Level 3</p>
+                  <p className="text-[10px] text-slate-500">Ghaib Total</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Status Engine AI Suara */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">Engine Suara:</span>
+                <span className="text-emerald-700 font-bold">Web Speech (ar-SA) + QUL Matcher</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                <span>Model Neural Tilawa AI:</span>
+                <span>{aiProgress?.message || 'Siap dihubungkan'}</span>
+              </div>
+            </div>
+
+            {/* Info SRS Queue */}
+            {dueAyahs.length > 0 && (
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                <strong>{dueAyahs.length} Ayat</strong> terjadwal untuk diulang di SRS hari ini.
+              </div>
+            )}
+
+            {/* Reset Counter Kesalahan */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMistakesCount(0);
+                  setIsSettingsOpen(false);
+                }}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+              >
+                Reset Hitungan Kesalahan
+              </button>
+            </div>
+
+            {/* Selesai Sesi & Simpan Mutabaah */}
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSettingsOpen(false);
+                  handleOpenExitModal();
+                }}
+                className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Selesaikan Sesi & Catat ke Mutabaah</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SIMPAN SESI MUTABAAH YAUMI */}
       {exitPayload && (
         <ExitMutabaahModal
           isOpen={isExitModalOpen}
@@ -1079,8 +1117,6 @@ export default function MurojaahPage() {
               santriNotes: payload.santriNotes,
             });
             setIsExitModalOpen(false);
-            setScoreNotification('Alhamdulillah! Laporan sesi murojaah tersimpan ke Mutabaah Yaumi.');
-            setTimeout(() => setScoreNotification(null), 3000);
           }}
           activityType={exitPayload.activityType}
           surahNumber={exitPayload.surahNumber}
