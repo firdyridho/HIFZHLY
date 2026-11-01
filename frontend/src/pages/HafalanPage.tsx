@@ -31,6 +31,7 @@ import {
 } from '../lib/quranMeta';
 import { TilawaVoiceService } from '../lib/tilawaService';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
+import MistakesDetailModal, { MistakeItem } from '../components/murojaah/MistakesDetailModal';
 
 interface QuranWordItem {
   id: number;
@@ -76,6 +77,8 @@ export default function HafalanPage() {
   const [liveTranscript, setLiveTranscript] = useState('');
   const [liveStatusText, setLiveStatusText] = useState('...Menunggu suara');
   const [mistakesCount, setMistakesCount] = useState(0);
+  const [mistakesList, setMistakesList] = useState<MistakeItem[]>([]);
+  const [isMistakesModalOpen, setIsMistakesModalOpen] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -352,7 +355,34 @@ export default function HafalanPage() {
         advanceToNextAyah(curIdx, currentVerses);
       }
     } else if (spokenTokens.length >= 2 && !isTransitioningRef.current) {
-      setMistakesCount((prev) => prev + 1);
+      // Rekam kesalahan hanya bila kata yang diucapkan sama sekali tidak cocok dengan kata target ayat aktif
+      const curAyahWords = targetWords.map((w) => w.clean);
+      const isAnyMatch = spokenTokens.some((st) => curAyahWords.some((cw) => isArabicWordMatch(cw, st, false)));
+      if (!isAnyMatch && targetVerse) {
+        setMistakesCount((prev) => prev + 1);
+        setMistakesList((prev) => {
+          if (
+            prev.length > 0 &&
+            prev[prev.length - 1].verseKey === targetVerse.verse_key &&
+            Date.now() - new Date(prev[prev.length - 1].timestamp).getTime() < 4000
+          ) {
+            return prev;
+          }
+          return [
+            ...prev,
+            {
+              id: `${targetVerse.verse_key}-${Date.now()}`,
+              verseKey: targetVerse.verse_key,
+              ayahNumber: targetVerse.ayahNumber || parseInt(targetVerse.verse_key.split(':')[1] || '1', 10),
+              surahNumber: targetVerse.chapter_id || currentSurahMeta.number,
+              surahName: currentSurahMeta.nameLatin,
+              expectedText: targetVerse.text_uthmani || targetWords.map((w) => w.text_uthmani).join(' '),
+              spokenText: spokenText,
+              timestamp: new Date(),
+            },
+          ];
+        });
+      }
     }
   };
 
@@ -915,19 +945,24 @@ export default function HafalanPage() {
           {/* 3. FLOATING BOTTOM ACTION BAR (Persis screenshot referensi: [Kesalahan] [📖] [👁️] [<] [>] + [MIC HIJAU]) */}
           <div className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 px-4 pointer-events-none">
             <div className="max-w-xl mx-auto flex items-center justify-between pointer-events-auto">
-              {/* KIRI: Badge Kesalahan */}
-              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md text-xs font-semibold text-slate-700">
+              {/* KIRI: Badge Kesalahan (Dapat diklik untuk melihat rincian kesalahan) */}
+              <button
+                type="button"
+                onClick={() => setIsMistakesModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer active:scale-95"
+                title="Klik untuk melihat rincian kesalahan hafalan"
+              >
                 <span>Kesalahan</span>
                 <span
                   className={`px-1.5 py-0.5 rounded-full text-[11px] ${
-                    mistakesCount > 0
+                    mistakesList.length > 0
                       ? 'bg-amber-100 text-amber-800 font-bold'
                       : 'bg-emerald-100 text-emerald-800 font-bold'
                   }`}
                 >
-                  {mistakesCount}
+                  {mistakesList.length}
                 </span>
-              </div>
+              </button>
 
               {/* TENGAH: Dock Navigasi Lembar & Mode Tampilan */}
               <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-full px-2 py-1 shadow-md">
@@ -1232,6 +1267,32 @@ export default function HafalanPage() {
           score={exitPayload.score}
         />
       )}
+
+      {/* MODAL DETAIL KESALAHAN & KOREKSI MAKHRAJ */}
+      <MistakesDetailModal
+        isOpen={isMistakesModalOpen}
+        onClose={() => setIsMistakesModalOpen(false)}
+        mistakes={mistakesList}
+        onPlayAyah={(ayahNum) => {
+          const sNum = currentSurahMeta.number;
+          const sPad = String(sNum).padStart(3, '0');
+          const aPad = String(ayahNum).padStart(3, '0');
+          const audioUrl = `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`;
+          if (qariAudioRef.current) {
+            qariAudioRef.current.pause();
+          }
+          const audio = new Audio(audioUrl);
+          qariAudioRef.current = audio;
+          audio.play();
+          setIsPlayingQari(true);
+          audio.onended = () => setIsPlayingQari(false);
+          audio.onerror = () => setIsPlayingQari(false);
+        }}
+        onClearMistakes={() => {
+          setMistakesList([]);
+          setMistakesCount(0);
+        }}
+      />
     </div>
   );
 }

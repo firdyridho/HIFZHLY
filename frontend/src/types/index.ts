@@ -154,7 +154,7 @@ export interface MutabaahSummary {
 
 export interface HeatmapAyahItem {
   ayahNumber: number;
-  status: 'strong' | 'reviewing' | 'learning';
+  status: 'strong' | 'reviewing' | 'learning' | 'untested';
   lastScore: number;
   intervalDays: number;
 }

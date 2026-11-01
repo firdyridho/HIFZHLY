@@ -9,6 +9,7 @@ import {
   GraduationCap,
   AlertCircle,
   RotateCcw,
+  Target,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -199,6 +200,20 @@ export default function MainLayout() {
               >
                 <BarChart3 className="w-4 h-4" />
                 <span>Mutabaah</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/target"
+                className={({ isActive }) =>
+                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`
+                }
+              >
+                <Target className="w-4 h-4" />
+                <span>Target</span>
               </NavLink>
 
               <NavLink

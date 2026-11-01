@@ -133,17 +133,25 @@ type UserCommitment struct {
 	TargetDeadline          string `json:"targetDeadline"`
 	CurrentStreak           int    `json:"currentStreak"`
 	MaxStreak               int    `json:"maxStreak"`
+	ProgressionOrder        string `json:"progressionOrder"`        // "juz_30" | "juz_1_asc" | "custom_surah"
+	MurojaahTargetUnit       string `json:"murojaahTargetUnit"`      // "surah" | "ayah" | "page"
+	DailyTargetMurojaahCount int    `json:"dailyTargetMurojaahCount"`
+	TargetJuzNumber          int    `json:"targetJuzNumber"`
 }
 
 type UpdateUserCommitmentRequest struct {
-	DailyTargetAyahsTilawah *int   `json:"dailyTargetAyahsTilawah,omitempty"`
-	DailyTargetPagesTilawah *int   `json:"dailyTargetPagesTilawah,omitempty"`
-	DailyTargetAyahsHafalan *int   `json:"dailyTargetAyahsHafalan,omitempty"`
-	TargetSurahNumber       *int   `json:"targetSurahNumber,omitempty"`
-	TargetSurahName         string `json:"targetSurahName,omitempty"`
-	TargetStartAyah         *int   `json:"targetStartAyah,omitempty"`
-	TargetEndAyah           *int   `json:"targetEndAyah,omitempty"`
-	TargetDeadline          string `json:"targetDeadline,omitempty"`
+	DailyTargetAyahsTilawah  *int   `json:"dailyTargetAyahsTilawah,omitempty"`
+	DailyTargetPagesTilawah  *int   `json:"dailyTargetPagesTilawah,omitempty"`
+	DailyTargetAyahsHafalan  *int   `json:"dailyTargetAyahsHafalan,omitempty"`
+	TargetSurahNumber        *int   `json:"targetSurahNumber,omitempty"`
+	TargetSurahName          string `json:"targetSurahName,omitempty"`
+	TargetStartAyah          *int   `json:"targetStartAyah,omitempty"`
+	TargetEndAyah            *int   `json:"targetEndAyah,omitempty"`
+	TargetDeadline           string `json:"targetDeadline,omitempty"`
+	ProgressionOrder         string `json:"progressionOrder,omitempty"`
+	MurojaahTargetUnit       string `json:"murojaahTargetUnit,omitempty"`
+	DailyTargetMurojaahCount *int   `json:"dailyTargetMurojaahCount,omitempty"`
+	TargetJuzNumber          *int   `json:"targetJuzNumber,omitempty"`
 }
 
 type AdminMutabaahTilawahInfo struct {

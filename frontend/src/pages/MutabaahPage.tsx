@@ -22,6 +22,8 @@ import {
   AlertCircle,
   Compass,
   Bookmark,
+  ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
 import type { MutabaahSummary, SurahHeatmap } from '../types';
 import {
@@ -97,9 +99,6 @@ export default function MutabaahPage() {
 
   // Commitments State
   const [commitments, setCommitments] = useState<UserCommitment>(getUserCommitments());
-  const [isEditingCommitment, setIsEditingCommitment] = useState(false);
-  const [commitmentForm, setCommitmentForm] = useState<UserCommitment>(commitments);
-  const [commitmentToast, setCommitmentToast] = useState<string | null>(null);
 
   // Summary Metrics
   const [summary, setSummary] = useState<MutabaahSummary>({
@@ -143,7 +142,6 @@ export default function MutabaahPage() {
 
     const curCommitments = getUserCommitments();
     setCommitments(curCommitments);
-    setCommitmentForm(curCommitments);
 
     const todayLog = stored[todayKey];
     let dailyTarget = curCommitments.dailyTargetAyahsHafalan || 10;
@@ -230,22 +228,18 @@ export default function MutabaahPage() {
         }
       })
       .catch(() => {
-        const surahObj = JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah) || JUZ_AMMA_SURAHS[0];
-        const ayahsList = Array.from({ length: surahObj.ayahs }, (_, i) => {
-          const ayahNum = i + 1;
-          const status =
-            ayahNum <= 10
-              ? ('strong' as const)
-              : ayahNum <= 25
-                ? ('reviewing' as const)
-                : ('learning' as const);
-          return {
-            ayahNumber: ayahNum,
-            status,
-            lastScore: status === 'strong' ? 95 : status === 'reviewing' ? 82 : 65,
-            intervalDays: status === 'strong' ? 14 : status === 'reviewing' ? 3 : 1,
-          };
-        });
+        // Fallback riil: bila belum ada data sesi untuk surat ini di backend, tampilkan status belum diuji
+        const surahObj = JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah) || {
+          number: selectedSurah,
+          name: `Surah ${selectedSurah}`,
+          ayahs: 20,
+        };
+        const ayahsList = Array.from({ length: surahObj.ayahs }, (_, i) => ({
+          ayahNumber: i + 1,
+          status: 'untested' as const,
+          lastScore: 0,
+          intervalDays: 0,
+        }));
 
         setActiveSurahHeatmap({
           surahNumber: surahObj.number,
@@ -393,15 +387,6 @@ export default function MutabaahPage() {
 
 
 
-  // Submit Commitment Form
-  const handleSaveCommitments = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await saveUserCommitments(commitmentForm);
-    setIsEditingCommitment(false);
-    refreshData();
-    setCommitmentToast('Target & Komitmen Ibadah berhasil diperbarui!');
-    setTimeout(() => setCommitmentToast(null), 3000);
-  };
 
   const formattedSelectedDate = useMemo(() => {
     if (!selectedDateKey) return '';
@@ -425,13 +410,6 @@ export default function MutabaahPage() {
 
   return (
     <div className="space-y-6 pb-28 font-sans">
-      {/* Toast Notification */}
-      {commitmentToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-400 text-sm font-semibold animate-in zoom-in-95">
-          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-          <span>{commitmentToast}</span>
-        </div>
-      )}
 
       {/* 1. Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -1144,30 +1122,39 @@ export default function MutabaahPage() {
             );
           })()}
 
-          {/* Heatmap Surah Juz 'Amma */}
+          {/* Heatmap Surah (Data Riil Spaced Repetition) */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
               <div>
-                <h3 className="font-extrabold text-slate-900 text-lg">
-                  Peta Visual Retensi Surah (Heatmap Juz 30)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Pilih salah satu surah untuk melihat rincian ketahanan memori per ayat
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-slate-900 text-lg">
+                    Peta Visual Retensi Surah (Heatmap Spaced Repetition)
+                  </h3>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Data Riil FSRS
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Visualisasi riil daya ingat hafalan per ayat dari riwayat murojaah &amp; hafalan suara Anda
                 </p>
               </div>
 
-              <div className="flex items-center space-x-4 text-xs font-medium">
+              <div className="flex items-center space-x-3 text-xs font-medium flex-wrap gap-y-1">
                 <span className="flex items-center space-x-1.5">
                   <span className="w-3 h-3 rounded bg-emerald-500" />
-                  <span>Kuat (Mutqin)</span>
+                  <span>Mutqin</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
                   <span className="w-3 h-3 rounded bg-amber-400" />
-                  <span>Reviewing</span>
+                  <span>Diulang</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
                   <span className="w-3 h-3 rounded bg-rose-400" />
-                  <span>Lemah</span>
+                  <span>Belum Lancar</span>
+                </span>
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-3 h-3 rounded bg-slate-100 border border-slate-300" />
+                  <span>Belum Dimurojaah</span>
                 </span>
               </div>
             </div>
@@ -1175,67 +1162,80 @@ export default function MutabaahPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
               {JUZ_AMMA_SURAHS.map((surah) => {
                 const isSelected = selectedSurah === surah.number;
-                let statusBg = 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:border-emerald-400';
-                if (surah.status === 'reviewing') {
-                  statusBg = 'bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400';
-                } else if (surah.status === 'learning') {
-                  statusBg = 'bg-rose-50 text-rose-900 border-rose-200 hover:border-rose-400';
-                }
-
                 return (
                   <button
                     key={surah.number}
                     type="button"
                     onClick={() => setSelectedSurah(surah.number)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${statusBg} ${isSelected ? 'ring-2 ring-emerald-600 shadow-sm font-bold scale-105' : ''
-                      }`}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs font-bold'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
                   >
-                    <div className="flex items-center justify-between text-[10px] opacity-75 font-mono">
-                      <span>{surah.number}</span>
-                      <span>{surah.pct}%</span>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span>QS. {surah.number}</span>
                     </div>
-                    <div className="text-xs font-bold truncate mt-0.5">{surah.name}</div>
+                    <div className="text-xs font-bold text-slate-900 truncate mt-0.5">{surah.name}</div>
                     <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
                   </button>
                 );
               })}
             </div>
 
-            {activeSurahHeatmap && (
-              <div className="pt-4 border-t border-slate-100 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-slate-900">
-                      Rincian Ayat Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber}):
-                    </span>
-                    <span className="text-xs text-slate-500 ml-2">
-                      Total {activeSurahHeatmap.totalAyahs} Ayat
+            {activeSurahHeatmap && (() => {
+              const strongCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'strong').length;
+              const reviewingCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'reviewing').length;
+              const learningCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'learning').length;
+              const total = activeSurahHeatmap.totalAyahs || 1;
+              const realRetentionPct = Math.round(((strongCount + reviewingCount * 0.5) / total) * 100);
+
+              return (
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-slate-900">
+                        Rincian Ayat Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber}):
+                      </span>
+                      <span className="text-xs text-slate-500 ml-2">
+                        Total {activeSurahHeatmap.totalAyahs} Ayat • {strongCount} Mutqin • {reviewingCount} Diulang • {learningCount} Lemah
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80 self-start sm:self-auto">
+                      Daya Tahan Memori: {realRetentionPct}%
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-emerald-700 font-semibold">
-                    Daya Tahan Memori: {JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah)?.pct}%
-                  </span>
-                </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {activeSurahHeatmap.ayahs.map((ayah) => {
-                    let colorClass = 'bg-emerald-500 text-white';
-                    if (ayah.status === 'reviewing') colorClass = 'bg-amber-400 text-amber-950';
-                    if (ayah.status === 'learning') colorClass = 'bg-rose-400 text-white';
+                  <div className="flex flex-wrap gap-2">
+                    {activeSurahHeatmap.ayahs.map((ayah) => {
+                      let colorClass = 'bg-slate-100 text-slate-600 border border-slate-200 hover:border-slate-400';
+                      let statusTitle = `Ayat ${ayah.ayahNumber}: Belum Pernah Dimurojaah`;
 
-                    return (
-                      <div
-                        key={ayah.ayahNumber}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs transition-transform hover:scale-110 cursor-pointer ${colorClass}`}
-                        title={`Ayat ${ayah.ayahNumber} • Skor: ${ayah.lastScore}% • Interval: +${ayah.intervalDays} Hari`}
-                      >
-                        {ayah.ayahNumber}
-                      </div>
-                    );
-                  })}
+                      if (ayah.status === 'strong') {
+                        colorClass = 'bg-emerald-500 text-white shadow-2xs';
+                        statusTitle = `Ayat ${ayah.ayahNumber} • Mutqin (${ayah.lastScore || 90}%) • Interval +${ayah.intervalDays} Hari`;
+                      } else if (ayah.status === 'reviewing') {
+                        colorClass = 'bg-amber-400 text-amber-950 shadow-2xs';
+                        statusTitle = `Ayat ${ayah.ayahNumber} • Perlu Diulang (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
+                      } else if (ayah.status === 'learning') {
+                        colorClass = 'bg-rose-400 text-white shadow-2xs';
+                        statusTitle = `Ayat ${ayah.ayahNumber} • Belum Lancar (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
+                      }
+
+                      return (
+                        <div
+                          key={ayah.ayahNumber}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-transform hover:scale-110 cursor-pointer ${colorClass}`}
+                          title={statusTitle}
+                        >
+                          {ayah.ayahNumber}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1425,180 +1425,106 @@ export default function MutabaahPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsEditingCommitment(!isEditingCommitment)}
-                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all cursor-pointer self-start sm:self-auto"
+              <Link
+                to="/app/target"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer self-start sm:self-auto flex items-center gap-1.5 shadow-sm active:scale-95"
               >
-                {isEditingCommitment ? 'Batal Ubah' : 'Atur Komitmen Target'}
-              </button>
+                <Target className="w-4 h-4" />
+                <span>Atur di Halaman Target</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
 
-            {/* Target Cards Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Card 1: Target Tilawah Harian */}
-              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
-                <div className="flex items-center space-x-2 text-teal-800">
-                  <BookOpen className="w-5 h-5" />
-                  <span className="font-bold text-xs uppercase tracking-wider">
-                    Target Tilawah Harian
+            {/* Target Cards Overview (Read-Only) */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+              {/* Card 1: Target Murojaah Harian */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+                <div className="flex items-center space-x-2 text-emerald-800">
+                  <RotateCcw className="w-4 h-4 text-emerald-600" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                    Target Murojaah
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-2xl font-black text-slate-900 font-mono block">
-                    {commitments.dailyTargetPagesTilawah} Lembar / Hari
+                <div className="space-y-0.5">
+                  <span className="text-xl font-black text-slate-900 font-mono block">
+                    {commitments.dailyTargetMurojaahCount || 1} {commitments.murojaahTargetUnit === 'ayah' ? 'Ayat' : commitments.murojaahTargetUnit === 'page' ? 'Halaman' : 'Surah'} / Hari
                   </span>
-                  <span className="text-xs text-slate-500">
-                    Setara {commitments.dailyTargetAyahsTilawah} ayat tilawah Al-Qur'an
+                  <span className="text-[11px] text-slate-500">
+                    Alur: {commitments.progressionOrder === 'juz_1_asc' ? 'Juz 1 Berurutan' : commitments.progressionOrder === 'custom_surah' ? 'Surah Pilihan' : 'Juz 30 (Juz Amma)'}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-slate-200/60 text-xs text-emerald-700 font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Sistem otomatis mencatat dari Mushaf</span>
+                <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Spaced Repetition System</span>
                 </div>
               </div>
 
-              {/* Card 2: Target Hafalan Harian */}
-              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+              {/* Card 2: Target Hafalan Baru */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
                 <div className="flex items-center space-x-2 text-emerald-800">
-                  <Flame className="w-5 h-5 fill-amber-500/20 text-amber-600" />
-                  <span className="font-bold text-xs uppercase tracking-wider">
-                    Target Hafalan &amp; Murojaah
+                  <Mic className="w-4 h-4 text-emerald-600" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                    Hafalan Baru (Ziyadah)
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-2xl font-black text-slate-900 font-mono block">
+                <div className="space-y-0.5">
+                  <span className="text-xl font-black text-slate-900 font-mono block">
                     {commitments.dailyTargetAyahsHafalan} Ayat / Hari
                   </span>
-                  <span className="text-xs text-slate-500">
-                    Diulang melalui Spaced Repetition System (SRS)
+                  <span className="text-[11px] text-slate-500">
+                    Diulang sampai mutqin
                   </span>
                 </div>
-                <div className="pt-2 border-t border-slate-200/60 text-xs text-emerald-700 font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Streak konsistensi: {commitments.currentStreak} Hari</span>
+                <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Streak: {commitments.currentStreak} Hari</span>
                 </div>
               </div>
 
-              {/* Card 3: Target Surah Pilihan */}
-              <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+              {/* Card 3: Target Tilawah Harian */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+                <div className="flex items-center space-x-2 text-teal-800">
+                  <BookOpen className="w-4 h-4 text-teal-600" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                    Target Tilawah
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-xl font-black text-slate-900 font-mono block">
+                    {commitments.dailyTargetPagesTilawah} Lembar / Hari
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Setara {commitments.dailyTargetAyahsTilawah} ayat tilawah
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Otomatis dari Mushaf</span>
+                </div>
+              </div>
+
+              {/* Card 4: Target Surah Khusus */}
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
                 <div className="flex items-center space-x-2 text-indigo-800">
-                  <Compass className="w-5 h-5" />
-                  <span className="font-bold text-xs uppercase tracking-wider">
+                  <Compass className="w-4 h-4 text-indigo-600" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider">
                     Target Surah Khusus
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-2xl font-black text-slate-900 font-mono block truncate">
+                <div className="space-y-0.5">
+                  <span className="text-xl font-black text-slate-900 font-mono block truncate">
                     QS. {commitments.targetSurahName}
                   </span>
-                  <span className="text-xs text-slate-500">
-                    Ayat {commitments.targetStartAyah} s.d. {commitments.targetEndAyah} • Tenggat {commitments.targetDeadline}
+                  <span className="text-[11px] text-slate-500">
+                    Ayat {commitments.targetStartAyah} s.d. {commitments.targetEndAyah} • {commitments.targetDeadline}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-slate-200/60 text-xs text-indigo-700 font-semibold flex items-center space-x-1">
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>Target komitmen semester ini</span>
+                <div className="pt-2 border-t border-slate-200/60 text-[11px] text-indigo-700 font-semibold flex items-center space-x-1">
+                  <Bookmark className="w-3 h-3" />
+                  <span>Tenggat Target</span>
                 </div>
               </div>
             </div>
-
-            {/* Edit Commitment Form */}
-            {isEditingCommitment && (
-              <form onSubmit={handleSaveCommitments} className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4 animate-in fade-in duration-150">
-                <h4 className="font-bold text-emerald-950 text-sm">
-                  Formulir Pengaturan Komitmen Target
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Target Tilawah (Lembar/Hari)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={commitmentForm.dailyTargetPagesTilawah}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, dailyTargetPagesTilawah: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Target Hafalan (Ayat/Hari)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={commitmentForm.dailyTargetAyahsHafalan}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, dailyTargetAyahsHafalan: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Nama Surah Target Khusus</label>
-                    <input
-                      type="text"
-                      value={commitmentForm.targetSurahName}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetSurahName: e.target.value })}
-                      placeholder="Contoh: Al-Mulk / Al-Kahf"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Rentang Ayat Mulai</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={commitmentForm.targetStartAyah}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetStartAyah: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Rentang Ayat Selesai</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={commitmentForm.targetEndAyah}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetEndAyah: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Tenggat Target (Deadline)</label>
-                    <input
-                      type="date"
-                      value={commitmentForm.targetDeadline}
-                      onChange={(e) => setCommitmentForm({ ...commitmentForm, targetDeadline: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs focus:ring-1 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingCommitment(false)}
-                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center space-x-1"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Simpan Komitmen</span>
-                  </button>
-                </div>
-              </form>
-            )}
           </div>
         </div>
       )}

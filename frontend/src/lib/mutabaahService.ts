@@ -54,6 +54,10 @@ export interface UserCommitment {
   targetDeadline: string;
   currentStreak: number;
   maxStreak: number;
+  progressionOrder?: 'juz_30' | 'juz_1_asc' | 'custom_surah';
+  murojaahTargetUnit?: 'surah' | 'ayah' | 'page';
+  dailyTargetMurojaahCount?: number;
+  targetJuzNumber?: number;
 }
 
 export interface AdminSantriMonitoringItem {
@@ -507,6 +511,10 @@ export function getUserCommitments(): UserCommitment {
     targetDeadline: '2026-11-30',
     currentStreak: 5,
     maxStreak: 14,
+    progressionOrder: 'juz_30',
+    murojaahTargetUnit: 'surah',
+    dailyTargetMurojaahCount: 1,
+    targetJuzNumber: 30,
   };
 
   try {
