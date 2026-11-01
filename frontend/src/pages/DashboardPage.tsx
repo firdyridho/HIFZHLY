@@ -15,7 +15,6 @@ import {
   TrendingUp,
   GraduationCap,
   HeartHandshake,
-  Gamepad2,
   Flame,
   Target,
   CheckCircle2,
@@ -23,10 +22,17 @@ import {
   Play,
   ChevronRight,
   X,
+  Trophy,
 } from 'lucide-react';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 import { getStoredMutabaahLogs, formatDateKey } from '../lib/mutabaahService';
 import { getStoredTajwidModules, fetchSynchronizedTajwidModules } from '../lib/tajwidStore';
+import {
+  NotificationItem,
+  getStoredNotifications,
+  syncNotificationsWithContext,
+} from '../lib/notificationService';
+import NotificationCenterModal from '../components/notification/NotificationCenterModal';
 
 interface PrayerSchedule {
   name: string;
@@ -55,9 +61,60 @@ export default function DashboardPage() {
   const [cityName, setCityName] = useState('Serang, Banten');
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
   const [todayReviewed, setTodayReviewed] = useState(10);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => getStoredNotifications());
 
-  // Load Real Prayer Times and Doa from Backend API
-  useEffect(() => {
+  const loadNotifications = () => {
+    const p = prayerTimes[0] || DEFAULT_PRAYER_TIMES[0];
+    const synced = syncNotificationsWithContext({
+      prayerName: p.name,
+      prayerTime: p.time,
+      currentAyahs: todayReviewed,
+      targetAyahs: profile?.dailyTargetAyahs || 5,
+      srsDueCount: srsItems.length,
+      twoFactorEnabled: profile?.twoFactorEnabled,
+    });
+    setNotifications(synced);
+  };
+
+  // Load Real Prayer Times (equran.id API v2 shalat with city preference) and Doa
+  const loadPrayerSchedule = () => {
+    const savedProv = localStorage.getItem('hifzhly_prayer_provinsi');
+    const savedKab = localStorage.getItem('hifzhly_prayer_kabkota');
+
+    if (savedProv && savedKab) {
+      setCityName(`${savedKab}, ${savedProv}`);
+      fetch('https://equran.id/api/v2/shalat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provinsi: savedProv, kabkota: savedKab }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (json?.data) {
+            const todayDay = new Date().getDate();
+            const todayItem = Array.isArray(json.data) ? json.data[todayDay - 1] || json.data[0] : json.data;
+            if (todayItem) {
+              const parseH = (s: string) => parseInt(s.split(':')[0], 10) || 0;
+              const parseM = (s: string) => parseInt(s.split(':')[1], 10) || 0;
+              setPrayerTimes([
+                { name: 'Shubuh', time: todayItem.subuh || '04:10', icon: Sunrise, hours: parseH(todayItem.subuh || '04:10'), minutes: parseM(todayItem.subuh || '04:10') },
+                { name: 'Dzuhur', time: todayItem.dzuhur || '11:40', icon: Sun, hours: parseH(todayItem.dzuhur || '11:40'), minutes: parseM(todayItem.dzuhur || '11:40') },
+                { name: 'Ashar', time: todayItem.ashar || '15:00', icon: CloudSun, hours: parseH(todayItem.ashar || '15:00'), minutes: parseM(todayItem.ashar || '15:00') },
+                { name: 'Maghrib', time: todayItem.maghrib || '17:50', icon: Sunset, hours: parseH(todayItem.maghrib || '17:50'), minutes: parseM(todayItem.maghrib || '17:50') },
+                { name: 'Isya', time: todayItem.isya || '19:05', icon: MoonStar, hours: parseH(todayItem.isya || '19:05'), minutes: parseM(todayItem.isya || '19:05') },
+              ]);
+              return;
+            }
+          }
+          throw new Error('Fallback ke backend');
+        })
+        .catch(() => loadBackendPrayerTimes());
+    } else {
+      loadBackendPrayerTimes();
+    }
+  };
+
+  const loadBackendPrayerTimes = () => {
     fetch('/api/v1/prayer-times')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -79,6 +136,10 @@ export default function DashboardPage() {
         }
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadPrayerSchedule();
 
     fetch('/api/v1/doa')
       .then((res) => (res.ok ? res.json() : null))
@@ -88,6 +149,14 @@ export default function DashboardPage() {
         }
       })
       .catch(() => {});
+
+    window.addEventListener('hifzhly_location_updated', loadPrayerSchedule);
+    window.addEventListener('hifzhly_notifications_updated', loadNotifications);
+
+    return () => {
+      window.removeEventListener('hifzhly_location_updated', loadPrayerSchedule);
+      window.removeEventListener('hifzhly_notifications_updated', loadNotifications);
+    };
   }, []);
 
   // Load user profile
@@ -234,10 +303,14 @@ export default function DashboardPage() {
               type="button"
               onClick={() => setShowNotificationModal(true)}
               className="relative p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
-              title="Pemberitahuan Murojaah"
+              title="Pemberitahuan & Pengingat"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-400 ring-2 ring-emerald-600" />
+              {notifications.filter((n) => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold ring-2 ring-emerald-800 animate-in zoom-in">
+                  {notifications.filter((n) => !n.read).length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -369,30 +442,29 @@ export default function DashboardPage() {
               </span>
             </Link>
 
-            {/* 6. Doa & Dzikir */}
-            <button
-              type="button"
-              onClick={() => setShowDzikirModal(true)}
+            {/* 6. Koleksi Lengkap Doa & Dzikir */}
+            <Link
+              to="/app/doa"
               className="flex flex-col items-center group cursor-pointer"
             >
               <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700 group-hover:scale-105 group-hover:bg-amber-100/80 transition-all shadow-xs">
                 <HeartHandshake className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <span className="mt-2 text-xs font-bold text-slate-800 group-hover:text-amber-700 transition-colors text-center">
-                Doa Murojaah
+                Doa & Dzikir
               </span>
-            </button>
+            </Link>
 
-            {/* 7. Kuis Tajwid */}
+            {/* 7. Kuis & Asah Retensi Qur'an */}
             <Link
-              to="/app/tajwid"
+              to="/app/quiz"
               className="flex flex-col items-center group cursor-pointer"
             >
               <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 group-hover:scale-105 group-hover:bg-indigo-100/80 transition-all shadow-xs">
-                <Gamepad2 className="w-6 h-6 sm:w-7 sm:h-7" />
+                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600" />
               </div>
               <span className="mt-2 text-xs font-bold text-slate-800 group-hover:text-indigo-700 transition-colors text-center">
-                Kuis
+                Kuis Qur'an
               </span>
             </Link>
 
@@ -573,47 +645,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* MODAL 1: Pemberitahuan Murojaah */}
-      {showNotificationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
-                <Bell className="w-4 h-4 text-emerald-700" />
-                <span>Pemberitahuan Murojaah</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowNotificationModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3 text-xs text-slate-600">
-              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
-                <p className="font-bold text-emerald-900">Pengingat Waktu Sholat &amp; Murojaah</p>
-                <p className="mt-0.5 text-emerald-800">
-                  Waktu terbaik mengulang hafalan adalah setelah sholat fardhu. Sebentar lagi memasuki waktu {nextPrayer.name}.
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                <p className="font-bold text-slate-900">Jadwal Evaluasi AI</p>
-                <p className="mt-0.5 text-slate-500">
-                  2 surah di Juz 'Amma menunggu untuk dievaluasi hari ini agar kurva daya ingat Ebbinghaus tetap terjaga.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNotificationModal(false)}
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer"
-            >
-              Tutup Pemberitahuan
-            </button>
-          </div>
-        </div>
-      )}
+      {/* MODAL 1: Notification Center (Interaktif & Berfungsi Penuh) */}
+      <NotificationCenterModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        notifications={notifications}
+        onRefresh={loadNotifications}
+      />
 
       {/* MODAL 2: Doa Sebelum & Sesudah Murojaah */}
       {showDzikirModal && (
@@ -694,13 +732,22 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowDzikirModal(false)}
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer"
-            >
-              Selesai Membaca Doa
-            </button>
+            <div className="space-y-2 pt-2">
+              <Link
+                to="/app/doa"
+                onClick={() => setShowDzikirModal(false)}
+                className="w-full py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs transition-colors cursor-pointer text-center block"
+              >
+                Buka Seluruh Koleksi Doa &amp; Dzikir Lengkap &rarr;
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowDzikirModal(false)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Tutup Jendela
+              </button>
+            </div>
           </div>
         </div>
       )}

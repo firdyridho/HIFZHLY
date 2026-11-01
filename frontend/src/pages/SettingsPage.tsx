@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import {
@@ -16,6 +16,11 @@ import {
   RefreshCw,
   ShieldAlert,
   QrCode,
+  MapPin,
+  Volume2,
+  Play,
+  Square,
+  Navigation,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 
@@ -65,6 +70,126 @@ export default function SettingsPage() {
   const [is2FALoading, setIs2FALoading] = useState(false);
   const [twoFactorErrorMsg, setTwoFactorErrorMsg] = useState('');
   const [twoFactorSuccessMsg, setTwoFactorSuccessMsg] = useState('');
+
+  // Location & Sholat API State (equran.id shalat)
+  const [provinsiList, setProvinsiList] = useState<string[]>([]);
+  const [selectedProvinsi, setSelectedProvinsi] = useState<string>(() => {
+    return localStorage.getItem('hifzhly_prayer_provinsi') || 'BANTEN';
+  });
+  const [kabkotaList, setKabkotaList] = useState<string[]>([]);
+  const [selectedKabkota, setSelectedKabkota] = useState<string>(() => {
+    return localStorage.getItem('hifzhly_prayer_kabkota') || 'KOTA SERANG';
+  });
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [locationSavedMsg, setLocationSavedMsg] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lon: number }>({ lat: -6.12, lon: 106.15 });
+
+  // Qari Audio Preference State
+  const [selectedQari, setSelectedQari] = useState<string>(() => {
+    return localStorage.getItem('hifzhly_qari_preference') || 'Misyari-Rasyid-Al-Afasi';
+  });
+  const [isPlayingSample, setIsPlayingSample] = useState(false);
+  const [qariSavedMsg, setQariSavedMsg] = useState('');
+  const sampleAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Load Provinces from equran.id API
+  useEffect(() => {
+    fetch('https://equran.id/api/v2/shalat/provinsi')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        if (list.length > 0) {
+          setProvinsiList(list);
+        } else {
+          setProvinsiList(['BANTEN', 'DKI JAKARTA', 'JAWA BARAT', 'JAWA TENGAH', 'JAWA TIMUR', 'DI YOGYAKARTA', 'SUMATERA BARAT', 'SUMATERA UTARA']);
+        }
+      })
+      .catch(() => {
+        setProvinsiList(['BANTEN', 'DKI JAKARTA', 'JAWA BARAT', 'JAWA TENGAH', 'JAWA TIMUR', 'DI YOGYAKARTA', 'SUMATERA BARAT', 'SUMATERA UTARA']);
+      });
+  }, []);
+
+  // Load Regencies/Cities when province changes
+  useEffect(() => {
+    if (!selectedProvinsi) return;
+    fetch('https://equran.id/api/v2/shalat/kabkota', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provinsi: selectedProvinsi }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        if (list.length > 0) {
+          setKabkotaList(list);
+          if (!list.includes(selectedKabkota)) {
+            setSelectedKabkota(list[0]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [selectedProvinsi]);
+
+  const handleDetectGps = () => {
+    if (!navigator.geolocation) {
+      alert('Browser Anda tidak mendukung deteksi lokasi otomatis.');
+      return;
+    }
+    setIsDetectingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lon: longitude });
+        setIsDetectingGps(false);
+        setLocationSavedMsg(`GPS terdeteksi (${latitude.toFixed(4)}, ${longitude.toFixed(4)}). Silakan simpan lokasi.`);
+        setTimeout(() => setLocationSavedMsg(''), 4000);
+      },
+      () => {
+        setIsDetectingGps(false);
+        alert('Gagal mendeteksi lokasi GPS. Pastikan izin akses lokasi diizinkan di browser Anda.');
+      }
+    );
+  };
+
+  const handleSaveLocation = () => {
+    localStorage.setItem('hifzhly_prayer_provinsi', selectedProvinsi);
+    localStorage.setItem('hifzhly_prayer_kabkota', selectedKabkota);
+    window.dispatchEvent(new Event('hifzhly_location_updated'));
+    setLocationSavedMsg('Lokasi jadwal sholat berhasil diperbarui!');
+    setTimeout(() => setLocationSavedMsg(''), 3000);
+  };
+
+  const QARI_LIST = [
+    { id: 'Misyari-Rasyid-Al-Afasi', name: 'Syaikh Misyari Rasyid Al-Afasi', subtitle: 'Imam Masjid Al-Kabir Kuwait (Hafsh)' },
+    { id: 'Abdurrahman-As-Sudais', name: 'Syaikh Abdurrahman As-Sudais', subtitle: 'Imam Besar Masjidil Haram Mekkah' },
+    { id: 'Abdullah-Al-Juhany', name: 'Syaikh Abdullah Al-Juhany', subtitle: 'Imam Masjidil Haram Mekkah' },
+    { id: 'Abdul-Muhsin-Al-Qasim', name: 'Syaikh Abdul Muhsin Al-Qasim', subtitle: 'Imam Masjid Nabawi Madinah' },
+    { id: 'Ibrahim-Al-Dossari', name: 'Syaikh Ibrahim Al-Dossari', subtitle: 'Qari & Dewan Lajnah Mushaf' },
+  ];
+
+  const handleTogglePlaySample = (qariId: string) => {
+    if (isPlayingSample) {
+      if (sampleAudioRef.current) sampleAudioRef.current.pause();
+      setIsPlayingSample(false);
+      return;
+    }
+
+    const audioUrl = `https://cdn.equran.id/audio-partial/${qariId}/001001.mp3`;
+    const audio = new Audio(audioUrl);
+    sampleAudioRef.current = audio;
+    setIsPlayingSample(true);
+    audio.play().catch(() => setIsPlayingSample(false));
+    audio.onended = () => setIsPlayingSample(false);
+    audio.onerror = () => setIsPlayingSample(false);
+  };
+
+  const handleSaveQari = (qariId: string) => {
+    setSelectedQari(qariId);
+    localStorage.setItem('hifzhly_qari_preference', qariId);
+    window.dispatchEvent(new Event('hifzhly_qari_updated'));
+    setQariSavedMsg('Preferensi suara Qari berhasil disimpan!');
+    setTimeout(() => setQariSavedMsg(''), 3000);
+  };
 
   // Fetch Latest Profile from API on mount
   useEffect(() => {
@@ -690,6 +815,186 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: LOKASI & JADWAL SHOLAT (API EQURAN.ID & MAPS) */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Lokasi Sholat & Peta Geografis</h2>
+                  <p className="text-xs text-slate-500">Tentukan kota jadwal sholat akurat dari API Bimas Islam (equran.id)</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDetectGps}
+                disabled={isDetectingGps}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 rounded-xl font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 border border-slate-200"
+                title="Deteksi Otomatis Lokasi GPS"
+              >
+                {isDetectingGps ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                ) : (
+                  <Navigation className="w-3.5 h-3.5 text-emerald-700" />
+                )}
+                <span>GPS Otomatis</span>
+              </button>
+            </div>
+
+            {locationSavedMsg && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-800">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{locationSavedMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700">Provinsi</label>
+                  <select
+                    value={selectedProvinsi}
+                    onChange={(e) => setSelectedProvinsi(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold"
+                  >
+                    {provinsiList.map((prov) => (
+                      <option key={prov} value={prov}>
+                        {prov}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700">Kabupaten / Kota</label>
+                  <select
+                    value={selectedKabkota}
+                    onChange={(e) => setSelectedKabkota(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold"
+                  >
+                    {kabkotaList.map((kab) => (
+                      <option key={kab} value={kab}>
+                        {kab}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Interactive OpenStreetMap Preview */}
+              <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 relative">
+                <div className="p-3 bg-white/90 backdrop-blur-xs border-b border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
+                  <span className="font-semibold text-slate-900 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>{selectedKabkota}, {selectedProvinsi}</span>
+                  </span>
+                  <span className="font-mono text-slate-400">
+                    Lat: {coords.lat.toFixed(4)}, Lon: {coords.lon.toFixed(4)}
+                  </span>
+                </div>
+                <iframe
+                  title="Peta Geografis Lokasi Sholat"
+                  width="100%"
+                  height="160"
+                  frameBorder="0"
+                  scrolling="no"
+                  marginHeight={0}
+                  marginWidth={0}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.1}%2C${coords.lat - 0.1}%2C${coords.lon + 0.1}%2C${coords.lat + 0.1}&amp;layer=mapnik&amp;marker=${coords.lat}%2C${coords.lon}`}
+                  className="w-full opacity-90"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveLocation}
+                  className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-semibold transition cursor-pointer flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Simpan Lokasi Jadwal Sholat</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: PREFERENSI SUARA QARI AL-QUR'AN */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                  <Volume2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Preferensi Suara Qari Al-Qur'an</h2>
+                  <p className="text-xs text-slate-500">Pilih qari favorit yang akan diputar pada Mushaf dan Murojaah</p>
+                </div>
+              </div>
+            </div>
+
+            {qariSavedMsg && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-800">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{qariSavedMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-2.5 text-xs">
+              {QARI_LIST.map((qari) => {
+                const isSelected = selectedQari === qari.id;
+                return (
+                  <div
+                    key={qari.id}
+                    onClick={() => handleSaveQari(qari.id)}
+                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-50/50 border-emerald-500 ring-2 ring-emerald-500/20'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-emerald-700 bg-emerald-700' : 'border-slate-300'
+                        }`}
+                      >
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 leading-tight">{qari.name}</p>
+                        <p className="text-[11px] text-slate-500">{qari.subtitle}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePlaySample(qari.id);
+                      }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 rounded-xl font-semibold transition cursor-pointer text-[11px] flex items-center gap-1.5 shrink-0"
+                    >
+                      {isPlayingSample && sampleAudioRef.current?.src.includes(qari.id) ? (
+                        <>
+                          <Square className="w-3 h-3 fill-slate-700" />
+                          <span>Stop</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3 h-3 fill-slate-700" />
+                          <span>Dengar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

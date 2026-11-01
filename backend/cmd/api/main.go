@@ -49,6 +49,8 @@ func main() {
 	prayerService := service.NewPrayerTimesService(redisClient)
 	doaService := service.NewDoaService()
 	mutabaahRepo := repository.NewMutabaahRepository(pgPool)
+	quizRepo := repository.NewQuizRepository(pgPool)
+	quizService := service.NewQuizService(quizRepo, "")
 
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
@@ -58,12 +60,21 @@ func main() {
 	tajwidHandler := handler.NewTajwidHandler(tajwidService)
 	enrichmentHandler := handler.NewEnrichmentHandler(prayerService, doaService, mutabaahRepo)
 	voiceHandler := handler.NewVoiceHandler(cfg)
+	quizHandler := handler.NewQuizHandler(quizService)
 
 	r := chi.NewRouter()
 
 	// Global Middlewares
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+			next.ServeHTTP(w, r)
+		})
+	})
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -156,6 +167,14 @@ func main() {
 		r.Get("/tajwid/modules", tajwidHandler.GetModules)
 		r.Get("/tajwid/modules/{slug}", tajwidHandler.GetModuleDetail)
 		r.Post("/tajwid/quizzes/{quizId}/submit", tajwidHandler.SubmitQuiz)
+		r.Post("/tajwid/ai-tutor", quizHandler.AskAITutor)
+
+		// Quran Quiz & Monthly Leaderboard
+		r.Get("/quiz/leaderboard", quizHandler.GetLeaderboard)
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
+			r.Post("/quiz/submit", quizHandler.SubmitScore)
+		})
 
 		// Admin Tajwid Management & AI Quiz Generator (Gemini)
 		r.Route("/admin/tajwid", func(adminRouter chi.Router) {

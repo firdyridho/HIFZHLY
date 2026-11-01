@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Target,
   Settings,
+  Trophy,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -100,8 +101,9 @@ export default function MainLayout() {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     sessionStorage.clear();
-    // Replace URL ke landing page agar history browser tidak bisa di-back
-    window.location.replace('/');
+    // Bersihkan riwayat navigasi dan paksa kembali ke /login agar tombol Back browser tidak bisa masuk lagi
+    window.history.replaceState(null, '', '/login');
+    window.location.replace('/login');
   };
 
   if (!token) {
@@ -229,6 +231,20 @@ export default function MainLayout() {
               >
                 <GraduationCap className="w-4 h-4" />
                 <span>Tajwid</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/quiz"
+                className={({ isActive }) =>
+                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`
+                }
+              >
+                <Trophy className="w-4 h-4 text-amber-600" />
+                <span>Kuis Qur'an</span>
               </NavLink>
 
               <NavLink

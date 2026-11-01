@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -8,9 +8,42 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   const location = useLocation();
-  const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+  });
 
-  // Jika tidak ada token (misal belum login atau sudah logout), lempar langsung ke /login
+  // Strict BFCache & Back-Forward Navigation Protection
+  useEffect(() => {
+    const enforceAuth = () => {
+      const currentToken = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      setToken(currentToken);
+      if (!currentToken) {
+        window.location.replace('/login');
+      }
+    };
+
+    // Listen to pageshow (termasuk saat browser me-restore dari BFCache setelah tombol Back ditekan)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      const currentToken = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+      if (event.persisted || !currentToken) {
+        if (!currentToken) {
+          window.location.replace('/login');
+        }
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', enforceAuth);
+    window.addEventListener('storage', enforceAuth);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', enforceAuth);
+      window.removeEventListener('storage', enforceAuth);
+    };
+  }, []);
+
+  // Jika tidak ada token (misal belum login atau sudah logout), lempar langsung ke /login dan jangan render konten anak sama sekali
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
@@ -41,4 +74,3 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
 
   return <>{children}</>;
 }
-

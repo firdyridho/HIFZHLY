@@ -200,7 +200,8 @@ export default function AdminDashboardPage() {
     localStorage.removeItem('hifzhly_auth_token');
     localStorage.removeItem('hifzhly_user_profile');
     sessionStorage.clear();
-    window.location.replace('/');
+    window.history.replaceState(null, '', '/login');
+    window.location.replace('/login');
   };
 
   const handleOpenEditModal = (mod: TajwidModule) => {

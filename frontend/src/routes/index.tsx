@@ -14,6 +14,8 @@ import TajwidPage from '../pages/TajwidPage';
 import MutabaahPage from '../pages/MutabaahPage';
 import TargetPage from '../pages/TargetPage';
 import SettingsPage from '../pages/SettingsPage';
+import QuizPage from '../pages/QuizPage';
+import DoaPage from '../pages/DoaPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 export default function AppRoutes() {
@@ -53,11 +55,15 @@ export default function AppRoutes() {
         <Route path="mutabaah" element={<MutabaahPage />} />
         <Route path="target" element={<TargetPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="quiz" element={<QuizPage />} />
+        <Route path="doa" element={<DoaPage />} />
       </Route>
 
       {/* 4. Legacy Redirects */}
       <Route path="/target" element={<Navigate to="/app/target" replace />} />
       <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
+      <Route path="/quiz" element={<Navigate to="/app/quiz" replace />} />
+      <Route path="/doa" element={<Navigate to="/app/doa" replace />} />
       <Route path="/murojaah" element={<Navigate to="/app/murojaah" replace />} />
       <Route path="/hafalan" element={<Navigate to="/app/hafalan" replace />} />
       <Route path="/mushaf" element={<Navigate to="/app/mushaf" replace />} />
