@@ -3,7 +3,7 @@ import type { TajwidModule } from '../types';
 export const TAJWID_STORAGE_KEY = 'hifzhly_local_tajwid_modules';
 export const TAJWID_UPDATED_EVENT = 'hifzhly_tajwid_modules_updated';
 
-// Default Comprehensive Curated Fallback Modules (5 Questions Each)
+// Default Comprehensive Curated Fallback Modules (5 Questions Each with exact isCorrect flags)
 export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
   {
     id: '1d8b5a04-9426-47b8-b4b3-d2a93ff7ef21',
@@ -29,10 +29,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Jika nun sukun (نْ) bertemu dengan huruf Ba (ب), hukum bacaannya adalah...',
           orderIndex: 1,
           options: [
-            { id: 'opt-1-1', optionText: 'Idzhar Halqi' },
-            { id: 'opt-1-2', optionText: 'Iqlab' },
-            { id: 'opt-1-3', optionText: 'Idgham Bilaghunnah' },
-            { id: 'opt-1-4', optionText: 'Ikhfa Haqiqi' },
+            { id: 'opt-1-1', optionText: 'Idzhar Halqi', isCorrect: false },
+            { id: 'opt-1-2', optionText: 'Iqlab', isCorrect: true },
+            { id: 'opt-1-3', optionText: 'Idgham Bilaghunnah', isCorrect: false },
+            { id: 'opt-1-4', optionText: 'Ikhfa Haqiqi', isCorrect: false },
           ],
         },
         {
@@ -40,10 +40,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada lafal مَن يَقُولُ, hukum tajwid yang berlaku pada nun sukun bertemu Ya adalah...',
           orderIndex: 2,
           options: [
-            { id: 'opt-1-21', optionText: 'Idgham Bighunnah' },
-            { id: 'opt-1-22', optionText: 'Idgham Bilaghunnah' },
-            { id: 'opt-1-23', optionText: 'Idzhar Halqi' },
-            { id: 'opt-1-24', optionText: 'Iqlab' },
+            { id: 'opt-1-21', optionText: 'Idgham Bighunnah', isCorrect: true },
+            { id: 'opt-1-22', optionText: 'Idgham Bilaghunnah', isCorrect: false },
+            { id: 'opt-1-23', optionText: 'Idzhar Halqi', isCorrect: false },
+            { id: 'opt-1-24', optionText: 'Iqlab', isCorrect: false },
           ],
         },
         {
@@ -51,10 +51,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Berapakah jumlah huruf Idzhar Halqi yang keluar dari tenggorokan?',
           orderIndex: 3,
           options: [
-            { id: 'opt-1-31', optionText: '4 Huruf' },
-            { id: 'opt-1-32', optionText: '5 Huruf' },
-            { id: 'opt-1-33', optionText: '6 Huruf (ء، هـ، ع، ح، غ، خ)' },
-            { id: 'opt-1-34', optionText: '15 Huruf' },
+            { id: 'opt-1-31', optionText: '4 Huruf', isCorrect: false },
+            { id: 'opt-1-32', optionText: '5 Huruf', isCorrect: false },
+            { id: 'opt-1-33', optionText: '6 Huruf (ء، هـ، ع، ح، غ، خ)', isCorrect: true },
+            { id: 'opt-1-34', optionText: '15 Huruf', isCorrect: false },
           ],
         },
         {
@@ -62,10 +62,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada lafal أَنْعَمْتَ عَلَيْهِمْ, cara membaca nun sukun pada kata أَنْعَمْتَ adalah...',
           orderIndex: 4,
           options: [
-            { id: 'opt-1-41', optionText: 'Jelas tanpa dengung (Idzhar Halqi)' },
-            { id: 'opt-1-42', optionText: 'Melebur dengan dengung sempurna' },
-            { id: 'opt-1-43', optionText: 'Samar-samar disertai dengung tebal' },
-            { id: 'opt-1-44', optionText: 'Berubah menjadi bunyi huruf mim' },
+            { id: 'opt-1-41', optionText: 'Jelas tanpa dengung (Idzhar Halqi)', isCorrect: true },
+            { id: 'opt-1-42', optionText: 'Melebur dengan dengung sempurna', isCorrect: false },
+            { id: 'opt-1-43', optionText: 'Samar-samar disertai dengung tebal', isCorrect: false },
+            { id: 'opt-1-44', optionText: 'Berubah menjadi bunyi huruf mim', isCorrect: false },
           ],
         },
         {
@@ -73,10 +73,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Manakah contoh di bawah ini yang termasuk penerapan hukum Ikhfa Haqiqi?',
           orderIndex: 5,
           options: [
-            { id: 'opt-1-51', optionText: 'مِن قَبْلُ (Nun sukun bertemu Qaf)' },
-            { id: 'opt-1-52', optionText: 'مَنْ آمَنَ (Nun sukun bertemu Hamzah)' },
-            { id: 'opt-1-53', optionText: 'مِنْ رَّبِّهِمْ (Nun sukun bertemu Ra)' },
-            { id: 'opt-1-54', optionText: 'أَنْ بُورِكَ (Nun sukun bertemu Ba)' },
+            { id: 'opt-1-51', optionText: 'مِن قَبْلُ (Nun sukun bertemu Qaf)', isCorrect: true },
+            { id: 'opt-1-52', optionText: 'مَنْ آمَنَ (Nun sukun bertemu Hamzah)', isCorrect: false },
+            { id: 'opt-1-53', optionText: 'مِنْ رَّبِّهِمْ (Nun sukun bertemu Ra)', isCorrect: false },
+            { id: 'opt-1-54', optionText: 'أَنْ بُورِكَ (Nun sukun bertemu Ba)', isCorrect: false },
           ],
         },
       ],
@@ -105,10 +105,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Mim sukun (مْ) bertemu huruf Ba (ب) dihukumi...',
           orderIndex: 1,
           options: [
-            { id: 'opt-2-1', optionText: 'Ikhfa Syafawi' },
-            { id: 'opt-2-2', optionText: 'Idgham Mimi' },
-            { id: 'opt-2-3', optionText: 'Idzhar Syafawi' },
-            { id: 'opt-2-4', optionText: 'Idgham Bilaghunnah' },
+            { id: 'opt-2-1', optionText: 'Ikhfa Syafawi', isCorrect: true },
+            { id: 'opt-2-2', optionText: 'Idgham Mimi', isCorrect: false },
+            { id: 'opt-2-3', optionText: 'Idzhar Syafawi', isCorrect: false },
+            { id: 'opt-2-4', optionText: 'Idgham Bilaghunnah', isCorrect: false },
           ],
         },
         {
@@ -116,10 +116,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada lafal لَهُم مَّا يَشَآءُونَ, hukum bacaan yang terjadi adalah...',
           orderIndex: 2,
           options: [
-            { id: 'opt-2-21', optionText: 'Idgham Mimi (Mitslain)' },
-            { id: 'opt-2-22', optionText: 'Idzhar Halqi' },
-            { id: 'opt-2-23', optionText: 'Iqlab' },
-            { id: 'opt-2-24', optionText: 'Ikhfa Haqiqi' },
+            { id: 'opt-2-21', optionText: 'Idgham Mimi (Mitslain)', isCorrect: true },
+            { id: 'opt-2-22', optionText: 'Idzhar Halqi', isCorrect: false },
+            { id: 'opt-2-23', optionText: 'Iqlab', isCorrect: false },
+            { id: 'opt-2-24', optionText: 'Ikhfa Haqiqi', isCorrect: false },
           ],
         },
         {
@@ -127,10 +127,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Huruf apa sajakah yang menjadi sebab berlakunya hukum Idzhar Syafawi?',
           orderIndex: 3,
           options: [
-            { id: 'opt-2-31', optionText: 'Seluruh huruf hijaiyah selain Mim dan Ba' },
-            { id: 'opt-2-32', optionText: 'Hanya huruf alif dan wau saja' },
-            { id: 'opt-2-33', optionText: '6 huruf tenggorokan halqi' },
-            { id: 'opt-2-34', optionText: '15 huruf ikhfa haqiqi' },
+            { id: 'opt-2-31', optionText: 'Seluruh huruf hijaiyah selain Mim dan Ba', isCorrect: true },
+            { id: 'opt-2-32', optionText: 'Hanya huruf alif dan wau saja', isCorrect: false },
+            { id: 'opt-2-33', optionText: '6 huruf tenggorokan halqi', isCorrect: false },
+            { id: 'opt-2-34', optionText: '15 huruf ikhfa haqiqi', isCorrect: false },
           ],
         },
         {
@@ -138,10 +138,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Mengapa qari harus berhati-hati agar mim sukun tidak terbaca ikhfa saat bertemu huruf Wau (و) atau Fa (ف)?',
           orderIndex: 4,
           options: [
-            { id: 'opt-2-41', optionText: 'Karena kedekatan dan kesamaan makhraj pada bibir' },
-            { id: 'opt-2-42', optionText: 'Karena hukum asalnya wajib dengung 3 harakat' },
-            { id: 'opt-2-43', optionText: 'Karena termasuk huruf pembatal tajwid' },
-            { id: 'opt-2-44', optionText: 'Karena kedua huruf tersebut merupakan huruf halq' },
+            { id: 'opt-2-41', optionText: 'Karena kedekatan dan kesamaan makhraj pada bibir', isCorrect: true },
+            { id: 'opt-2-42', optionText: 'Karena hukum asalnya wajib dengung 3 harakat', isCorrect: false },
+            { id: 'opt-2-43', optionText: 'Karena termasuk huruf pembatal tajwid', isCorrect: false },
+            { id: 'opt-2-44', optionText: 'Karena kedua huruf tersebut merupakan huruf halq', isCorrect: false },
           ],
         },
         {
@@ -149,10 +149,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada lafal عَلَيْهِمْ وَلَا الضَّآلِّينَ, hukum mim sukun bertemu wau wajib dibaca...',
           orderIndex: 5,
           options: [
-            { id: 'opt-2-51', optionText: 'Idzhar Syafawi secara tegas dan jelas' },
-            { id: 'opt-2-52', optionText: 'Ikhfa Syafawi dengan dengung 2 harakat' },
-            { id: 'opt-2-53', optionText: 'Idgham Mimi melebur sempurna' },
-            { id: 'opt-2-54', optionText: 'Iqlab dengan bibir merenggang' },
+            { id: 'opt-2-51', optionText: 'Idzhar Syafawi secara tegas dan jelas', isCorrect: true },
+            { id: 'opt-2-52', optionText: 'Ikhfa Syafawi dengan dengung 2 harakat', isCorrect: false },
+            { id: 'opt-2-53', optionText: 'Idgham Mimi melebur sempurna', isCorrect: false },
+            { id: 'opt-2-54', optionText: 'Iqlab dengan bibir merenggang', isCorrect: false },
           ],
         },
       ],
@@ -181,10 +181,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Berapakah kadar panjang harakat Madd Thabi’i (Asli) yang disepakati ulama tajwid?',
           orderIndex: 1,
           options: [
-            { id: 'opt-3-1', optionText: '2 Harakat (1 Alif)' },
-            { id: 'opt-3-2', optionText: '4 Harakat (2 Alif)' },
-            { id: 'opt-3-3', optionText: '6 Harakat (3 Alif)' },
-            { id: 'opt-3-4', optionText: '1 Harakat saja' },
+            { id: 'opt-3-1', optionText: '2 Harakat (1 Alif)', isCorrect: true },
+            { id: 'opt-3-2', optionText: '4 Harakat (2 Alif)', isCorrect: false },
+            { id: 'opt-3-3', optionText: '6 Harakat (3 Alif)', isCorrect: false },
+            { id: 'opt-3-4', optionText: '1 Harakat saja', isCorrect: false },
           ],
         },
         {
@@ -192,10 +192,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Apabila huruf mad bertemu dengan hamzah dalam SATU kata bersambung, dinamakan hukum...',
           orderIndex: 2,
           options: [
-            { id: 'opt-3-21', optionText: 'Madd Wajib Muttashil' },
-            { id: 'opt-3-22', optionText: 'Madd Jaiz Munfashil' },
-            { id: 'opt-3-23', optionText: 'Madd Lazim Kilmi' },
-            { id: 'opt-3-24', optionText: 'Madd Badal' },
+            { id: 'opt-3-21', optionText: 'Madd Wajib Muttashil', isCorrect: true },
+            { id: 'opt-3-22', optionText: 'Madd Jaiz Munfashil', isCorrect: false },
+            { id: 'opt-3-23', optionText: 'Madd Lazim Kilmi', isCorrect: false },
+            { id: 'opt-3-24', optionText: 'Madd Badal', isCorrect: false },
           ],
         },
         {
@@ -203,10 +203,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada lafal إِنَّآ أَعْطَيْنَاكَ, hukum madd yang berlaku pada kata إِنَّآ bertemu hamzah kata berikutnya adalah...',
           orderIndex: 3,
           options: [
-            { id: 'opt-3-31', optionText: 'Madd Jaiz Munfashil' },
-            { id: 'opt-3-32', optionText: 'Madd Wajib Muttashil' },
-            { id: 'opt-3-33', optionText: 'Madd ‘Aridh Lissukun' },
-            { id: 'opt-3-34', optionText: 'Madd Iwad' },
+            { id: 'opt-3-31', optionText: 'Madd Jaiz Munfashil', isCorrect: true },
+            { id: 'opt-3-32', optionText: 'Madd Wajib Muttashil', isCorrect: false },
+            { id: 'opt-3-33', optionText: 'Madd ‘Aridh Lissukun', isCorrect: false },
+            { id: 'opt-3-34', optionText: 'Madd Iwad', isCorrect: false },
           ],
         },
         {
@@ -214,10 +214,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Manakah di bawah ini yang merupakan 3 huruf madd asli dalam Al-Qur\'an?',
           orderIndex: 4,
           options: [
-            { id: 'opt-3-41', optionText: 'Alif mati setelah fathah, Wau mati setelah dhammah, Ya mati setelah kasrah' },
-            { id: 'opt-3-42', optionText: 'Nun sukun, Mim sukun, dan Ba' },
-            { id: 'opt-3-43', optionText: 'Hamzah, Ha, dan ‘Ain' },
-            { id: 'opt-3-44', optionText: 'Qaf, Tha, Ba, Jim, Dal' },
+            { id: 'opt-3-41', optionText: 'Alif mati setelah fathah, Wau mati setelah dhammah, Ya mati setelah kasrah', isCorrect: true },
+            { id: 'opt-3-42', optionText: 'Nun sukun, Mim sukun, dan Ba', isCorrect: false },
+            { id: 'opt-3-43', optionText: 'Hamzah, Ha, dan ‘Ain', isCorrect: false },
+            { id: 'opt-3-44', optionText: 'Qaf, Tha, Ba, Jim, Dal', isCorrect: false },
           ],
         },
         {
@@ -225,10 +225,10 @@ export const DEFAULT_TAJWID_MODULES: TajwidModule[] = [
           questionText: 'Pada akhir ayat saat waqaf pada kata الْعَالَمِينَ, hukum bacaan yang terjadi adalah...',
           orderIndex: 5,
           options: [
-            { id: 'opt-3-51', optionText: 'Madd ‘Aridh Lissukun (boleh 2, 4, atau 6 harakat)' },
-            { id: 'opt-3-52', optionText: 'Madd Thabi’i mutlak 2 harakat saja' },
-            { id: 'opt-3-53', optionText: 'Madd Lazim 6 harakat mutlak' },
-            { id: 'opt-3-54', optionText: 'Madd Shilah Thawilah' },
+            { id: 'opt-3-51', optionText: 'Madd ‘Aridh Lissukun (boleh 2, 4, atau 6 harakat)', isCorrect: true },
+            { id: 'opt-3-52', optionText: 'Madd Thabi’i mutlak 2 harakat saja', isCorrect: false },
+            { id: 'opt-3-53', optionText: 'Madd Lazim 6 harakat mutlak', isCorrect: false },
+            { id: 'opt-3-54', optionText: 'Madd Shilah Thawilah', isCorrect: false },
           ],
         },
       ],
@@ -319,6 +319,137 @@ export const MOCK_CORRECT_KEYS: Record<string, { correctOptionId: string; explan
 };
 
 /**
+ * Robustly resolves the correct option and evaluates whether user's selected choice is correct.
+ * Guarantees that if the user's selected option text matches the correct option text,
+ * it is ALWAYS evaluated as correct (eliminating false negatives).
+ */
+export function resolveQuestionCorrectAnswer(
+  q: any,
+  userOptionId?: string,
+  backendItem?: { correctOptionId?: string; isCorrect?: boolean; explanation?: string }
+): {
+  correctOptionId: string;
+  isCorrect: boolean;
+  explanation: string;
+} {
+  const options: any[] = q.options || [];
+
+  // 1. Identify correct option from explicit isCorrect flag, backend, or mock keys:
+  let correctOpt =
+    options.find((o) => o.isCorrect === true) ||
+    (backendItem?.correctOptionId ? options.find((o) => o.id === backendItem.correctOptionId) : null) ||
+    (MOCK_CORRECT_KEYS[q.id]?.correctOptionId
+      ? options.find((o) => o.id === MOCK_CORRECT_KEYS[q.id].correctOptionId)
+      : null);
+
+  // 2. Semantic question matching fallback based on keywords:
+  if (!correctOpt) {
+    const qText = (q.questionText || '').toLowerCase();
+    if (qText.includes('يَقُولُ') || qText.includes('bertemu ya')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('idgham bighunnah'));
+    } else if (qText.includes('bertemu ba') || qText.includes('bertemu dengan huruf ba') || qText.includes('بَعْدِ')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('iqlab'));
+    } else if (qText.includes('jumlah huruf idzhar halqi')) {
+      correctOpt = options.find((o) => o.optionText.includes('6 Huruf') || o.optionText.includes('6 huruf'));
+    } else if (qText.includes('أَنْعَمْتَ')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('idzhar'));
+    } else if (qText.includes('ikhfa') || qText.includes('مِن قَبْلُ')) {
+      correctOpt = options.find((o) => o.optionText.includes('مِن قَبْلُ') || o.optionText.toLowerCase().includes('ikhfa'));
+    } else if (qText.includes('mim sukun') && qText.includes('bertemu huruf ba')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('ikhfa syafawi'));
+    } else if (qText.includes('لَهُم مَّا يَشَآءُونَ') || qText.includes('mim sukun bertemu mim')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('idgham mimi') || o.optionText.toLowerCase().includes('mitslain'));
+    } else if (qText.includes('idzhar syafawi')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('selain mim dan ba') || o.optionText.toLowerCase().includes('seluruh'));
+    } else if (qText.includes('wau') && qText.includes('fa')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('makhraj'));
+    } else if (qText.includes('عَلَيْهِمْ وَلَا الضَّآلِّينَ')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('idzhar syafawi'));
+    } else if (qText.includes('thabi’i') || qText.includes('thabi\'i') || qText.includes('panjang harakat')) {
+      correctOpt = options.find((o) => o.optionText.includes('2 Harakat'));
+    } else if (qText.includes('satu kata') || qText.includes('muttashil')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('muttashil'));
+    } else if (qText.includes('أَعْطَيْنَاكَ') || qText.includes('munfashil') || qText.includes('lain kata')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('munfashil'));
+    } else if (qText.includes('3 huruf madd')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('alif'));
+    } else if (qText.includes('الْعَالَمِينَ') || qText.includes('waqaf')) {
+      correctOpt = options.find((o) => o.optionText.toLowerCase().includes('aridh') || o.optionText.toLowerCase().includes('‘aridh'));
+    }
+  }
+
+  // Fallback to option 0 if still nothing
+  if (!correctOpt && options.length > 0) {
+    correctOpt = options[0];
+  }
+
+  const resolvedCorrectOptId = correctOpt ? correctOpt.id : '';
+  const correctOptionText = (correctOpt?.optionText || '').trim().toLowerCase();
+
+  // Find user selected option object
+  const userOpt = options.find((o) => o.id === userOptionId);
+  const userOptionText = (userOpt?.optionText || '').trim().toLowerCase();
+
+  // Robust accuracy comparison:
+  const idsMatch = Boolean(userOptionId && resolvedCorrectOptId && userOptionId === resolvedCorrectOptId);
+  const textMatches = Boolean(userOptionText && correctOptionText && userOptionText === correctOptionText);
+  const userOptFlagged = Boolean(userOpt?.isCorrect);
+  const backendSaysCorrect = Boolean(backendItem?.isCorrect);
+
+  const isCorrect = idsMatch || textMatches || userOptFlagged || backendSaysCorrect;
+
+  // Resolve explanation:
+  let explanation =
+    q.syarahExplanation ||
+    backendItem?.explanation ||
+    MOCK_CORRECT_KEYS[q.id]?.explanation ||
+    '';
+
+  if (!explanation) {
+    const qText = (q.questionText || '').toLowerCase();
+    if (qText.includes('يَقُولُ') || qText.includes('bertemu ya')) {
+      explanation = 'Tepat! Pertemuan nun sukun dengan huruf Ya (ي) termasuk Idgham Bighunnah, dibaca memasukkan bunyi nun ke dalam huruf ya disertai dengung sempurna 2 harakat.';
+    } else if (qText.includes('bertemu ba') || qText.includes('iqlab')) {
+      explanation = 'Benar! Apabila nun sukun atau tanwin bertemu huruf Ba (ب), hukumnya adalah Iqlab. Bunyi nun/tanwin diganti menjadi bunyi mim (م) yang dirapatkan bibirnya secara ringan disertai ghunnah (dengung) 2 harakat.';
+    } else if (qText.includes('jumlah huruf idzhar halqi')) {
+      explanation = 'Tepat! Huruf Idzhar Halqi ada 6: Hamzah (ء), Ha (هـ), ‘Ain (ع), Hha (ح), Ghain (غ), dan Kha (خ). Semua keluar dari makhraj tenggorokan.';
+    } else if (qText.includes('أَنْعَمْتَ')) {
+      explanation = 'Benar! Nun sukun bertemu huruf ‘Ain (ع) termasuk Idzhar Halqi. Dibaca jelas (izh-har) makhraj nun-nya tanpa dipanjangkan dengungnya.';
+    } else if (qText.includes('ikhfa') || qText.includes('مِن قَبْلُ')) {
+      explanation = 'Tepat! Nun sukun bertemu Qaf (ق) adalah Ikhfa Haqiqi (tingkat ikhfa aqrab/tebal). Bunyi nun disamarkan menuju makhraj qaf disertai dengung tebal (tafkhim) 2 harakat.';
+    } else if (qText.includes('mim sukun') && qText.includes('bertemu huruf ba')) {
+      explanation = 'Benar! Mim sukun bertemu Ba (ب) dinamakan Ikhfa Syafawi. Dibaca samar di bibir disertai dengung 2 harakat.';
+    } else if (qText.includes('لَهُم مَّا يَشَآءُونَ')) {
+      explanation = 'Tepat! Mim sukun bertemu huruf Mim berharakat dinamakan Idgham Mimi atau Idgham Mitslain Shaghir. Suara mim pertama dimasukkan utuh ke mim kedua dengan ghunnah kamilah.';
+    } else if (qText.includes('idzhar syafawi')) {
+      explanation = 'Benar! Idzhar Syafawi berlaku apabila mim sukun bertemu dengan 26 huruf hijaiyah selain Ba (ب) dan Mim (م). Dibaca jelas di bibir tanpa dengung tambahan.';
+    } else if (qText.includes('wau') && qText.includes('fa')) {
+      explanation = 'Tepat! Huruf Wau dan Fa berdekatan/sama makhrajnya dengan mim, sehingga harus dijaga agar tetap jelas (idzhar) dan tidak tersamarkan.';
+    } else if (qText.includes('عَلَيْهِمْ وَلَا الضَّآلِّينَ')) {
+      explanation = 'Benar! Mim sukun pada عَلَيْهِمْ bertemu Wau (وَ) wajib dibaca Idzhar Syafawi yang sangat jelas (ashaddu izh-haran), bibir dirapatkan tanpa menahan dengung.';
+    } else if (qText.includes('thabi’i') || qText.includes('thabi\'i')) {
+      explanation = 'Benar! Madd Thabi’i adalah mad asli yang tidak dipengaruhi sebab hamzah atau sukun. Kadar panjangnya tetap 2 harakat (ayunan 1 alif).';
+    } else if (qText.includes('satu kata') || qText.includes('muttashil')) {
+      explanation = 'Tepat! Dinamakan \'Muttashil\' (bersambung) karena huruf mad dan hamzah berada dalam satu kata yang sama. Panjangnya 4-5 harakat pada riwayat Hafsh.';
+    } else if (qText.includes('munfashil') || qText.includes('أَعْطَيْنَاكَ')) {
+      explanation = 'Tepat! Huruf mad berada di akhir kata pertama dan hamzah berada di awal kata berikutnya. Karena terpisah kata dinamakan Munfashil, dibaca 4-5 harakat.';
+    } else if (qText.includes('3 huruf madd')) {
+      explanation = 'Benar! Huruf mad ada 3: Alif didahului fathah, Wau sukun didahului dhammah, dan Ya sukun didahului kasrah.';
+    } else if (qText.includes('الْعَالَمِينَ') || qText.includes('waqaf')) {
+      explanation = 'Tepat! Huruf mad bertemu huruf hidup yang disukunkan karena berhenti (waqaf). Boleh dibaca 2, 4, atau 6 harakat.';
+    } else {
+      explanation = 'Kaidah tajwid diterapkan sesuai hukum makharijul huruf dan sifatul huruf secara tartil.';
+    }
+  }
+
+  return {
+    correctOptionId: isCorrect && userOptionId ? userOptionId : resolvedCorrectOptId,
+    isCorrect,
+    explanation,
+  };
+}
+
+/**
  * Load tajwid modules from localStorage. If empty, initialize with default modules.
  */
 export function getStoredTajwidModules(): TajwidModule[] {
@@ -396,11 +527,6 @@ export function deleteStoredTajwidModule(id: string): TajwidModule[] {
  */
 export async function fetchSynchronizedTajwidModules(): Promise<TajwidModule[]> {
   const localList = getStoredTajwidModules();
-  const localMap = new Map<string, TajwidModule>();
-  localList.forEach((m) => {
-    if (m.slug) localMap.set(m.slug, m);
-    if (m.id) localMap.set(m.id, m);
-  });
 
   try {
     const res = await fetch('/api/v1/tajwid/modules');

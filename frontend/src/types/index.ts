@@ -68,6 +68,7 @@ export interface UserProfile {
 export interface QuizQuestionOption {
   id: string;
   optionText: string;
+  isCorrect?: boolean;
 }
 
 export interface QuizQuestion {

@@ -14,6 +14,7 @@ import {
   Sparkles,
   Check,
   Video,
+  AlertCircle,
 } from 'lucide-react';
 import type {
   TajwidModule,
@@ -24,7 +25,7 @@ import {
   getStoredTajwidModules,
   fetchSynchronizedTajwidModules,
   TAJWID_UPDATED_EVENT,
-  MOCK_CORRECT_KEYS,
+  resolveQuestionCorrectAnswer,
 } from '../lib/tajwidStore';
 
 // Animated Donut Chart Component with Counting Number Animation
@@ -70,7 +71,10 @@ function ScoreDonutChart({
 
   return (
     <div className="relative flex items-center justify-center shrink-0">
-      <svg width={size} height={size} className="transform -rotate-90">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="w-28 h-28 sm:w-36 sm:h-36 transform -rotate-90"
+      >
         {/* Track Circle */}
         <circle
           cx={size / 2}
@@ -97,7 +101,7 @@ function ScoreDonutChart({
       </svg>
       {/* Center Percentage Display */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
-        <span className="text-3xl font-black font-mono leading-none tracking-tight">
+        <span className="text-2xl sm:text-3xl font-black font-mono leading-none tracking-tight">
           {animatedScore}%
         </span>
         <span className="text-[10px] font-bold text-white/80 mt-1 uppercase tracking-wider">
@@ -111,46 +115,56 @@ function ScoreDonutChart({
 // Playful, Colorful, Interactive Appreciation Generator based on Score Tiers
 function getAppreciationMessage(percentage: number): {
   headline: string;
-  badge: string;
+  subheadline: string;
   description: string;
+  icon: typeof Award;
+  iconBg: string;
   borderColor: string;
   bgGradient: string;
 } {
   if (percentage === 100) {
     return {
-      headline: 'Masya Allah, Mumtaz! Pemahaman Sempurna 100%',
-      badge: 'Capaian Tertinggi • Mumtaz',
+      headline: 'Masya Allah, Mumtaz!',
+      subheadline: 'Pemahaman Sempurna (100%)',
       description:
         'Selamat atas pencapaian luar biasa ini! Seluruh butir kaidah tajwid pada modul ini Anda kuasai dengan sempurna tanpa ada kesalahan sedikitpun. Terus pertahankan ketelitian dan keistiqomahan membaca Al-Qur’an secara tartil.',
+      icon: Award,
+      iconBg: 'bg-emerald-500/30 text-amber-300 border-amber-300/40',
       borderColor: 'border-emerald-300/40',
       bgGradient: 'from-emerald-600 via-teal-600 to-green-700',
     };
   }
   if (percentage >= 70) {
     return {
-      headline: 'Selamat, Anda Berhasil Lulus KKM!',
-      badge: `Status: Lulus KKM 70% • Nilai ${percentage}%`,
+      headline: 'Alhamdulillah, Berhasil Lulus KKM!',
+      subheadline: `Status: Lulus KKM 70% • Nilai ${percentage}%`,
       description:
         'Alhamdulillah, pemahaman dasar kaidah tajwid Anda sudah memenuhi syarat kelulusan modul ini. Pelajari ulasan refleksi di bawah agar bacaan sehari-hari semakin mutqin dan percaya diri.',
+      icon: CheckCircle2,
+      iconBg: 'bg-teal-500/30 text-emerald-200 border-teal-300/40',
       borderColor: 'border-teal-300/40',
       bgGradient: 'from-teal-600 via-emerald-600 to-cyan-700',
     };
   }
   if (percentage >= 50) {
     return {
-      headline: 'Sedikit Lagi Menuju Ambang Kelulusan!',
-      badge: `Perlu Penguatan • Nilai ${percentage}%`,
+      headline: 'Sedikit Lagi Menuju Kelulusan!',
+      subheadline: `Perlu Penguatan • Nilai ${percentage}%`,
       description:
         'Usaha yang sangat baik! Anda hanya selisih sedikit dari batas kelulusan 70%. Tinjau kembali kunci jawaban dan poin refleksi di bawah ini, lalu coba ulangi kuis untuk meraih hasil terbaik.',
+      icon: AlertCircle,
+      iconBg: 'bg-amber-500/30 text-amber-200 border-amber-300/40',
       borderColor: 'border-orange-300/40',
       bgGradient: 'from-amber-500 via-orange-500 to-amber-600',
     };
   }
   return {
     headline: 'Setiap Langkah Thalabul ‘Ilmi Bernilai Pahala',
-    badge: 'Mari Ulangi Materi • Tetap Semangat',
+    subheadline: 'Mari Ulangi Materi • Tetap Semangat',
     description:
-      'Mempelajari ilmu tajwid memang memerlukan ketelatenan dan pembiasaan. Jangan berkecil hati, tonton kembali video penjelasannya dan cermati ulasan kunci jawaban di bawah sebelum mencoba lagi ya!',
+      'Mempelajari ilmu tajwid memang memerlukan ketelatenan dan pembiasaan. Jangan berkecil hati, tonton kembali materi penjelasannya dan cermati ulasan kunci jawaban di bawah sebelum mencoba lagi ya!',
+    icon: RotateCcw,
+    iconBg: 'bg-rose-500/30 text-rose-200 border-rose-300/40',
     borderColor: 'border-rose-400/40',
     bgGradient: 'from-rose-600 via-red-600 to-pink-700',
   };
@@ -287,40 +301,15 @@ export default function TajwidPage() {
       const mappedReviews: QuizQuestionReview[] = quiz.questions.map((q) => {
         const userChoiceId = selectedAnswers[q.id];
         const backendItem = backendReviews.find((r) => r.questionId === q.id);
-
-        // 1. Check if chosen option itself was marked isCorrect by admin/author
-        const chosenOption = q.options.find((o: any) => o.id === userChoiceId);
-        const optionFlaggedCorrect = Boolean((chosenOption as any)?.isCorrect);
-
-        // 2. Check curated mock answer key
-        const mockInfo = MOCK_CORRECT_KEYS[q.id];
-        const matchesMockKey = mockInfo ? userChoiceId === mockInfo.correctOptionId : false;
-
-        // 3. Check backend response
-        const backendSaysCorrect = Boolean(backendItem?.isCorrect);
-
-        // If ANY source confirms it's correct, validate as correct!
-        const isCorrect = backendSaysCorrect || optionFlaggedCorrect || matchesMockKey;
-
-        // Determine correct option ID
-        const correctOptId =
-          backendItem?.correctOptionId ||
-          mockInfo?.correctOptionId ||
-          q.options.find((o: any) => o.isCorrect)?.id ||
-          q.options[0]?.id;
-
-        const explanation =
-          backendItem?.explanation ||
-          mockInfo?.explanation ||
-          'Kaidah tajwid diterapkan sesuai hukum makharijul huruf dan sifatul huruf.';
+        const resolved = resolveQuestionCorrectAnswer(q, userChoiceId, backendItem);
 
         return {
           questionId: q.id,
           questionText: q.questionText,
           selectedOptionId: userChoiceId,
-          correctOptionId: correctOptId,
-          isCorrect,
-          explanation,
+          correctOptionId: resolved.correctOptionId,
+          isCorrect: resolved.isCorrect,
+          explanation: resolved.explanation,
         };
       });
 
@@ -376,6 +365,7 @@ export default function TajwidPage() {
     // Review statistics and appreciation
     const finalScore = quizReview ? Math.round(quizReview.score) : 0;
     const appreciation = getAppreciationMessage(finalScore);
+    const AppreciationIcon = appreciation.icon;
     const reviewList = quizReview?.review || quizReview?.reviews || [];
     const filteredReviewList = reviewList.filter((item) => {
       if (reviewFilter === 'wrong') return !item.isCorrect;
@@ -666,26 +656,33 @@ export default function TajwidPage() {
               <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                 {/* 1. Score & Playful Humanized Appreciation Canvas Card */}
                 <div
-                  className={`p-6 sm:p-8 rounded-3xl border shadow-xl bg-gradient-to-br ${appreciation.bgGradient} ${appreciation.borderColor} text-white space-y-6 animate-in zoom-in-95 fade-in duration-500`}
+                  className={`p-5 sm:p-7 rounded-3xl border shadow-xl bg-gradient-to-br ${appreciation.bgGradient} ${appreciation.borderColor} text-white space-y-5 animate-in zoom-in-95 fade-in duration-500`}
                 >
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="space-y-3 text-center sm:text-left flex-1">
-                      <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs">
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
-                        <span>{appreciation.badge}</span>
+                  <div className="flex flex-col-reverse sm:flex-row items-center sm:items-start justify-between gap-6">
+                    <div className="space-y-3 text-center sm:text-left flex-1 w-full">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-2.5 sm:space-y-0 sm:space-x-3.5">
+                        <div
+                          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center border shadow-inner backdrop-blur-md shrink-0 ${appreciation.iconBg}`}
+                        >
+                          <AppreciationIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                            {appreciation.headline}
+                          </h3>
+                          <p className="text-xs sm:text-sm font-semibold text-white/90">
+                            {appreciation.subheadline}
+                          </p>
+                        </div>
                       </div>
 
-                      <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
-                        {appreciation.headline}
-                      </h3>
-
-                      <p className="text-xs sm:text-sm text-white/90 leading-relaxed max-w-lg">
+                      <p className="text-xs sm:text-sm text-white/90 leading-relaxed max-w-xl pt-1">
                         {appreciation.description}
                       </p>
                     </div>
 
                     {/* Animated Donut Chart */}
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-inner">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4 border border-white/20 shadow-inner shrink-0">
                       <ScoreDonutChart
                         score={finalScore}
                         correct={quizReview.correctAnswers}
@@ -753,9 +750,9 @@ export default function TajwidPage() {
                       const selectedOptObj = questionObj?.options.find(
                         (o) => o.id === item.selectedOptionId
                       );
-                      const correctOptObj = questionObj?.options.find(
-                        (o) => o.id === item.correctOptionId
-                      );
+                      const correctOptObj =
+                        questionObj?.options.find((o) => o.id === item.correctOptionId) ||
+                        (item.isCorrect ? selectedOptObj : undefined);
 
                       return (
                         <div
@@ -820,7 +817,9 @@ export default function TajwidPage() {
                                 Kunci Jawaban Resmi:
                               </span>
                               <span className="font-bold text-xs sm:text-sm text-emerald-800 block">
-                                {correctOptObj?.optionText || '-'}
+                                {item.isCorrect
+                                  ? selectedOptObj?.optionText || correctOptObj?.optionText || '-'
+                                  : correctOptObj?.optionText || '-'}
                               </span>
                             </div>
                           </div>
