@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 import { getStoredMutabaahLogs, formatDateKey, getUserCommitments, saveUserCommitments } from '../lib/mutabaahService';
+import { getStoredTajwidModules, fetchSynchronizedTajwidModules } from '../lib/tajwidStore';
 
 interface PrayerSchedule {
   name: string;
@@ -149,16 +150,16 @@ export default function DashboardPage() {
       })
       .catch((err) => console.warn('Failed to load real SRS items:', err));
 
-    // 2. Fetch Real Tajwid Module from Backend API
-    fetch('/api/v1/tajwid/modules')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setActiveTajwidModule(data[0]);
-        }
-      })
-      .catch((err) => console.warn('Failed to load real Tajwid modules:', err))
-      ;
+    // 2. Fetch Real Tajwid Module from Store & Backend API
+    const localTajwid = getStoredTajwidModules();
+    if (localTajwid.length > 0) {
+      setActiveTajwidModule(localTajwid[0]);
+    }
+    fetchSynchronizedTajwidModules().then((synced) => {
+      if (synced && synced.length > 0) {
+        setActiveTajwidModule(synced[0]);
+      }
+    }).catch((err) => console.warn('Failed to sync Tajwid modules:', err));
   }, []);
 
   // Real-time Clock

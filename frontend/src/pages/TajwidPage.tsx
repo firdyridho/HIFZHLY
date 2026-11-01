@@ -20,328 +20,99 @@ import type {
   QuizSubmitResponse,
   QuizQuestionReview,
 } from '../types';
+import {
+  getStoredTajwidModules,
+  fetchSynchronizedTajwidModules,
+  TAJWID_UPDATED_EVENT,
+  MOCK_CORRECT_KEYS,
+} from '../lib/tajwidStore';
 
-// Fallback comprehensive modules & 5-question quizzes
-const FALLBACK_MODULES: TajwidModule[] = [
-  {
-    id: '1d8b5a04-9426-47b8-b4b3-d2a93ff7ef21',
-    title: 'Hukum Nun Sukun dan Tanwin',
-    slug: 'hukum-nun-sukun-dan-tanwin',
-    summary: 'Mempelajari 4 kaidah hukum: Idzhar Halqi, Idgham, Ikhfa Haqiqi, dan Iqlab.',
-    youtubeVideoId: '7kK84x4_uY8',
-    thumbnailUrl: 'https://img.youtube.com/vi/7kK84x4_uY8/hqdefault.jpg',
-    orderIndex: 1,
-    contentBody: `Nun sukun (نْ) atau tanwin (ـًـٍـٌ) apabila bertemu dengan salah satu huruf hijaiyah memiliki 4 ketentuan hukum bacaan:
-1. **Idzhar Halqi**: Dibaca jelas tanpa mendengung jika bertemu 6 huruf halq (ء، هـ، ع، ح، غ، خ).
-2. **Idgham**: Dibaca melebur. Terbagi menjadi *Bighunnah* (berdengung pada huruf ي، ن، م، و) dan *Bilaghunnah* (tanpa dengung pada huruf ل، ر).
-3. **Iqlab**: Menukar bunyi nun/tanwin menjadi mim (م) disertai dengung 2 harakat saat bertemu huruf Ba (ب).
-4. **Ikhfa Haqiqi**: Dibaca samar-samar antara idzhar dan idgham disertai dengung jika bertemu 15 huruf ikhfa.`,
-    quiz: {
-      id: '8f1a2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
-      title: 'Kuis Evaluasi Nun Sukun & Tanwin',
-      description: 'Jawablah 5 soal pilihan ganda berikut untuk menguji pemahaman kaidah tajwid Anda ala Gemini AI.',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q1-uuid-001',
-          questionText: 'Jika nun sukun (نْ) bertemu dengan huruf Ba (ب), hukum bacaannya adalah...',
-          orderIndex: 1,
-          options: [
-            { id: 'opt-1-1', optionText: 'Idzhar Halqi' },
-            { id: 'opt-1-2', optionText: 'Iqlab' },
-            { id: 'opt-1-3', optionText: 'Idgham Bilaghunnah' },
-            { id: 'opt-1-4', optionText: 'Ikhfa Haqiqi' },
-          ],
-        },
-        {
-          id: 'q1-uuid-002',
-          questionText: 'Pada lafal مَن يَقُولُ, hukum tajwid yang berlaku pada nun sukun bertemu Ya adalah...',
-          orderIndex: 2,
-          options: [
-            { id: 'opt-1-21', optionText: 'Idgham Bighunnah' },
-            { id: 'opt-1-22', optionText: 'Idgham Bilaghunnah' },
-            { id: 'opt-1-23', optionText: 'Idzhar Halqi' },
-            { id: 'opt-1-24', optionText: 'Iqlab' },
-          ],
-        },
-        {
-          id: 'q1-uuid-003',
-          questionText: 'Berapakah jumlah huruf Idzhar Halqi yang keluar dari tenggorokan?',
-          orderIndex: 3,
-          options: [
-            { id: 'opt-1-31', optionText: '4 Huruf' },
-            { id: 'opt-1-32', optionText: '5 Huruf' },
-            { id: 'opt-1-33', optionText: '6 Huruf (ء، هـ، ع، ح، غ، خ)' },
-            { id: 'opt-1-34', optionText: '15 Huruf' },
-          ],
-        },
-        {
-          id: 'q1-uuid-004',
-          questionText: 'Pada lafal أَنْعَمْتَ عَلَيْهِمْ, cara membaca nun sukun pada kata أَنْعَمْتَ adalah...',
-          orderIndex: 4,
-          options: [
-            { id: 'opt-1-41', optionText: 'Jelas tanpa dengung (Idzhar Halqi)' },
-            { id: 'opt-1-42', optionText: 'Melebur dengan dengung sempurna' },
-            { id: 'opt-1-43', optionText: 'Samar-samar disertai dengung tebal' },
-            { id: 'opt-1-44', optionText: 'Berubah menjadi bunyi huruf mim' },
-          ],
-        },
-        {
-          id: 'q1-uuid-005',
-          questionText: 'Manakah contoh di bawah ini yang termasuk penerapan hukum Ikhfa Haqiqi?',
-          orderIndex: 5,
-          options: [
-            { id: 'opt-1-51', optionText: 'مِن قَبْلُ (Nun sukun bertemu Qaf)' },
-            { id: 'opt-1-52', optionText: 'مَنْ آمَنَ (Nun sukun bertemu Hamzah)' },
-            { id: 'opt-1-53', optionText: 'مِنْ رَّبِّهِمْ (Nun sukun bertemu Ra)' },
-            { id: 'opt-1-54', optionText: 'أَنْ بُورِكَ (Nun sukun bertemu Ba)' },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: '2b7c4d1e-8f3a-5b9c-0d2e-4f6a8b1c3d5e',
-    title: 'Hukum Mim Sukun (Al-Ahkam Al-Mimiyah)',
-    slug: 'hukum-mim-sukun',
-    summary: 'Mempelajari 3 hukum: Ikhfa Syafawi, Idgham Mimi, dan Idzhar Syafawi.',
-    youtubeVideoId: 'wR4Cg3t_9jQ',
-    thumbnailUrl: 'https://img.youtube.com/vi/wR4Cg3t_9jQ/hqdefault.jpg',
-    orderIndex: 2,
-    contentBody: `Mim sukun (مْ) memiliki 3 hukum bacaan berdasarkan makhraj bibir:
-1. **Ikhfa Syafawi**: Mim sukun bertemu huruf Ba (ب). Dibaca samar dengan dengung.
-2. **Idgham Mimi / Mitslain**: Mim sukun bertemu huruf Mim (م). Dibaca melebur dengan dengung sempurna.
-3. **Idzhar Syafawi**: Mim sukun bertemu seluruh huruf hijaiyah selain Ba dan Mim. Dibaca jelas di bibir tanpa dengung.`,
-    quiz: {
-      id: '9a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
-      title: 'Kuis Evaluasi Mim Sukun',
-      description: 'Uji kemampuan membedakan Ikhfa Syafawi, Idgham Mimi, dan Idzhar Syafawi.',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q2-uuid-001',
-          questionText: 'Mim sukun (مْ) bertemu huruf Ba (ب) dihukumi...',
-          orderIndex: 1,
-          options: [
-            { id: 'opt-2-1', optionText: 'Ikhfa Syafawi' },
-            { id: 'opt-2-2', optionText: 'Idgham Mimi' },
-            { id: 'opt-2-3', optionText: 'Idzhar Syafawi' },
-            { id: 'opt-2-4', optionText: 'Idgham Bilaghunnah' },
-          ],
-        },
-        {
-          id: 'q2-uuid-002',
-          questionText: 'Pada lafal لَهُم مَّا يَشَآءُونَ, hukum bacaan yang terjadi adalah...',
-          orderIndex: 2,
-          options: [
-            { id: 'opt-2-21', optionText: 'Idgham Mimi (Mitslain)' },
-            { id: 'opt-2-22', optionText: 'Idzhar Halqi' },
-            { id: 'opt-2-23', optionText: 'Iqlab' },
-            { id: 'opt-2-24', optionText: 'Ikhfa Haqiqi' },
-          ],
-        },
-        {
-          id: 'q2-uuid-003',
-          questionText: 'Huruf apa sajakah yang menjadi sebab berlakunya hukum Idzhar Syafawi?',
-          orderIndex: 3,
-          options: [
-            { id: 'opt-2-31', optionText: 'Seluruh huruf hijaiyah selain Mim dan Ba' },
-            { id: 'opt-2-32', optionText: 'Hanya huruf alif dan wau saja' },
-            { id: 'opt-2-33', optionText: '6 huruf tenggorokan halqi' },
-            { id: 'opt-2-34', optionText: '15 huruf ikhfa haqiqi' },
-          ],
-        },
-        {
-          id: 'q2-uuid-004',
-          questionText: 'Mengapa qari harus berhati-hati agar mim sukun tidak terbaca ikhfa saat bertemu huruf Wau (و) atau Fa (ف)?',
-          orderIndex: 4,
-          options: [
-            { id: 'opt-2-41', optionText: 'Karena kedekatan dan kesamaan makhraj pada bibir' },
-            { id: 'opt-2-42', optionText: 'Karena hukum asalnya wajib dengung 3 harakat' },
-            { id: 'opt-2-43', optionText: 'Karena termasuk huruf pembatal tajwid' },
-            { id: 'opt-2-44', optionText: 'Karena kedua huruf tersebut merupakan huruf halq' },
-          ],
-        },
-        {
-          id: 'q2-uuid-005',
-          questionText: 'Pada lafal عَلَيْهِمْ وَلَا الضَّآلِّينَ, hukum mim sukun bertemu wau wajib dibaca...',
-          orderIndex: 5,
-          options: [
-            { id: 'opt-2-51', optionText: 'Idzhar Syafawi secara tegas dan jelas' },
-            { id: 'opt-2-52', optionText: 'Ikhfa Syafawi dengan dengung 2 harakat' },
-            { id: 'opt-2-53', optionText: 'Idgham Mimi melebur sempurna' },
-            { id: 'opt-2-54', optionText: 'Iqlab dengan bibir merenggang' },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: '3c8d5e2f-9a4b-6c0d-1e3f-5a7b9c2d4e6f',
-    title: 'Hukum Madd Asli dan Madd Far’i',
-    slug: 'hukum-madd',
-    summary: 'Klasifikasi panjang harakat bacaan: Thabi’i, Wajib Muttashil, dan Jaiz Munfashil.',
-    youtubeVideoId: 'dQw4w9WgXcQ',
-    thumbnailUrl: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-    orderIndex: 3,
-    contentBody: `Madd secara bahasa berarti memanjangkan suara. Terbagi atas:
-1. **Madd Asli (Thabi’i)**: Dipanjangkan 2 harakat (1 alif).
-2. **Madd Wajib Muttashil**: Huruf madd bertemu hamzah dalam satu kata. Dipanjangkan 4-5 harakat.
-3. **Madd Jaiz Munfashil**: Huruf madd bertemu hamzah di lain kata. Dipanjangkan 4-5 harakat.`,
-    quiz: {
-      id: '7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e',
-      title: 'Kuis Evaluasi Hukum Madd',
-      description: 'Uji pemahaman panjang harakat madd wajib vs jaiz munfashil.',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q3-uuid-001',
-          questionText: 'Berapakah kadar panjang harakat Madd Thabi’i (Asli) yang disepakati ulama tajwid?',
-          orderIndex: 1,
-          options: [
-            { id: 'opt-3-1', optionText: '2 Harakat (1 Alif)' },
-            { id: 'opt-3-2', optionText: '4 Harakat (2 Alif)' },
-            { id: 'opt-3-3', optionText: '6 Harakat (3 Alif)' },
-            { id: 'opt-3-4', optionText: '1 Harakat saja' },
-          ],
-        },
-        {
-          id: 'q3-uuid-002',
-          questionText: 'Apabila huruf mad bertemu dengan hamzah dalam SATU kata bersambung, dinamakan hukum...',
-          orderIndex: 2,
-          options: [
-            { id: 'opt-3-21', optionText: 'Madd Wajib Muttashil' },
-            { id: 'opt-3-22', optionText: 'Madd Jaiz Munfashil' },
-            { id: 'opt-3-23', optionText: 'Madd Lazim Kilmi' },
-            { id: 'opt-3-24', optionText: 'Madd Badal' },
-          ],
-        },
-        {
-          id: 'q3-uuid-003',
-          questionText: 'Pada lafal إِنَّآ أَعْطَيْنَاكَ, hukum madd yang berlaku pada kata إِنَّآ bertemu hamzah kata berikutnya adalah...',
-          orderIndex: 3,
-          options: [
-            { id: 'opt-3-31', optionText: 'Madd Jaiz Munfashil' },
-            { id: 'opt-3-32', optionText: 'Madd Wajib Muttashil' },
-            { id: 'opt-3-33', optionText: 'Madd ‘Aridh Lissukun' },
-            { id: 'opt-3-34', optionText: 'Madd Iwad' },
-          ],
-        },
-        {
-          id: 'q3-uuid-004',
-          questionText: 'Manakah di bawah ini yang merupakan 3 huruf madd asli dalam Al-Qur\'an?',
-          orderIndex: 4,
-          options: [
-            { id: 'opt-3-41', optionText: 'Alif mati setelah fathah, Wau mati setelah dhammah, Ya mati setelah kasrah' },
-            { id: 'opt-3-42', optionText: 'Nun sukun, Mim sukun, dan Ba' },
-            { id: 'opt-3-43', optionText: 'Hamzah, Ha, dan ‘Ain' },
-            { id: 'opt-3-44', optionText: 'Qaf, Tha, Ba, Jim, Dal' },
-          ],
-        },
-        {
-          id: 'q3-uuid-005',
-          questionText: 'Pada akhir ayat saat waqaf pada kata الْعَالَمِينَ, hukum bacaan yang terjadi adalah...',
-          orderIndex: 5,
-          options: [
-            { id: 'opt-3-51', optionText: 'Madd ‘Aridh Lissukun (boleh 2, 4, atau 6 harakat)' },
-            { id: 'opt-3-52', optionText: 'Madd Thabi’i mutlak 2 harakat saja' },
-            { id: 'opt-3-53', optionText: 'Madd Lazim 6 harakat mutlak' },
-            { id: 'opt-3-54', optionText: 'Madd Shilah Thawilah' },
-          ],
-        },
-      ],
-    },
-  },
-];
+// Animated Donut Chart Component with Counting Number Animation
+function ScoreDonutChart({
+  score,
+  correct,
+  total,
+}: {
+  score: number;
+  correct: number;
+  total: number;
+}) {
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const size = 140;
+  const strokeWidth = 10;
+  const radius = (size - strokeWidth) / 2; // 65
+  const circumference = 2 * Math.PI * radius; // ≈ 408.4
 
-// Offline answers repository for fallback quiz evaluation & reflection
-const MOCK_CORRECT_KEYS: Record<string, { correctOptionId: string; explanation: string }> = {
-  // Modul 1
-  'q1-uuid-001': {
-    correctOptionId: 'opt-1-2',
-    explanation:
-      'Benar! Apabila nun sukun atau tanwin bertemu huruf Ba (ب), hukumnya adalah Iqlab. Bunyi nun/tanwin diganti menjadi bunyi mim (م) yang dirapatkan bibirnya secara ringan disertai ghunnah (dengung) 2 harakat.',
-  },
-  'q1-uuid-002': {
-    correctOptionId: 'opt-1-21',
-    explanation:
-      'Tepat! Huruf Ya (ي) adalah salah satu dari 4 huruf Idgham Bighunnah (ي، ن، م، و). Nun sukun dileburkan ke dalam huruf ya disertai ghunnah sempurna 2 harakat.',
-  },
-  'q1-uuid-003': {
-    correctOptionId: 'opt-1-33',
-    explanation:
-      'Tepat! Huruf Idzhar Halqi ada 6: Hamzah (ء), Ha (هـ), ‘Ain (ع), Hha (ح), Ghain (غ), dan Kha (خ). Dinamakan halqi karena seluruh hurufnya keluar dari halq (tenggorokan).',
-  },
-  'q1-uuid-004': {
-    correctOptionId: 'opt-1-41',
-    explanation:
-      'Benar! Nun sukun bertemu huruf ‘Ain (ع) termasuk Idzhar Halqi. Dibaca jelas (izh-har) makhraj nun-nya tanpa dipanjangkan dengungnya.',
-  },
-  'q1-uuid-005': {
-    correctOptionId: 'opt-1-51',
-    explanation:
-      'Tepat! Nun sukun bertemu Qaf (ق) adalah Ikhfa Haqiqi (tingkat ikhfa aqrab/tebal). Bunyi nun disamarkan menuju makhraj qaf disertai dengung tebal (tafkhim) 2 harakat.',
-  },
-  // Modul 2
-  'q2-uuid-001': {
-    correctOptionId: 'opt-2-1',
-    explanation:
-      'Benar! Mim sukun bertemu Ba (ب) dinamakan Ikhfa Syafawi. Dinamakan syafawi karena kedua huruf tersebut keluar dari dua bibir (syafatain), dibaca samar disertai dengung 2 harakat.',
-  },
-  'q2-uuid-002': {
-    correctOptionId: 'opt-2-21',
-    explanation:
-      'Tepat! Mim sukun bertemu huruf Mim berharakat dinamakan Idgham Mimi atau Idgham Mitslain Shaghir. Suara mim pertama dimasukkan utuh ke mim kedua dengan ghunnah kamilah.',
-  },
-  'q2-uuid-003': {
-    correctOptionId: 'opt-2-31',
-    explanation:
-      'Benar! Idzhar Syafawi berlaku apabila mim sukun bertemu dengan 26 huruf hijaiyah selain Ba (ب) dan Mim (م). Dibaca jelas di bibir tanpa dengung tambahan.',
-  },
-  'q2-uuid-004': {
-    correctOptionId: 'opt-2-41',
-    explanation:
-      'Tepat! Sebagaimana ditegaskan Imam Al-Jamzuri dalam Tuhfatul Athfal: \'Wakhfa lada wawin wa fa an takhtafi, liqurbiha wal ittihadi fa\'rifi\'. Huruf Wau dan Fa berdekatan/sama makhrajnya dengan mim, sehingga harus dijaga agar tetap jelas (idzhar) dan tidak tersamarkan.',
-  },
-  'q2-uuid-005': {
-    correctOptionId: 'opt-2-51',
-    explanation:
-      'Benar! Mim sukun pada عَلَيْهِمْ bertemu Wau (وَ) wajib dibaca Idzhar Syafawi yang sangat jelas (ashaddu izh-haran), bibir dirapatkan tanpa menahan dengung.',
-  },
-  // Modul 3
-  'q3-uuid-001': {
-    correctOptionId: 'opt-3-1',
-    explanation:
-      'Benar! Madd Thabi’i adalah mad asli yang tidak dipengaruhi sebab hamzah atau sukun. Kadar panjangnya tetap 2 harakat (ayunan 1 alif).',
-  },
-  'q3-uuid-002': {
-    correctOptionId: 'opt-3-21',
-    explanation:
-      'Tepat! Dinamakan \'Muttashil\' (bersambung) karena huruf mad dan hamzah berada dalam satu kata yang sama (seperti جَآءَ atau السَّمَآءُ). Panjangnya 4-5 harakat pada riwayat Hafsh.',
-  },
-  'q3-uuid-003': {
-    correctOptionId: 'opt-3-31',
-    explanation:
-      'Tepat! Huruf mad berada di akhir kata pertama (إِنَّآ) dan hamzah berada di awal kata berikutnya (أَعْطَيْنَاكَ). Karena terpisah kata dinamakan Munfashil (terpisah), dibaca 4-5 harakat.',
-  },
-  'q3-uuid-004': {
-    correctOptionId: 'opt-3-41',
-    explanation:
-      'Benar! Huruf mad ada 3: Alif didahului fathah, Wau sukun didahului dhammah, dan Ya sukun didahului kasrah (terkumpul dalam lafal نُوحِيهَا).',
-  },
-  'q3-uuid-005': {
-    correctOptionId: 'opt-3-51',
-    explanation:
-      'Tepat! Huruf mad bertemu huruf hidup yang disukunkan karena berhenti (waqaf). Boleh dibaca qashr (2 harakat), tawassuth (4 harakat), atau thul (6 harakat).',
-  },
-};
+  useEffect(() => {
+    let start = 0;
+    const target = Math.max(0, Math.min(100, Math.round(score)));
+    const duration = 1200; // 1.2s smooth count-up
+    const startTime = performance.now();
 
-// Humanized appreciation & reflection generator by percentage brackets
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic for natural slowing down
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const val = Math.round(start + (target - start) * easeProgress);
+      setAnimatedScore(val);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    const animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [score]);
+
+  const offset = circumference - (animatedScore / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center shrink-0">
+      <svg width={size} height={size} className="transform -rotate-90">
+        {/* Track Circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          className="text-white/20"
+        />
+        {/* Animated Progress Circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-white transition-all duration-100 ease-out"
+        />
+      </svg>
+      {/* Center Percentage Display */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
+        <span className="text-3xl font-black font-mono leading-none tracking-tight">
+          {animatedScore}%
+        </span>
+        <span className="text-[10px] font-bold text-white/80 mt-1 uppercase tracking-wider">
+          {correct}/{total} Benar
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Playful, Colorful, Interactive Appreciation Generator based on Score Tiers
 function getAppreciationMessage(percentage: number): {
   headline: string;
   badge: string;
   description: string;
-  toneColor: string;
   borderColor: string;
   bgGradient: string;
 } {
@@ -351,86 +122,49 @@ function getAppreciationMessage(percentage: number): {
       badge: 'Capaian Tertinggi • Mumtaz',
       description:
         'Selamat atas pencapaian luar biasa ini! Seluruh butir kaidah tajwid pada modul ini Anda kuasai dengan sempurna tanpa ada kesalahan sedikitpun. Terus pertahankan ketelitian dan keistiqomahan membaca Al-Qur’an secara tartil.',
-      toneColor: 'text-emerald-950',
-      borderColor: 'border-emerald-300',
-      bgGradient: 'from-emerald-50 via-teal-50 to-white',
-    };
-  }
-  if (percentage >= 90) {
-    return {
-      headline: 'Alhamdulillah, Hasil Sangat Mengesankan!',
-      badge: 'Hampir Sempurna • Jayyid Jiddan',
-      description:
-        'Luar biasa! Pemahaman Anda terhadap materi ini sudah sangat matang dan mendalam. Hanya satu butir yang terlewat, simak catatan refleksi ilmiah di bawah untuk menyempurnakan ketelitian Anda.',
-      toneColor: 'text-emerald-900',
-      borderColor: 'border-emerald-200',
-      bgGradient: 'from-emerald-50/90 via-teal-50/60 to-white',
-    };
-  }
-  if (percentage >= 80) {
-    return {
-      headline: 'Barakallahu Fiik! Nilai di Atas Standar',
-      badge: 'Lulus Memuaskan • Jayyid',
-      description:
-        'Selamat! Anda lulus dengan nilai yang sangat membanggakan di atas batas minimal kelulusan (KKM 70%). Kaidah-kaidah inti tajwid sudah Anda pahami dengan mantap.',
-      toneColor: 'text-teal-950',
-      borderColor: 'border-teal-300',
-      bgGradient: 'from-teal-50 via-emerald-50/60 to-white',
+      borderColor: 'border-emerald-300/40',
+      bgGradient: 'from-emerald-600 via-teal-600 to-green-700',
     };
   }
   if (percentage >= 70) {
     return {
       headline: 'Selamat, Anda Berhasil Lulus KKM!',
-      badge: 'Status: Lulus KKM 70%',
+      badge: `Status: Lulus KKM 70% • Nilai ${percentage}%`,
       description:
         'Alhamdulillah, pemahaman dasar kaidah tajwid Anda sudah memenuhi syarat kelulusan modul ini. Pelajari ulasan refleksi di bawah agar bacaan sehari-hari semakin mutqin dan percaya diri.',
-      toneColor: 'text-slate-900',
-      borderColor: 'border-emerald-200',
-      bgGradient: 'from-emerald-50/60 via-slate-50 to-white',
+      borderColor: 'border-teal-300/40',
+      bgGradient: 'from-teal-600 via-emerald-600 to-cyan-700',
     };
   }
-  if (percentage >= 60) {
+  if (percentage >= 50) {
     return {
       headline: 'Sedikit Lagi Menuju Ambang Kelulusan!',
-      badge: 'Perlu Penguatan Ringan',
+      badge: `Perlu Penguatan • Nilai ${percentage}%`,
       description:
         'Usaha yang sangat baik! Anda hanya selisih sedikit dari batas kelulusan 70%. Tinjau kembali kunci jawaban dan poin refleksi di bawah ini, lalu coba ulangi kuis untuk meraih hasil terbaik.',
-      toneColor: 'text-amber-950',
-      borderColor: 'border-amber-300',
-      bgGradient: 'from-amber-50 via-orange-50/40 to-white',
-    };
-  }
-  if (percentage >= 40) {
-    return {
-      headline: 'Tetap Semangat, Anda Berada di Jalur Belajar yang Baik!',
-      badge: 'Proses Belajar • Terus Berlatih',
-      description:
-        'Sebagian konsep kaidah sudah berhasil Anda pahami dengan tepat. Luangkan waktu sejenak membaca kembali rangkuman materi di lembar silabus, lalu uji kembali pemahaman Anda dengan tenang.',
-      toneColor: 'text-amber-950',
-      borderColor: 'border-amber-300',
-      bgGradient: 'from-amber-50 via-amber-100/30 to-white',
+      borderColor: 'border-orange-300/40',
+      bgGradient: 'from-amber-500 via-orange-500 to-amber-600',
     };
   }
   return {
     headline: 'Setiap Langkah Thalabul ‘Ilmi Bernilai Pahala',
-    badge: 'Mari Ulangi Materi',
+    badge: 'Mari Ulangi Materi • Tetap Semangat',
     description:
       'Mempelajari ilmu tajwid memang memerlukan ketelatenan dan pembiasaan. Jangan berkecil hati, tonton kembali video penjelasannya dan cermati ulasan kunci jawaban di bawah sebelum mencoba lagi ya!',
-    toneColor: 'text-slate-900',
-    borderColor: 'border-slate-300',
-    bgGradient: 'from-slate-50 via-slate-100/60 to-white',
+    borderColor: 'border-rose-400/40',
+    bgGradient: 'from-rose-600 via-red-600 to-pink-700',
   };
 }
 
 export default function TajwidPage() {
-  const [modules, setModules] = useState<TajwidModule[]>(FALLBACK_MODULES);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Initialize immediately from persistent storage so admin inputs NEVER wipe or reset
+  const [modules, setModules] = useState<TajwidModule[]>(() => getStoredTajwidModules());
   const [activeModule, setActiveModule] = useState<TajwidModule | null>(null);
 
   // Active view tab in module: 'lesson' | 'quiz'
   const [activeTab, setActiveTab] = useState<'lesson' | 'quiz'>('lesson');
 
-  // Gemini AI Card Quiz State (5 Questions Stepper)
+  // Interactive Card Quiz State (5 Questions Stepper)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -439,33 +173,26 @@ export default function TajwidPage() {
   // Reflection review filter: 'all' | 'wrong' | 'correct'
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong' | 'correct'>('all');
 
+  // Synchronize modules with backend while preserving all local admin uploads & edits
   useEffect(() => {
-    fetch('/api/v1/tajwid/modules')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch modules');
-        return res.json();
-      })
-      .then((data: TajwidModule[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const merged = data.map((mod, idx) => {
-            const fallbackMod = FALLBACK_MODULES[idx] || FALLBACK_MODULES[0];
-            return {
-              ...mod,
-              thumbnailUrl:
-                mod.thumbnailUrl ||
-                fallbackMod.thumbnailUrl ||
-                (mod.youtubeVideoId ? `https://img.youtube.com/vi/${mod.youtubeVideoId}/hqdefault.jpg` : ''),
-              quiz: mod.quiz && mod.quiz.questions?.length > 0 ? mod.quiz : fallbackMod.quiz,
-              contentBody: mod.contentBody || fallbackMod.contentBody,
-            };
-          });
-          setModules(merged);
-        }
-      })
-      .catch((err) => {
-        console.warn('Using fallback tajwid modules:', err);
-      })
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    fetchSynchronizedTajwidModules().then((synced) => {
+      if (isMounted && Array.isArray(synced) && synced.length > 0) {
+        setModules(synced);
+      }
+    });
+
+    const handleTajwidUpdated = (e: any) => {
+      if (Array.isArray(e.detail) && e.detail.length > 0) {
+        setModules(e.detail);
+      }
+    };
+
+    window.addEventListener(TAJWID_UPDATED_EVENT, handleTajwidUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(TAJWID_UPDATED_EVENT, handleTajwidUpdated);
+    };
   }, []);
 
   const handleOpenModule = async (mod: TajwidModule) => {
@@ -475,22 +202,29 @@ export default function TajwidPage() {
     setQuizReview(null);
     setReviewFilter('all');
 
+    // Retrieve freshest version from persistent storage first
+    const freshestLocal = getStoredTajwidModules().find(
+      (m) => m.id === mod.id || m.slug === mod.slug
+    );
+    const baseModule = freshestLocal || mod;
+
     try {
-      const res = await fetch(`/api/v1/tajwid/modules/${mod.slug}`);
+      const res = await fetch(`/api/v1/tajwid/modules/${baseModule.slug}`);
       if (res.ok) {
         const data = await res.json();
         setActiveModule({
-          ...mod,
-          thumbnailUrl: mod.thumbnailUrl || data.thumbnailUrl,
-          contentBody: data.contentBody || mod.contentBody,
-          quiz: data.quiz || mod.quiz,
+          ...baseModule,
+          thumbnailUrl: baseModule.thumbnailUrl || data.thumbnailUrl,
+          contentBody: baseModule.contentBody || data.contentBody,
+          quiz: baseModule.quiz || data.quiz,
         });
         return;
       }
-    } catch (e) {
-      console.warn('Failed to load real module detail from backend:', e);
+    } catch {
+      // Backend unavailable; use freshest local version
     }
-    setActiveModule(mod);
+
+    setActiveModule(baseModule);
   };
 
   const handleSelectOption = (questionId: string, optionId: string) => {
@@ -501,7 +235,7 @@ export default function TajwidPage() {
     }));
   };
 
-  // Submit quiz attempt (with guaranteed answer preservation and review sync)
+  // Submit quiz attempt (with reliable score calculation that NEVER bugs out to 0%)
   const handleSubmitQuiz = async () => {
     if (!activeModule?.quiz) return;
     const quiz = activeModule.quiz;
@@ -524,100 +258,93 @@ export default function TajwidPage() {
     }));
 
     try {
-      const token = localStorage.getItem('hifzhly_auth_token');
-      const res = await fetch(`/api/v1/tajwid/quizzes/${quiz.id}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ answers: answersPayload }),
-      });
+      let backendReviews: any[] = [];
+      let backendScore: number | null = null;
+      let attemptId = `attempt-${Date.now()}`;
 
-      if (res.ok) {
-        const data = await res.json();
-        const rawReviews: QuizQuestionReview[] = (data.reviews || data.review || []) as QuizQuestionReview[];
-
-        // Combine backend reviews with full question details so NO answers are lost
-        const mappedReviews: QuizQuestionReview[] = quiz.questions.map((q) => {
-          const userChoiceId = selectedAnswers[q.id];
-          const backendItem = rawReviews.find((r) => r.questionId === q.id);
-
-          const correctOptId =
-            backendItem?.correctOptionId ||
-            MOCK_CORRECT_KEYS[q.id]?.correctOptionId ||
-            q.options[0]?.id;
-
-          const isCorrect = backendItem ? backendItem.isCorrect : userChoiceId === correctOptId;
-          const explanation =
-            backendItem?.explanation ||
-            MOCK_CORRECT_KEYS[q.id]?.explanation ||
-            'Kaidah tajwid diterapkan sesuai hukum makharijul huruf dan sifatul huruf.';
-
-          return {
-            questionId: q.id,
-            questionText: q.questionText,
-            selectedOptionId: userChoiceId,
-            correctOptionId: correctOptId,
-            isCorrect,
-            explanation,
-          };
+      try {
+        const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+        const res = await fetch(`/api/v1/tajwid/quizzes/${quiz.id}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ answers: answersPayload }),
         });
 
-        const correctCount = mappedReviews.filter((r) => r.isCorrect).length;
-        const score = Math.round((correctCount / quiz.questions.length) * 100);
-
-        setQuizReview({
-          quizId: quiz.id,
-          attemptId: data.attemptId || `attempt-${Date.now()}`,
-          score: typeof data.score === 'number' ? Math.round(data.score) : score,
-          totalQuestions: quiz.questions.length,
-          correctAnswers: correctCount,
-          passed: score >= quiz.passingScore,
-          passingScore: quiz.passingScore,
-          completedAt: data.completedAt || new Date().toISOString(),
-          review: mappedReviews,
-          reviews: mappedReviews,
-        });
-      } else {
-        throw new Error('Fallback to local evaluation');
+        if (res.ok) {
+          const data = await res.json();
+          backendReviews = data.reviews || data.review || [];
+          if (typeof data.score === 'number') backendScore = data.score;
+          if (data.attemptId) attemptId = data.attemptId;
+        }
+      } catch (networkErr) {
+        console.warn('Backend submit unavailable, evaluating locally:', networkErr);
       }
-    } catch {
-      // Local robust evaluation fallback
-      let correctCount = 0;
-      const reviews: QuizQuestionReview[] = quiz.questions.map((q) => {
-        const userChoice = selectedAnswers[q.id];
-        const correctInfo = MOCK_CORRECT_KEYS[q.id] || {
-          correctOptionId: q.options[0].id,
-          explanation: 'Kaidah tajwid berlaku sesuai hukum makharijul huruf dan sifatul huruf.',
-        };
-        const isCorrect = userChoice === correctInfo.correctOptionId;
-        if (isCorrect) correctCount++;
+
+      // Combine backend evaluation with local truth keys so NO answers or points are lost
+      const mappedReviews: QuizQuestionReview[] = quiz.questions.map((q) => {
+        const userChoiceId = selectedAnswers[q.id];
+        const backendItem = backendReviews.find((r) => r.questionId === q.id);
+
+        // 1. Check if chosen option itself was marked isCorrect by admin/author
+        const chosenOption = q.options.find((o: any) => o.id === userChoiceId);
+        const optionFlaggedCorrect = Boolean((chosenOption as any)?.isCorrect);
+
+        // 2. Check curated mock answer key
+        const mockInfo = MOCK_CORRECT_KEYS[q.id];
+        const matchesMockKey = mockInfo ? userChoiceId === mockInfo.correctOptionId : false;
+
+        // 3. Check backend response
+        const backendSaysCorrect = Boolean(backendItem?.isCorrect);
+
+        // If ANY source confirms it's correct, validate as correct!
+        const isCorrect = backendSaysCorrect || optionFlaggedCorrect || matchesMockKey;
+
+        // Determine correct option ID
+        const correctOptId =
+          backendItem?.correctOptionId ||
+          mockInfo?.correctOptionId ||
+          q.options.find((o: any) => o.isCorrect)?.id ||
+          q.options[0]?.id;
+
+        const explanation =
+          backendItem?.explanation ||
+          mockInfo?.explanation ||
+          'Kaidah tajwid diterapkan sesuai hukum makharijul huruf dan sifatul huruf.';
 
         return {
           questionId: q.id,
           questionText: q.questionText,
-          selectedOptionId: userChoice,
-          correctOptionId: correctInfo.correctOptionId,
+          selectedOptionId: userChoiceId,
+          correctOptionId: correctOptId,
           isCorrect,
-          explanation: correctInfo.explanation,
+          explanation,
         };
       });
 
-      const score = Math.round((correctCount / quiz.questions.length) * 100);
-      const passed = score >= quiz.passingScore;
+      const correctCount = mappedReviews.filter((r) => r.isCorrect).length;
+      const computedScore =
+        quiz.questions.length > 0
+          ? Math.round((correctCount / quiz.questions.length) * 100)
+          : 0;
+
+      // Trust accurately computed score over a false 0 from backend ID mismatch
+      const finalScore =
+        backendScore !== null && backendScore > 0 ? Math.round(backendScore) : computedScore;
 
       setQuizReview({
         quizId: quiz.id,
-        attemptId: `attempt-${Date.now()}`,
-        score,
+        attemptId,
+        score: finalScore,
         totalQuestions: quiz.questions.length,
         correctAnswers: correctCount,
-        passed,
+        passed: finalScore >= quiz.passingScore,
         passingScore: quiz.passingScore,
         completedAt: new Date().toISOString(),
-        review: reviews,
-        reviews,
+        review: mappedReviews,
+        reviews: mappedReviews,
       });
     } finally {
       setIsSubmitting(false);
@@ -637,15 +364,6 @@ export default function TajwidPage() {
     const nextIndex = (currentIndex + 1) % modules.length;
     handleOpenModule(modules[nextIndex]);
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16 text-emerald-700 space-x-2">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm font-semibold">Memuat kurikulum Tajwid Academy...</span>
-      </div>
-    );
-  }
 
   // Active Module View
   if (activeModule) {
@@ -710,7 +428,7 @@ export default function TajwidPage() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Kuis Evaluasi AI {quizReview && '• Hasil & Refleksi'}
+              Kuis Evaluasi Tajwid {quizReview && '• Hasil & Refleksi'}
             </button>
           </div>
         </div>
@@ -756,7 +474,7 @@ export default function TajwidPage() {
                   onClick={() => setActiveTab('quiz')}
                   className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
                 >
-                  <span>Mulai Uji Pemahaman di Kuis Gemini AI</span>
+                  <span>Mulai Uji Pemahaman di Kuis Tajwid</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -764,13 +482,13 @@ export default function TajwidPage() {
           </div>
         )}
 
-        {/* Tab 2: Gemini AI Canvas Quiz & Post-Quiz Reflection Screen */}
+        {/* Tab 2: Interactive Card Quiz & Post-Quiz Reflection Screen */}
         {activeTab === 'quiz' && quiz && (
           <div className="space-y-6">
-            {/* If Quiz is NOT submitted yet: Gemini AI Card Stepper UI */}
+            {/* Taking Quiz Mode: Interactive Stepper Card */}
             {!quizReview ? (
               <div className="max-w-3xl mx-auto space-y-5">
-                {/* Stepper Header & Progress Ring */}
+                {/* Stepper Header & Progress Bar */}
                 <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center space-x-2.5">
@@ -779,7 +497,7 @@ export default function TajwidPage() {
                       </div>
                       <div>
                         <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-800 block">
-                          Gemini AI Quiz Canvas • 5 Soal Evaluasi
+                          Kuis Evaluasi Tajwid • 5 Soal Pemahaman
                         </span>
                         <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                           {quiz.title}
@@ -813,7 +531,7 @@ export default function TajwidPage() {
                     </div>
                   </div>
 
-                  {/* Interactive Question Navigation Selector Strip */}
+                  {/* Question Selector Strip */}
                   <div className="flex items-center justify-between pt-1 gap-1.5 overflow-x-auto pb-1">
                     {quiz.questions.map((q, idx) => {
                       const isAnswered = Boolean(selectedAnswers[q.id]);
@@ -840,10 +558,9 @@ export default function TajwidPage() {
                   </div>
                 </div>
 
-                {/* THE ACTIVE GEMINI AI QUESTION CARD */}
+                {/* THE ACTIVE QUESTION CARD */}
                 {currentQ && (
                   <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 transition-all animate-in fade-in duration-200">
-                    {/* Question Statement */}
                     <div className="space-y-2">
                       <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
                         Pertanyaan Nomor {currentQuestionIndex + 1}
@@ -945,42 +662,35 @@ export default function TajwidPage() {
                 )}
               </div>
             ) : (
-              /* POST-QUIZ REVIEW & REFLECTION SCREEN ALA GEMINI AI CANVAS */
+              /* POST-QUIZ REVIEW & COLORFUL PLAYFUL HERO REFLECTION SCREEN */
               <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                {/* 1. Score & Humanized Appreciation Canvas Card */}
+                {/* 1. Score & Playful Humanized Appreciation Canvas Card */}
                 <div
-                  className={`p-6 sm:p-8 rounded-3xl border shadow-md bg-linear-to-br ${appreciation.bgGradient} ${appreciation.borderColor} space-y-5`}
+                  className={`p-6 sm:p-8 rounded-3xl border shadow-xl bg-gradient-to-br ${appreciation.bgGradient} ${appreciation.borderColor} text-white space-y-6 animate-in zoom-in-95 fade-in duration-500`}
                 >
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="space-y-2 text-center sm:text-left">
-                      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-700 shadow-2xs">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className="space-y-3 text-center sm:text-left flex-1">
+                      <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs">
+                        <Sparkles className="w-3.5 h-3.5 text-white" />
                         <span>{appreciation.badge}</span>
-                      </span>
+                      </div>
 
-                      <h3 className={`text-xl sm:text-2xl font-black tracking-tight ${appreciation.toneColor}`}>
+                      <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
                         {appreciation.headline}
                       </h3>
 
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg">
+                      <p className="text-xs sm:text-sm text-white/90 leading-relaxed max-w-lg">
                         {appreciation.description}
                       </p>
                     </div>
 
-                    {/* Big Numeric Percentage Score */}
-                    <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-sm text-center min-w-[150px] shrink-0">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                        Skor Akhir
-                      </span>
-                      <div className="flex items-baseline justify-center space-x-1 my-1">
-                        <span className="text-4xl sm:text-5xl font-black text-slate-900 font-mono tabular-nums leading-none">
-                          {finalScore}
-                        </span>
-                        <span className="text-base font-bold text-slate-400">%</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-slate-400 block">
-                        {quizReview.correctAnswers} / {quizReview.totalQuestions} Soal Benar • KKM {quizReview.passingScore}%
-                      </span>
+                    {/* Animated Donut Chart */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-inner">
+                      <ScoreDonutChart
+                        score={finalScore}
+                        correct={quizReview.correctAnswers}
+                        total={quizReview.totalQuestions}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1168,7 +878,7 @@ export default function TajwidPage() {
             Tajwid Academy &amp; Evaluasi Teori
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Pelajari kaidah hukum bacaan Al-Qur'an secara ilmiah melalui video panduan, teks rujukan, dan kuis interaktif ala Gemini AI.
+            Pelajari kaidah hukum bacaan Al-Qur'an secara ilmiah melalui video panduan, teks rujukan, dan kuis interaktif berbobot.
           </p>
         </div>
       </div>
@@ -1204,7 +914,7 @@ export default function TajwidPage() {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full bg-linear-to-br from-emerald-800 to-teal-900 flex flex-col items-center justify-center text-white/80 p-3 text-center">
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-800 to-teal-900 flex flex-col items-center justify-center text-white/80 p-3 text-center">
                     <BookOpen className="w-8 h-8 text-emerald-300 mb-1" />
                     <span className="text-xs font-bold text-white tracking-wide">Tajwid Academy</span>
                   </div>
