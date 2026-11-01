@@ -7,6 +7,9 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'services/ai-worker/**'
+      - 'docker-compose.yml'
+      - 'deploy.sh'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -44,7 +47,18 @@ jobs:
           target: "/opt/hifzhly"
           strip_components: 1
 
-      - name: Restart Backend Service on VPS
+      - name: Ship AI Worker & Compose to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "services/ai-worker/*,docker-compose.yml,deploy.sh"
+          target: "/opt/hifzhly"
+
+      - name: Restart Backend & AI Worker on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -53,8 +67,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            # 1. Beri izin eksekusi pada binary
+            # 1. Beri izin eksekusi pada binary dan script
             chmod +x /opt/hifzhly/server
+            [ -f /opt/hifzhly/deploy.sh ] && chmod +x /opt/hifzhly/deploy.sh
             
             # 2. Setup Systemd Service jika belum terdaftar
             if [ ! -f /etc/systemd/system/hifzhly.service ]; then
@@ -76,14 +91,28 @@ jobs:
             Environment=REDIS_HOST=127.0.0.1
             Environment=REDIS_PORT=6379
             Environment=JWT_SECRET=hifzhly_fifa_secret_key_prod_2026_xyz!
+            Environment=AI_WORKER_URL=http://127.0.0.1:5000
 
             [Install]
             WantedBy=multi-user.target
             EOF
               systemctl daemon-reload
               systemctl enable hifzhly.service
+            else
+              # Pastikan AI_WORKER_URL ada di unit service yang sudah ada
+              if ! grep -q "AI_WORKER_URL" /etc/systemd/system/hifzhly.service; then
+                sed -i '/Environment=JWT_SECRET/a Environment=AI_WORKER_URL=http://127.0.0.1:5000' /etc/systemd/system/hifzhly.service
+                systemctl daemon-reload
+              fi
             fi
 
-            # 3. Restart service agar langsung memuat biner terbaru
+            # 3. Jalankan AI Worker via Docker Compose jika docker tersedia
+            if command -v docker &> /dev/null && [ -f /opt/hifzhly/docker-compose.yml ]; then
+              echo "Starting AI Worker via Docker Compose on port 5000..."
+              cd /opt/hifzhly
+              docker compose up -d --build ai-worker || true
+            fi
+
+            # 4. Restart backend service agar langsung memuat biner terbaru
             systemctl restart hifzhly.service
             systemctl status hifzhly.service --no-pager
