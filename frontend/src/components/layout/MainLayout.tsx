@@ -10,6 +10,7 @@ import {
   AlertCircle,
   RotateCcw,
   Target,
+  Settings,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -230,6 +231,20 @@ export default function MainLayout() {
                 <span>Tajwid</span>
               </NavLink>
 
+              <NavLink
+                to="/app/settings"
+                className={({ isActive }) =>
+                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`
+                }
+              >
+                <Settings className="w-4 h-4" />
+                <span>Pengaturan</span>
+              </NavLink>
+
               {/* Subtle Vertical Divider */}
               <div className="h-5 w-px bg-slate-200 mx-2" />
 
@@ -246,7 +261,14 @@ export default function MainLayout() {
             </nav>
 
             {/* Mobile Quick Action */}
-            <div className="flex md:hidden items-center space-x-2">
+            <div className="flex md:hidden items-center space-x-1">
+              <Link
+                to="/app/settings"
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                title="Pengaturan Akun"
+              >
+                <Settings className="w-4 h-4" />
+              </Link>
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}

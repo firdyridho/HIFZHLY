@@ -92,6 +92,7 @@ export default function HafalanPage() {
   const pageVersesRef = useRef<any[]>([]);
   const isLiveListeningRef = useRef<boolean>(false);
   const isTransitioningRef = useRef<boolean>(false);
+  const lastAyahTransitionTimeRef = useRef<number>(0);
   const recognitionRef = useRef<any>(null);
   const tilawaServiceRef = useRef<TilawaVoiceService | null>(null);
 
@@ -255,7 +256,9 @@ export default function HafalanPage() {
    * Ayat setelahnya TIDAK AKAN PERNAH tersentuh sebelum ayat aktif selesai 100%!
    */
   const processSpokenArabic = (spokenText: string) => {
-    if (!spokenText || isTransitioningRef.current) return;
+    if (!spokenText || isTransitioningRef.current || Date.now() - lastAyahTransitionTimeRef.current < 1500) {
+      return;
+    }
 
     const normalizedSpoken = normalizeArabicQuran(spokenText);
     if (!normalizedSpoken) return;
@@ -354,7 +357,7 @@ export default function HafalanPage() {
 
         advanceToNextAyah(curIdx, currentVerses);
       }
-    } else if (spokenTokens.length >= 2 && !isTransitioningRef.current) {
+    } else if (spokenTokens.length >= 3 && !isTransitioningRef.current && Date.now() - lastAyahTransitionTimeRef.current > 2000) {
       // Rekam kesalahan hanya bila kata yang diucapkan sama sekali tidak cocok dengan kata target ayat aktif
       const curAyahWords = targetWords.map((w) => w.clean);
       const isAnyMatch = spokenTokens.some((st) => curAyahWords.some((cw) => isArabicWordMatch(cw, st, false)));
@@ -390,7 +393,9 @@ export default function HafalanPage() {
    * Pindah ke Ayat Berikutnya secara Otomatis dan Mulus
    */
   const advanceToNextAyah = (currentIdx: number, verses: any[]) => {
-    // Reset transkrip suara seketika agar ayat baru mulai dari kanvas bersih
+    // Kunci transisi dan catat timestamp agar sisa buffer suara ayat sebelumnya tidak bocor ke ayat baru
+    isTransitioningRef.current = true;
+    lastAyahTransitionTimeRef.current = Date.now();
     setLiveTranscript('');
     setLiveStatusText('...Menunggu suara');
 
@@ -399,6 +404,11 @@ export default function HafalanPage() {
       // Otomatis pindah fokus ke ayat setelahnya
       setActiveVerseIndex(nextIdx);
       activeVerseIndexRef.current = nextIdx;
+      // Berikan masa tenggang 1.5 detik agar mesin suara mulai mengevaluasi ayat baru dari kondisi bersih
+      setTimeout(() => {
+        isTransitioningRef.current = false;
+        setLiveTranscript('');
+      }, 1500);
     } else {
       // Seluruh ayat pada halaman mushaf ini sudah selesai!
       isTransitioningRef.current = true;

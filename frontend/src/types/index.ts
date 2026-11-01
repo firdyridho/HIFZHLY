@@ -62,6 +62,7 @@ export interface UserProfile {
   role: 'user' | 'admin';
   dailyTargetAyahs: number;
   currentStreak?: number;
+  twoFactorEnabled?: boolean;
 }
 
 export interface QuizQuestionOption {

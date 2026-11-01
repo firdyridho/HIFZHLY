@@ -5,3 +5,4 @@ ALTER TABLE user_commitments ADD COLUMN IF NOT EXISTS progression_order VARCHAR(
 ALTER TABLE user_commitments ADD COLUMN IF NOT EXISTS murojaah_target_unit VARCHAR(30) DEFAULT 'surah';
 ALTER TABLE user_commitments ADD COLUMN IF NOT EXISTS daily_target_murojaah_count INT DEFAULT 1;
 ALTER TABLE user_commitments ADD COLUMN IF NOT EXISTS target_juz_number INT DEFAULT 30;
+

@@ -13,6 +13,7 @@ import MushafPage from '../pages/MushafPage';
 import TajwidPage from '../pages/TajwidPage';
 import MutabaahPage from '../pages/MutabaahPage';
 import TargetPage from '../pages/TargetPage';
+import SettingsPage from '../pages/SettingsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 export default function AppRoutes() {
@@ -51,10 +52,12 @@ export default function AppRoutes() {
         <Route path="tajwid" element={<TajwidPage />} />
         <Route path="mutabaah" element={<MutabaahPage />} />
         <Route path="target" element={<TargetPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       {/* 4. Legacy Redirects */}
       <Route path="/target" element={<Navigate to="/app/target" replace />} />
+      <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
       <Route path="/murojaah" element={<Navigate to="/app/murojaah" replace />} />
       <Route path="/hafalan" element={<Navigate to="/app/hafalan" replace />} />
       <Route path="/mushaf" element={<Navigate to="/app/mushaf" replace />} />

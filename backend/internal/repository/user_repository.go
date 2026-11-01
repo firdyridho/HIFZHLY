@@ -14,6 +14,9 @@ type UserRepository interface {
 	FindByUsernameOrEmail(ctx context.Context, identifier string) (*model.User, error)
 	FindByID(ctx context.Context, id string) (*model.User, error)
 	UpdateStreak(ctx context.Context, userID string, currentStreak, maxStreak int) error
+	UpdateProfile(ctx context.Context, userID, fullName, username string) error
+	UpdatePassword(ctx context.Context, userID, newPasswordHash string) error
+	UpdateTwoFactor(ctx context.Context, userID string, enabled bool, secret string) error
 }
 
 type userRepositoryImpl struct {
@@ -21,6 +24,16 @@ type userRepositoryImpl struct {
 }
 
 func NewUserRepository(pool *pgxpool.Pool) UserRepository {
+	if pool != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_, _ = pool.Exec(ctx, `
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE;
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(100) DEFAULT '';
+			`)
+		}()
+	}
 	return &userRepositoryImpl{pool: pool}
 }
 
@@ -68,7 +81,8 @@ func (r *userRepositoryImpl) FindByUsernameOrEmail(ctx context.Context, identifi
 	}
 
 	query := `
-		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
+		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, 
+		       COALESCE(two_factor_enabled, false), COALESCE(two_factor_secret, ''), created_at, updated_at
 		FROM users
 		WHERE username = $1 OR email = $1
 		LIMIT 1
@@ -85,6 +99,8 @@ func (r *userRepositoryImpl) FindByUsernameOrEmail(ctx context.Context, identifi
 		&user.DailyTargetAyahs,
 		&user.CurrentStreak,
 		&user.MaxStreak,
+		&user.TwoFactorEnabled,
+		&user.TwoFactorSecret,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -102,7 +118,8 @@ func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*model.Us
 	}
 
 	query := `
-		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, created_at, updated_at
+		SELECT id, email, username, full_name, password_hash, role, daily_target_ayahs, current_streak, max_streak, 
+		       COALESCE(two_factor_enabled, false), COALESCE(two_factor_secret, ''), created_at, updated_at
 		FROM users
 		WHERE id = $1
 		LIMIT 1
@@ -119,6 +136,8 @@ func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*model.Us
 		&user.DailyTargetAyahs,
 		&user.CurrentStreak,
 		&user.MaxStreak,
+		&user.TwoFactorEnabled,
+		&user.TwoFactorSecret,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -142,5 +161,50 @@ func (r *userRepositoryImpl) UpdateStreak(ctx context.Context, userID string, cu
 	`
 
 	_, err := r.pool.Exec(ctx, query, currentStreak, maxStreak, time.Now().UTC(), userID)
+	return err
+}
+
+func (r *userRepositoryImpl) UpdateProfile(ctx context.Context, userID, fullName, username string) error {
+	if r.pool == nil {
+		return fmt.Errorf("koneksi database belum aktif")
+	}
+
+	query := `
+		UPDATE users
+		SET full_name = $1, username = $2, updated_at = $3
+		WHERE id = $4
+	`
+
+	_, err := r.pool.Exec(ctx, query, fullName, username, time.Now().UTC(), userID)
+	return err
+}
+
+func (r *userRepositoryImpl) UpdatePassword(ctx context.Context, userID, newPasswordHash string) error {
+	if r.pool == nil {
+		return fmt.Errorf("koneksi database belum aktif")
+	}
+
+	query := `
+		UPDATE users
+		SET password_hash = $1, updated_at = $2
+		WHERE id = $3
+	`
+
+	_, err := r.pool.Exec(ctx, query, newPasswordHash, time.Now().UTC(), userID)
+	return err
+}
+
+func (r *userRepositoryImpl) UpdateTwoFactor(ctx context.Context, userID string, enabled bool, secret string) error {
+	if r.pool == nil {
+		return fmt.Errorf("koneksi database belum aktif")
+	}
+
+	query := `
+		UPDATE users
+		SET two_factor_enabled = $1, two_factor_secret = $2, updated_at = $3
+		WHERE id = $4
+	`
+
+	_, err := r.pool.Exec(ctx, query, enabled, secret, time.Now().UTC(), userID)
 	return err
 }

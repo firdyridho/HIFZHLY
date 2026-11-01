@@ -89,6 +89,7 @@ export default function MurojaahPage() {
   const pageVersesRef = useRef<any[]>([]);
   const isLiveListeningRef = useRef<boolean>(false);
   const isTransitioningRef = useRef<boolean>(false);
+  const lastAyahTransitionTimeRef = useRef<number>(0);
   const recognitionRef = useRef<any>(null);
   const tilawaServiceRef = useRef<TilawaVoiceService | null>(null);
 
@@ -257,7 +258,9 @@ export default function MurojaahPage() {
    * Menangani santri membaca cepat, jeda nafas, dan pemanjangan madd tajwid.
    */
   const processSpokenArabic = (spokenText: string) => {
-    if (!spokenText || isTransitioningRef.current) return;
+    if (!spokenText || isTransitioningRef.current || Date.now() - lastAyahTransitionTimeRef.current < 1500) {
+      return;
+    }
 
     const normalizedSpoken = normalizeArabicQuran(spokenText);
     if (!normalizedSpoken) return;
@@ -352,7 +355,7 @@ export default function MurojaahPage() {
 
         advanceToNextAyah(curIdx, currentVerses);
       }
-    } else if (spokenTokens.length >= 2 && !isTransitioningRef.current) {
+    } else if (spokenTokens.length >= 3 && !isTransitioningRef.current && Date.now() - lastAyahTransitionTimeRef.current > 2000) {
       // Rekam kesalahan hanya bila kata yang diucapkan sama sekali tidak cocok dengan kata target ayat aktif
       const curAyahWords = targetWords.map((w) => w.clean);
       const isAnyMatch = spokenTokens.some((st) => curAyahWords.some((cw) => isArabicWordMatch(cw, st, false)));
@@ -388,7 +391,9 @@ export default function MurojaahPage() {
    * Pindah ke Ayat Berikutnya secara Otomatis dan Mulus
    */
   const advanceToNextAyah = (currentIdx: number, verses: any[]) => {
-    // Reset transkrip suara seketika agar ayat berikutnya mulai fresh
+    // Kunci transisi dan catat timestamp agar sisa buffer suara ayat sebelumnya tidak bocor ke ayat baru
+    isTransitioningRef.current = true;
+    lastAyahTransitionTimeRef.current = Date.now();
     setLiveTranscript('');
     setLiveStatusText('...Menunggu suara');
     setShowHelp(false);
@@ -397,6 +402,11 @@ export default function MurojaahPage() {
     if (nextIdx < verses.length) {
       setActiveVerseIndex(nextIdx);
       activeVerseIndexRef.current = nextIdx;
+      // Berikan masa tenggang 1.5 detik agar mesin suara mulai mengevaluasi ayat baru dari kondisi bersih
+      setTimeout(() => {
+        isTransitioningRef.current = false;
+        setLiveTranscript('');
+      }, 1500);
     } else {
       isTransitioningRef.current = true;
       recordMurojaahSingleAyah(currentSurahMeta.number, currentSurahMeta.nameLatin, 1, 100);

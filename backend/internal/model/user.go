@@ -13,8 +13,34 @@ type User struct {
 	DailyTargetAyahs int       `json:"dailyTargetAyahs"`
 	CurrentStreak    int       `json:"currentStreak"`
 	MaxStreak        int       `json:"maxStreak"`
+	TwoFactorEnabled bool      `json:"twoFactorEnabled"`
+	TwoFactorSecret  string    `json:"-"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// UpdateProfileRequest DTO pembaruan nama & username
+type UpdateProfileRequest struct {
+	FullName string `json:"fullName"`
+	Username string `json:"username"`
+}
+
+// ChangePasswordRequest DTO pembaruan kata sandi
+type ChangePasswordRequest struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+// TwoFactorSetupResponse DTO setup 2FA
+type TwoFactorSetupResponse struct {
+	Secret string `json:"secret"`
+	QRCode string `json:"qrCode"`
+}
+
+// TwoFactorVerifyRequest DTO verifikasi 2FA
+type TwoFactorVerifyRequest struct {
+	Code   string `json:"code"`
+	Enable bool   `json:"enable"`
 }
 
 // RegisterRequest DTO pendaftaran

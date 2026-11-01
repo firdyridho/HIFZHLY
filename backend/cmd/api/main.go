@@ -95,6 +95,10 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
 			r.Get("/auth/me", authHandler.GetMe)
+			r.Put("/auth/profile", authHandler.UpdateProfile)
+			r.Put("/auth/password", authHandler.ChangePassword)
+			r.Post("/auth/2fa/setup", authHandler.Setup2FA)
+			r.Post("/auth/2fa/verify", authHandler.Verify2FA)
 		})
 
 		// Quran Proxy & Enrichment Endpoints
