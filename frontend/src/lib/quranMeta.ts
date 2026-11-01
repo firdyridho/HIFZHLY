@@ -181,26 +181,81 @@ export function levenshteinDistance(a: string, b: string): number {
 }
 
 /**
- * Pencocokan cerdas kata demi kata antara teks ayat Quran vs lafal suara santri
+ * Kompresi huruf vokal mad yang memanjang (alif, waw, ya) akibat tajwid Madd 'Aridh Lissukun
+ * Contoh: الرحيم -> الرحييم / الرحيييم -> keduanya menjadi الرحيم
  */
-export function isArabicWordMatch(targetClean: string, spokenToken: string): boolean {
+export function collapseMaddLetters(word: string): string {
+  if (!word) return '';
+  return word
+    .replace(/ا+/g, 'ا')
+    .replace(/و+/g, 'و')
+    .replace(/ي+/g, 'ي');
+}
+
+/**
+ * Pencocokan cerdas kata demi kata antara teks ayat Quran vs lafal suara santri
+ * Dilengkapi toleransi khusus Madd tajwid akhir ayat dan waqaf sukun / tanwin
+ */
+export function isArabicWordMatch(
+  targetClean: string,
+  spokenToken: string,
+  isLastWordOfAyah = false
+): boolean {
   if (!targetClean || !spokenToken) return false;
   if (targetClean === spokenToken) return true;
 
-  // Toleransi imbuhan awalan 'wa' (و) atau 'fa' (ف)
+  // 1. Toleransi Madd 'Aridh Lissukun (pemanjangan vokal di akhir ayat: يي -> ي, وو -> و, اا -> ا)
+  const collapsedTarget = collapseMaddLetters(targetClean);
+  const collapsedSpoken = collapseMaddLetters(spokenToken);
+  if (collapsedTarget === collapsedSpoken) return true;
+
+  // 2. Toleransi imbuhan awalan 'wa' (و) atau 'fa' (ف)
   if ((spokenToken.startsWith('و') || spokenToken.startsWith('ف')) && spokenToken.slice(1) === targetClean) return true;
   if ((targetClean.startsWith('و') || targetClean.startsWith('ف')) && targetClean.slice(1) === spokenToken) return true;
+  if ((collapsedSpoken.startsWith('و') || collapsedSpoken.startsWith('ف')) && collapsedSpoken.slice(1) === collapsedTarget) return true;
 
-  // Toleransi imbuhan alif-lam 'al' (ال)
+  // 3. Toleransi imbuhan alif-lam 'al' (ال)
   if (spokenToken.startsWith('ال') && spokenToken.slice(2) === targetClean) return true;
   if (targetClean.startsWith('ال') && targetClean.slice(2) === spokenToken) return true;
+  if (collapsedSpoken.startsWith('ال') && collapsedSpoken.slice(2) === collapsedTarget) return true;
 
-  // Toleransi Levenshtein distance 1 untuk kata dengan panjang >= 4
-  const maxLen = Math.max(targetClean.length, spokenToken.length);
-  const dist = levenshteinDistance(targetClean, spokenToken);
+  // 4. Toleransi huruf akhir waqaf: Ta Marbuthah (ة) vs Ha (ه)
+  const targetEndHa = targetClean.replace(/[\u0629\u0647]$/, 'ه');
+  const spokenEndHa = spokenToken.replace(/[\u0629\u0647]$/, 'ه');
+  if (targetEndHa === spokenEndHa) return true;
+
+  // 5. Toleransi Alif Maqsura (ى) vs Alif (ا) vs Ya (ي) di akhir kata
+  const targetEndAlif = targetClean.replace(/[\u0649\u0627\u064A]$/, 'ا');
+  const spokenEndAlif = spokenToken.replace(/[\u0649\u0627\u064A]$/, 'ا');
+  if (targetEndAlif === spokenEndAlif) return true;
+
+  // 6. Toleransi Tanwin Fathah / Madd 'Iwadh (akhiran alif waqaf: حكيما vs حكيم)
+  if (targetClean.endsWith('ا') && targetClean.slice(0, -1) === spokenToken) return true;
+  if (spokenToken.endsWith('ا') && spokenToken.slice(0, -1) === targetClean) return true;
+
+  // 7. Levenshtein distance check pada kata yang telah di-collapse
+  const maxLen = Math.max(collapsedTarget.length, collapsedSpoken.length);
+  const dist = levenshteinDistance(collapsedTarget, collapsedSpoken);
 
   if (maxLen >= 4 && dist <= 1) return true;
   if (maxLen >= 7 && dist <= 2) return true;
+
+  // 8. TOLERANSI KHUSUS KATA TERAKHIR AYAT (WAQAF AYAH):
+  // Saat santri membaca kata terakhir ayat, mereka sering berhenti (waqaf) dan bernafas,
+  // sehingga speech recognition sering memotong akhiran huruf atau sedikit mengubah sukun.
+  if (isLastWordOfAyah) {
+    // a. Toleransi Levenshtein lebih longgar untuk kata terakhir (dist <= 1 jika len >= 3, dist <= 2 jika len >= 5)
+    if (maxLen >= 3 && dist <= 1) return true;
+    if (maxLen >= 5 && dist <= 2) return true;
+
+    // b. Prefix match: jika 3 huruf pertama sama dan selisih panjang <= 2 (contoh: الرحيم vs الرحي, نستعين vs نستعي)
+    if (collapsedTarget.length >= 4 && collapsedSpoken.length >= 3) {
+      const minPrefix = Math.min(collapsedTarget.length - 1, collapsedSpoken.length);
+      if (minPrefix >= 3 && collapsedTarget.slice(0, minPrefix) === collapsedSpoken.slice(0, minPrefix)) {
+        return true;
+      }
+    }
+  }
 
   return false;
 }
