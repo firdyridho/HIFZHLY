@@ -13,13 +13,7 @@ import {
   Info,
   Sparkles,
   Check,
-  Video,
-  AlertCircle,
-  Bot,
-  Send,
-  X,
-  RefreshCw,
-  Lock,
+  Video,  AlertCircle,
 } from 'lucide-react';
 import type {
   TajwidModule,
@@ -193,69 +187,6 @@ export default function TajwidPage() {
   // Reflection review filter: 'all' | 'wrong' | 'correct'
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong' | 'correct'>('all');
 
-  // AI Tutor Tajwid State (NVIDIA Nemotron 30B Reasoning)
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [aiInput, setAiInput] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'assistant'; text: string; time: string }[]>([
-    {
-      role: 'assistant',
-      text: "Ahlan wa sahlan! Saya adalah Ustaz AI Tajwid Hifzhly. Anda dapat menanyakan hukum bacaan, makharijul huruf, sifat huruf, atau kaidah tartil Al-Qur'an.",
-      time: 'Baru saja',
-    },
-  ]);
-
-  const isQuizActive = activeModule !== null && activeTab === 'quiz' && !quizReview;
-
-  useEffect(() => {
-    if (isQuizActive && isAiOpen) {
-      setIsAiOpen(false);
-    }
-  }, [isQuizActive, isAiOpen]);
-
-  const handleSendAiQuestion = async (textToSend?: string) => {
-    const q = (textToSend || aiInput).trim();
-    if (!q || isAiLoading || isQuizActive) return;
-
-    const userMsg = { role: 'user' as const, text: q, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    setAiMessages((prev) => [...prev, userMsg]);
-    setAiInput('');
-    setIsAiLoading(true);
-
-    try {
-      const res = await fetch('/api/v1/tajwid/ai-tutor', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('hifzhly_auth_token') || ''}`,
-        },
-        body: JSON.stringify({
-          question: q,
-          context: activeModule ? `Modul: ${activeModule.title}` : "Kaidah Tajwid Al-Qur'an",
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses jawaban AI');
-
-      const aiMsg = {
-        role: 'assistant' as const,
-        text: data.answer || 'Mohon maaf, belum dapat memproses jawaban.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setAiMessages((prev) => [...prev, aiMsg]);
-    } catch (err: any) {
-      const errorMsg = {
-        role: 'assistant' as const,
-        text: `Koneksi AI Tutor: ${err.message || 'Silakan coba beberapa saat lagi.'}`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setAiMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   // Synchronize modules with backend while preserving all local admin uploads & edits
   useEffect(() => {
     let isMounted = true;
@@ -306,58 +237,27 @@ export default function TajwidPage() {
     setQuizReview(null);
     setReviewFilter('all');
 
-    // Retrieve freshest version from persistent storage first
-    const freshestLocal = getStoredTajwidModules().find(
-      (m) => m.id === mod.id || m.slug === mod.slug
-    );
-    const baseModule = freshestLocal || mod;
-
     try {
-      const res = await fetch(`/api/v1/tajwid/modules/${baseModule.slug}`);
+      const res = await fetch(`/api/v1/tajwid/modules/${mod.slug}`);
       if (res.ok) {
         const data = await res.json();
         const serverMod = data.module || data;
         const serverQuiz = data.quiz || serverMod.quiz;
 
-        let resolvedQuiz = serverQuiz || baseModule.quiz;
-        if (resolvedQuiz && baseModule.quiz) {
-          resolvedQuiz = {
-            ...resolvedQuiz,
-            questions: resolvedQuiz.questions.map((sq: any) => {
-              const lq = baseModule.quiz?.questions.find(
-                (q) => q.id === sq.id || (q.questionText || '').trim() === (sq.questionText || '').trim()
-              );
-              return {
-                ...sq,
-                syarahExplanation: sq.syarahExplanation || (lq as any)?.syarahExplanation || '',
-                options: sq.options.map((so: any) => {
-                  const lo = lq?.options.find(
-                    (o) => o.id === so.id || (o.optionText || '').trim() === (so.optionText || '').trim()
-                  );
-                  return {
-                    ...so,
-                    isCorrect: typeof so.isCorrect === 'boolean' ? so.isCorrect : Boolean(lo?.isCorrect),
-                  };
-                }),
-              };
-            }),
-          };
-        }
-
         setActiveModule({
-          ...baseModule,
+          ...mod,
           ...serverMod,
-          thumbnailUrl: serverMod.thumbnailUrl || baseModule.thumbnailUrl,
-          contentBody: serverMod.contentBody || baseModule.contentBody,
-          quiz: resolvedQuiz,
+          thumbnailUrl: serverMod.thumbnailUrl || mod.thumbnailUrl,
+          contentBody: serverMod.contentBody || mod.contentBody,
+          quiz: serverQuiz || mod.quiz,
         });
         return;
       }
     } catch {
-      // Backend unavailable; use freshest local version
+      // Backend unavailable; use local module
     }
 
-    setActiveModule(baseModule);
+    setActiveModule(mod);
   };
 
   const handleSelectOption = (questionId: string, optionId: string) => {
@@ -1081,138 +981,7 @@ export default function TajwidPage() {
         ))}
       </div>
 
-      {/* Floating AI Tutor Button (Hidden / Disabled during active quiz) */}
-      {!isQuizActive ? (
-        <div className="fixed bottom-20 md:bottom-8 right-5 z-40">
-          <button
-            type="button"
-            onClick={() => setIsAiOpen((prev) => !prev)}
-            className="px-4 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-2xl shadow-xl border border-emerald-700/80 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
-            title="Tanya Ustaz AI seputar ilmu tajwid"
-          >
-            <Bot className="w-4 h-4 text-emerald-200" />
-            <span>Tanya Ustaz AI</span>
-          </button>
-        </div>
-      ) : (
-        <div className="fixed bottom-20 md:bottom-8 right-5 z-40">
-          <div
-            className="px-3 py-2 bg-slate-900/80 backdrop-blur-md text-slate-300 rounded-xl shadow-lg border border-slate-700 font-medium text-[11px] flex items-center gap-1.5 opacity-80"
-            title="Asisten AI dinonaktifkan saat kuis berlangsung"
-          >
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Nonaktif Saat Kuis</span>
-          </div>
-        </div>
-      )}
-
-      {/* Slide-over Drawer: Ustaz AI Tajwid Chatbot */}
-      {isAiOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-2xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-200">
-            {/* Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-emerald-900 text-white">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-800 border border-emerald-700 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-emerald-200" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold leading-tight">Ustaz AI Tajwid</h3>
-                  <p className="text-[10px] text-emerald-200">Didukung NVIDIA Nemotron 30B Reasoning</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAiOpen(false)}
-                className="p-1.5 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-xl transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Chat Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
-              {aiMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] p-3.5 rounded-2xl leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-emerald-800 text-white rounded-br-xs'
-                        : 'bg-slate-100 text-slate-800 rounded-bl-xs border border-slate-200/80 whitespace-pre-wrap'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.time}</span>
-                </div>
-              ))}
-
-              {isAiLoading && (
-                <div className="flex items-center gap-2 text-slate-500 text-xs p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                  <span>Ustaz AI sedang menyusun penjelasan tajwid...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Prompt Chips */}
-            <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleSendAiQuestion('Apa perbedaan Idgham Bighunnah dan Bilaghunnah?')}
-                className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-slate-200 rounded-lg text-slate-700 shrink-0 cursor-pointer"
-              >
-                Perbedaan Idgham?
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendAiQuestion('Bagaimana hukum membaca nun sukun bertemu mim?')}
-                className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-slate-200 rounded-lg text-slate-700 shrink-0 cursor-pointer"
-              >
-                Nun sukun + Mim?
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendAiQuestion('Jelaskan makhraj huruf dho (Ø¶) dan zho (Ø¸).')}
-                className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-slate-200 rounded-lg text-slate-700 shrink-0 cursor-pointer"
-              >
-                Makhraj Dho & Zho?
-              </button>
-            </div>
-
-            {/* Input Bar */}
-            <div className="p-3 border-t border-slate-200 bg-white">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendAiQuestion();
-                }}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  placeholder="Tanyakan kaidah tajwid, makhraj, sifat huruf..."
-                  disabled={isAiLoading}
-                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button
-                  type="submit"
-                  disabled={isAiLoading || !aiInput.trim()}
-                  className="p-2.5 bg-emerald-800 hover:bg-emerald-900 disabled:opacity-40 text-white rounded-xl transition cursor-pointer shrink-0"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
   );
 }
 

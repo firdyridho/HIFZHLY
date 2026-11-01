@@ -601,40 +601,16 @@ export async function fetchSynchronizedTajwidModules(): Promise<TajwidModule[]> 
     if (res.ok) {
       const serverList: TajwidModule[] = (await res.json()) || [];
       if (Array.isArray(serverList) && serverList.length > 0) {
-        const mergedMap = new Map<string, TajwidModule>();
-
-        // First apply default / server modules
-        serverList.forEach((s) => {
-          mergedMap.set(s.slug, s);
-        });
-
-        // Overlay with local modules so uploaded thumbnails & modified articles NEVER get lost
-        localList.forEach((l) => {
-          const existing = mergedMap.get(l.slug);
-          if (existing) {
-            mergedMap.set(l.slug, {
-              ...existing,
-              ...l,
-              thumbnailUrl: l.thumbnailUrl || existing.thumbnailUrl,
-              contentBody: l.contentBody || existing.contentBody,
-              summary: l.summary || existing.summary,
-              quiz: l.quiz || existing.quiz,
-            });
-          } else {
-            mergedMap.set(l.slug, l);
-          }
-        });
-
-        const finalMerged = Array.from(mergedMap.values()).sort(
+        const sorted = [...serverList].sort(
           (a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)
         );
 
-        // Update local storage cache
+        // Update local storage cache with server truth so all devices stay in sync
         try {
-          localStorage.setItem(TAJWID_STORAGE_KEY, JSON.stringify(finalMerged));
+          localStorage.setItem(TAJWID_STORAGE_KEY, JSON.stringify(sorted));
         } catch {}
 
-        return finalMerged;
+        return sorted;
       }
     }
   } catch (err) {
