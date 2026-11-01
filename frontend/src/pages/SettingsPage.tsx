@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import {
   User,
   ShieldCheck,
@@ -14,6 +15,7 @@ import {
   ArrowLeft,
   RefreshCw,
   ShieldAlert,
+  QrCode,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 
@@ -57,7 +59,7 @@ export default function SettingsPage() {
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [show2FADisableModal, setShow2FADisableModal] = useState(false);
   const [twoFactorSecret, setTwoFactorSecret] = useState('');
-  const [twoFactorQRCode, setTwoFactorQRCode] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [is2FALoading, setIs2FALoading] = useState(false);
@@ -229,7 +231,22 @@ export default function SettingsPage() {
       }
 
       setTwoFactorSecret(data.secret);
-      setTwoFactorQRCode(data.qrCode);
+
+      // Generate real scannable QR Code image data URL
+      try {
+        const qrUrl = await QRCode.toDataURL(data.qrCode, {
+          width: 240,
+          margin: 1.5,
+          color: {
+            dark: '#064e3b', // emerald-900 for serious Islamic aesthetic
+            light: '#ffffff',
+          },
+        });
+        setQrCodeDataUrl(qrUrl);
+      } catch (qrErr) {
+        console.warn('Gagal membuat gambar QR code:', qrErr);
+      }
+
       setShow2FASetupModal(true);
     } catch (err: any) {
       setTwoFactorErrorMsg(err.message || 'Gagal memulai setup 2FA');
@@ -704,34 +721,56 @@ export default function SettingsPage() {
             )}
 
             <div className="space-y-4 text-xs">
-              {/* Step 1: Manual Key / Secret */}
-              <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                <p className="font-semibold text-slate-800">Langkah 1: Masukkan Kunci Rahasia ke Aplikasi</p>
-                <p className="text-slate-500">
-                  Buka aplikasi authenticator Anda, pilih "Tambah Akun" lalu pilih "Masukkan kunci penyiapan" (Enter key manually).
-                </p>
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 font-mono text-xs">
-                  <span className="font-bold text-emerald-900 tracking-wider break-all">{twoFactorSecret}</span>
-                  <button
-                    type="button"
-                    onClick={handleCopySecret}
-                    className="p-1.5 ml-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer shrink-0"
-                    title="Salin Kunci"
-                  >
-                    {copiedSecret ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                  </button>
+              {/* Step 1: Scan QR Code with Smartphone Authenticator */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2 font-bold text-slate-800">
+                  <QrCode className="w-4 h-4 text-emerald-800" />
+                  <span>Langkah 1: Pindai Kode QR Menggunakan HP</span>
                 </div>
-                {twoFactorQRCode && (
-                  <p className="text-[10px] text-slate-400 font-mono break-all pt-1">
-                    URI: {twoFactorQRCode}
-                  </p>
+                <p className="text-slate-600 leading-relaxed">
+                  Buka aplikasi <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, atau <strong>Authy</strong> di HP Anda, tekan tanda <strong>(+)</strong> dan pilih <strong>"Pindai kode QR"</strong>:
+                </p>
+
+                {qrCodeDataUrl ? (
+                  <div className="flex flex-col items-center justify-center pt-1 pb-2">
+                    <div className="p-3 bg-white rounded-2xl border-2 border-emerald-100 shadow-xs inline-block">
+                      <img
+                        src={qrCodeDataUrl}
+                        alt="Kode QR Autentikasi 2FA Hifzhly"
+                        className="w-44 h-44 rounded-xl"
+                      />
+                    </div>
+                    <span className="text-[11px] text-slate-500 mt-2 font-medium">Arahkan kamera aplikasi ke kode QR di atas</span>
+                  </div>
+                ) : (
+                  <div className="w-44 h-44 mx-auto flex items-center justify-center bg-white rounded-2xl border border-slate-200">
+                    <RefreshCw className="w-5 h-5 text-emerald-700 animate-spin" />
+                  </div>
                 )}
+
+                {/* Option for manual secret key */}
+                <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                  <p className="text-slate-600 font-medium">
+                    Tidak bisa memindai? Masukkan kunci penyiapan ini secara manual:
+                  </p>
+                  <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 font-mono text-xs">
+                    <span className="font-bold text-emerald-900 tracking-wider break-all">{twoFactorSecret}</span>
+                    <button
+                      type="button"
+                      onClick={handleCopySecret}
+                      className="p-1.5 ml-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer shrink-0"
+                      title="Salin Kunci Manual"
+                    >
+                      {copiedSecret ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Step 2: Verification Input */}
               <div className="space-y-2">
                 <label className="font-semibold text-slate-800 block">
-                  Langkah 2: Masukkan 6 Digit Kode Verifikasi
+                  Langkah 2: Masukkan 6 Digit Kode Verifikasi dari Aplikasi
                 </label>
                 <input
                   type="text"
@@ -743,7 +782,7 @@ export default function SettingsPage() {
                   autoFocus
                 />
                 <p className="text-[11px] text-slate-500 text-center">
-                  Masukkan kode angka 6 digit yang sedang aktif di aplikasi Anda.
+                  Masukkan kode angka 6 digit yang sedang aktif di aplikasi Anda untuk memastikan konfigurasi berhasil.
                 </p>
               </div>
             </div>
