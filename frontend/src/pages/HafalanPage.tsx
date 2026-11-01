@@ -302,12 +302,13 @@ export default function HafalanPage() {
     // Periksa token pelafalan secara berurutan hanya pada kata-kata ayat aktif
     for (let u = 0; u < unrevealedWords.length && spokenPtr < spokenTokens.length; u++) {
       const targetWord = unrevealedWords[u];
+      const isLastWord = u === unrevealedWords.length - 1;
       let foundIdx = -1;
 
-      // Window pencarian 3 token suara
-      const limit = Math.min(spokenTokens.length, spokenPtr + 3);
+      // Window pencarian 4 token suara (agar waqaf / lafal akhir tidak terlewat)
+      const limit = Math.min(spokenTokens.length, spokenPtr + 4);
       for (let s = spokenPtr; s < limit; s++) {
-        if (isArabicWordMatch(targetWord.clean, spokenTokens[s])) {
+        if (isArabicWordMatch(targetWord.clean, spokenTokens[s], isLastWord)) {
           foundIdx = s;
           break;
         }
@@ -417,19 +418,12 @@ export default function HafalanPage() {
       recognition.onresult = (event: any) => {
         if (isTransitioningRef.current) return;
 
-        let interimText = '';
-        let finalText = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalText += transcript + ' ';
-          } else {
-            interimText += transcript;
-          }
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; ++i) {
+          fullTranscript += event.results[i][0].transcript + ' ';
         }
 
-        const currentSpoken = (finalText + ' ' + interimText).trim();
+        const currentSpoken = fullTranscript.trim();
         if (currentSpoken) {
           setLiveTranscript(currentSpoken);
           setLiveStatusText(currentSpoken);

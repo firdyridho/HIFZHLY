@@ -42,6 +42,15 @@ def normalize_arabic_quran(text: str) -> str:
     t = re.sub(r"[^\u0621-\u064A\s]", "", t)
     return " ".join(t.split())
 
+def collapse_madd_letters(text: str) -> str:
+    """Kompresi huruf vokal mad yang memanjang (alif, waw, ya) akibat Madd 'Aridh Lissukun"""
+    if not text:
+        return ""
+    t = re.sub(r"ا+", "ا", text)
+    t = re.sub(r"و+", "و", t)
+    t = re.sub(r"ي+", "ي", t)
+    return t
+
 def levenshtein_distance(s1: str, s2: str) -> int:
     if len(s1) < len(s2):
         return levenshtein_distance(s2, s1)
@@ -58,20 +67,62 @@ def levenshtein_distance(s1: str, s2: str) -> int:
         previous_row = current_row
     return previous_row[-1]
 
-def is_word_match(w1: str, w2: str) -> bool:
+def is_word_match(w1: str, w2: str, is_last_word: bool = False) -> bool:
     if not w1 or not w2:
         return False
     if w1 == w2:
         return True
+
+    c1 = collapse_madd_letters(w1)
+    c2 = collapse_madd_letters(w2)
+    if c1 == c2:
+        return True
+
     # Toleransi awalan wau / fa'
     if (w2.startswith("و") or w2.startswith("ف")) and w2[1:] == w1:
         return True
     if (w1.startswith("و") or w1.startswith("ف")) and w1[1:] == w2:
         return True
-    # Levenshtein distance <= 1 untuk kata panjang >= 3
-    if len(w1) >= 3 and len(w2) >= 3:
-        if levenshtein_distance(w1, w2) <= 1:
+    if (c2.startswith("و") or c2.startswith("ف")) and c2[1:] == c1:
+        return True
+
+    # Toleransi alif lam
+    if w2.startswith("ال") and w2[2:] == w1:
+        return True
+    if w1.startswith("ال") and w1[2:] == w2:
+        return True
+
+    # Toleransi waqaf tanwin (akhiran alif)
+    if w1.endswith("ا") and w1[:-1] == w2:
+        return True
+    if w2.endswith("ا") and w2[:-1] == w1:
+        return True
+
+    # Toleransi Ta Marbutha vs Ha
+    if w1.endswith(("ه", "ة")) and w2.endswith(("ه", "ة")) and w1[:-1] == w2[:-1]:
+        return True
+
+    # Toleransi Alif Maqsura vs Ya vs Alif
+    if w1.endswith(("ى", "ا", "ي")) and w2.endswith(("ى", "ا", "ي")) and w1[:-1] == w2[:-1]:
+        return True
+
+    max_len = max(len(c1), len(c2))
+    dist = levenshtein_distance(c1, c2)
+    if max_len >= 4 and dist <= 1:
+        return True
+    if max_len >= 7 and dist <= 2:
+        return True
+
+    if is_last_word:
+        if max_len >= 3 and dist <= 1:
             return True
+        if max_len >= 5 and dist <= 2:
+            return True
+        if len(c1) >= 4 and len(c2) >= 3:
+            min_p = min(len(c1) - 1, len(c2))
+            if min_p >= 3 and c1[:min_p] == c2[:min_p]:
+                return True
+
     return False
 
 class EvaluateRequest(BaseModel):
@@ -100,8 +151,6 @@ async def recognize_audio(file: UploadFile = File(...)):
         if len(content) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
 
-        # Gunakan ffmpeg untuk mengekstrak PCM jika diperlukan
-        # Dalam implementasi streaming, kembalikan status aktif
         return {
             "status": "success",
             "audio_bytes": len(content),
@@ -129,10 +178,11 @@ async def evaluate_recitation(payload: EvaluateRequest):
     token_ptr = 0
 
     for i, target in enumerate(ref_norm_words):
-        limit = min(len(spoken_words), token_ptr + 3)
+        is_last = (i == len(ref_norm_words) - 1)
+        limit = min(len(spoken_words), token_ptr + 4)
         found = False
         for s in range(token_ptr, limit):
-            if is_word_match(target, spoken_words[s]):
+            if is_word_match(target, spoken_words[s], is_last):
                 matched_indices.append(i)
                 if i < len(ref_words):
                     matched_words.append(ref_words[i])
@@ -140,7 +190,6 @@ async def evaluate_recitation(payload: EvaluateRequest):
                 found = True
                 break
         if not found and token_ptr < len(spoken_words):
-            # Coba bandingkan jika kata saat ini cocok
             pass
 
     total_ref = len(ref_norm_words)
@@ -161,4 +210,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 5000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
