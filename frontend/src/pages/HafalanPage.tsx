@@ -164,30 +164,57 @@ export default function HafalanPage() {
       });
   }, [currentPage]);
 
-  // Parse surahs starting on the current Madinah Mushaf page
-  const { surahsStartingByVerse } = useMemo(() => {
-    const surahStartMap: Record<string, { number: number; nameLatin: string; nameArabic: string; totalAyahs: number }> = {};
-
-    pageVerses.forEach((verse: any) => {
+  // 4. Compute 15 exact lines for Madinah Mushaf Page (Identik dengan standar Mushaf)
+  const pageLines = useMemo(() => {
+    const linesMap: Record<number, any[]> = {};
+    pageVerses.forEach((verse: any, vIdx: number) => {
       const parts = verse.verse_key?.split(':') || [];
       const surahNum = parseInt(parts[0], 10);
       const ayahNum = parseInt(parts[1], 10);
+      const surahName = surahs.find((s) => s.number === surahNum)?.nameLatin || `Surah ${surahNum}`;
 
-      // Cek apakah surah baru dimulai di ayat ini (ayat 1)
-      if (ayahNum === 1) {
-        const sMeta = surahs.find((s) => s.number === surahNum);
-        surahStartMap[verse.verse_key] = {
-          number: surahNum,
-          nameLatin: sMeta?.nameLatin || `Surah ${surahNum}`,
-          nameArabic: SURAH_ARABIC_NAMES[surahNum] || sMeta?.nameArabic || '',
-          totalAyahs: sMeta?.numberOfAyahs || 7,
-        };
+      const ayahObj = {
+        ...verse,
+        vIdx,
+        surahNumber: surahNum,
+        surahName: surahName,
+        ayahNumber: ayahNum,
+      };
+
+      if (verse.words && Array.isArray(verse.words)) {
+        verse.words.forEach((w: any, wIdx: number) => {
+          const lineNum = w.line_number || 1;
+          if (!linesMap[lineNum]) linesMap[lineNum] = [];
+          linesMap[lineNum].push({
+            ...w,
+            wIdx,
+            vIdx,
+            verse_key: verse.verse_key,
+            ayahObj,
+          });
+        });
       }
     });
+    return linesMap;
+  }, [pageVerses, surahs]);
 
-    return {
-      surahsStartingByVerse: surahStartMap,
-    };
+  // Map starting line to surah metadata for exact inline placement before each surah
+  const surahsStartingByLine = useMemo(() => {
+    const map: Record<number, any> = {};
+    pageVerses.forEach((verse: any) => {
+      if (verse.verse_key?.endsWith(':1')) {
+        const parts = verse.verse_key.split(':');
+        const sNum = parseInt(parts[0], 10);
+        const sMeta = surahs.find((s) => s.number === sNum);
+        if (sMeta) {
+          const minLine = Math.min(
+            ...(verse.words?.map((w: any) => w.line_number || 1) || [1])
+          );
+          map[minLine] = sMeta;
+        }
+      }
+    });
+    return map;
   }, [pageVerses, surahs]);
 
   // Current Page Metadata (Juz, Hizb, Active Surah)
@@ -200,6 +227,14 @@ export default function HafalanPage() {
     nameArabic: SURAH_ARABIC_NAMES[firstSurahNumOnPage] || 'الفاتحة',
     numberOfAyahs: 7,
   };
+
+  const currentMushafSurahName = useMemo(() => {
+    if (pageVerses.length > 0 && pageVerses[0].chapter_id) {
+      const s = surahs.find((item) => item.number === pageVerses[0].chapter_id);
+      if (s) return s.nameLatin;
+    }
+    return currentSurahMeta?.nameLatin || 'Al-Qur\'an';
+  }, [pageVerses, surahs, currentSurahMeta]);
 
   // Inisialisasi Tilawa AI Voice Service
   useEffect(() => {
@@ -515,7 +550,7 @@ export default function HafalanPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto space-y-3 pb-28 font-sans select-none">
+    <div className="w-full max-w-4xl mx-auto space-y-3 pb-28 font-sans select-none">
       {/* ========================================================================= */}
       {/* FLOW 1: DAFTAR 114 SURAH PENUH (KATALOG SURAT - TANPA POP-UP)             */}
       {/* ========================================================================= */}
@@ -646,169 +681,237 @@ export default function HafalanPage() {
             </div>
           </header>
 
-          {/* 2. LEMBARAN MUSHAF MADINAH ASLI (Persis Format Mushaf - Rata Tengah Al-Fatihah & RTL) */}
+          {/* 2. LEMBARAN MUSHAF MADINAH ASLI 15 BARIS (Identik dengan Mushaf Standar Madinah) */}
           <div
-            className="bg-[#fcfbf7] border-x-4 border-double border-slate-800 px-3 sm:px-6 py-4 sm:py-6 min-h-[82vh] relative select-none shadow-xs"
-            dir="rtl"
+            className={`w-full max-w-[580px] sm:max-w-[620px] mx-auto py-2 px-2 sm:px-4 space-y-3 ${
+              currentPage === 1 || currentPage === 2
+                ? 'rounded-3xl border-2 border-amber-600/40 p-3 sm:p-5 bg-[#FFFDF8]'
+                : ''
+            }`}
           >
-            {/* Fine Inner Page Margin Border (Bingkai Ganda Khas Mushaf Madinah) */}
-            <div className="border-2 border-slate-700/70 p-3 sm:p-5 min-h-[74vh] flex flex-col justify-start">
-              {loadingPage ? (
-                <div className="py-32 flex flex-col items-center justify-center gap-3 text-slate-400" dir="ltr">
-                  <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-                  <p className="text-xs">Memuat lembaran Mushaf Halaman {currentPage}...</p>
+            {/* Header Mushaf Status & Navigasi Cepat (Persis MushafPage) */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 text-xs font-bold text-slate-700">
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-semibold">
+                {pageVerses[0]?.juz_number ? `Juz ${pageVerses[0].juz_number}` : `Juz ${currentJuz}`}
+              </span>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentPage > 1) {
+                      setCurrentPage((p) => p - 1);
+                      setActiveVerseIndex(0);
+                      activeVerseIndexRef.current = 0;
+                    }
+                  }}
+                  disabled={currentPage <= 1}
+                  className="p-1 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4 text-emerald-800" />
+                </button>
+
+                <div
+                  className="text-center cursor-pointer"
+                  onClick={() => setIsJumpModalOpen(true)}
+                  title="Klik untuk loncat halaman"
+                >
+                  <span className="font-bold text-slate-900 text-sm block">
+                    {currentMushafSurahName}
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Hal. {currentPage} / 604
+                  </span>
                 </div>
-              ) : pageVerses.length > 0 ? (
-                <div className="space-y-4">
-                  {pageVerses.map((verse: any, vIdx: number) => {
-                    const startingSurah = surahsStartingByVerse[verse.verse_key];
-                    const isCurrentActive = vIdx === activeVerseIndex;
-                    const isCompleted = completedVerseKeys.has(verse.verse_key);
-                    const words: any[] = verse.words || [];
-                    const ayahNum = parseInt(verse.verse_key?.split(':')[1] || String(vIdx + 1), 10);
 
-                    return (
-                      <div key={verse.verse_key || vIdx} className="space-y-3" dir="rtl">
-                        {/* Frame Ornamen Judul Surah Klasik (Persis Mushaf - Bukan Box Web) */}
-                        {startingSurah && (
-                          <div className="relative mx-auto w-full max-w-xl my-4 text-center select-none" dir="rtl">
-                            <div className="border-2 border-slate-900 py-2.5 px-4 bg-[#fbf9f4] flex items-center justify-between">
-                              {/* Ornamen Rosette Kanan (dalam RTL) */}
-                              <div className="text-slate-800">
-                                <svg className="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 40 40" fill="none" stroke="currentColor">
-                                  <circle cx="20" cy="20" r="15" strokeWidth="1.5" />
-                                  <circle cx="20" cy="20" r="11" strokeWidth="1" strokeDasharray="2,2" />
-                                  <path d="M20 5 L23 15 L33 15 L25 21 L28 31 L20 25 L12 31 L15 21 L7 15 L17 15 Z" strokeWidth="1" />
-                                </svg>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentPage < 604) {
+                      setCurrentPage((p) => p + 1);
+                      setActiveVerseIndex(0);
+                      activeVerseIndexRef.current = 0;
+                    }
+                  }}
+                  disabled={currentPage >= 604}
+                  className="p-1 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                  title="Halaman Selanjutnya"
+                >
+                  <ChevronRight className="w-4 h-4 text-emerald-800" />
+                </button>
+              </div>
+
+              <span className="text-slate-400 font-medium text-[11px] hidden sm:inline">
+                Standar Madinah 15 Baris
+              </span>
+            </div>
+
+            {/* Page Content: Exact 15 Lines Structure without Bulky Box */}
+            {loadingPage ? (
+              <div className="flex flex-col items-center justify-center py-24 text-emerald-700 space-y-2">
+                <Loader2 className="w-7 h-7 animate-spin" />
+                <span className="text-sm font-semibold">Membuka Halaman {currentPage}...</span>
+              </div>
+            ) : Object.keys(pageLines).length > 0 ? (
+              <div className="space-y-0.5 sm:space-y-1 py-1">
+                {/* Exact 15 Lines: Full Width Responsive Alignment with Inline Surah Headers */}
+                {Object.entries(pageLines).map(([lineStr, words]) => {
+                  const lineNum = parseInt(lineStr, 10);
+                  const totalLines = Object.keys(pageLines).length;
+                  const isShortLine =
+                    words.length <= 4 ||
+                    (lineNum === totalLines && words.length <= 8) ||
+                    currentPage === 1 ||
+                    currentPage === 2;
+                  const startingSurah = surahsStartingByLine[lineNum];
+
+                  return (
+                    <div key={lineNum} className="space-y-1">
+                      {/* Kepala Surat & Bismillah diletakkan tepat di baris awal surat tersebut */}
+                      {startingSurah && (
+                        <div className="space-y-1.5 my-2 sm:my-3">
+                          {/* Kepala Surat: Ornate Islamic Frame Box */}
+                          <div className="relative rounded-xl border border-amber-600/50 bg-[#FDFBF7] p-1.5 sm:p-2 shadow-2xs">
+                            <div className="border border-amber-600/25 rounded-lg py-1 px-2.5 sm:px-3 flex items-center justify-between text-xs font-semibold">
+                              {/* Left: Info Jumlah Ayat */}
+                              <div className="text-left text-amber-950 font-sans min-w-[65px]">
+                                <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
+                                  {startingSurah.numberOfAyahs} Ayat
+                                </span>
+                                <span className="text-[10px] text-amber-800/80 font-quran">
+                                  {startingSurah.numberOfAyahs.toLocaleString('ar-EG')} آية
+                                </span>
                               </div>
 
-                              {/* Kaligrafi Judul Surah */}
-                              <div className="flex-1 text-center">
-                                <h2 className="font-quran text-2xl sm:text-3xl font-bold text-slate-900 tracking-wide">
-                                  سُورَةُ {startingSurah.nameArabic}
-                                </h2>
+                              {/* Center: Nama Surat Calligraphy & Latin */}
+                              <div className="text-center">
+                                <div className="font-quran text-lg sm:text-xl font-bold text-emerald-950 tracking-wider leading-tight">
+                                  سُورَةُ {startingSurah.nameArabic ? startingSurah.nameArabic.replace('سورة ', '') : (SURAH_ARABIC_NAMES[startingSurah.number] || '')}
+                                </div>
+                                <div className="text-[10px] sm:text-[11px] font-sans font-medium text-slate-600 -mt-0.5">
+                                  Surat {startingSurah.nameLatin}
+                                </div>
                               </div>
 
-                              {/* Ornamen Rosette Kiri (dalam RTL) */}
-                              <div className="text-slate-800">
-                                <svg className="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 40 40" fill="none" stroke="currentColor">
-                                  <circle cx="20" cy="20" r="15" strokeWidth="1.5" />
-                                  <circle cx="20" cy="20" r="11" strokeWidth="1" strokeDasharray="2,2" />
-                                  <path d="M20 5 L23 15 L33 15 L25 21 L28 31 L20 25 L12 31 L15 21 L7 15 L17 15 Z" strokeWidth="1" />
-                                </svg>
+                              {/* Right: Tempat Turun */}
+                              <div className="text-right text-amber-950 font-sans min-w-[65px]">
+                                <span className="block text-[11px] sm:text-xs font-bold text-amber-950">
+                                  {startingSurah.revelationType === 'Mekah' || startingSurah.revelationType?.toLowerCase() === 'makiyyah' ? 'Makkiyah' : 'Madaniyah'}
+                                </span>
+                                <span className="text-[10px] text-amber-800/80 font-quran">
+                                  {startingSurah.revelationType === 'Mekah' || startingSurah.revelationType?.toLowerCase() === 'makiyyah' ? 'مَكِّيَّةٌ' : 'مَدَنِيَّةٌ'}
+                                </span>
                               </div>
                             </div>
-
-                            {/* Basmalah Klasik (Khusus Surah 2-114 selain At-Tawbah. Al-Fatihah ayat 1 sudah merupakan basmalah) */}
-                            {startingSurah.number !== 1 && startingSurah.number !== 9 && (
-                              <p className="font-quran text-xl sm:text-2xl text-slate-900 mt-3 tracking-wide text-center">
-                                بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
-                              </p>
-                            )}
                           </div>
-                        )}
 
-                        {/* MODE GHAIB PENUH (Level 3) PADA AYAT YANG BELUM AKTIF / BELUM SELESAI */}
-                        {memorizationLevel === 3 && !isCompleted && !isCurrentActive ? (
-                          <div
-                            onClick={() => {
-                              setActiveVerseIndex(vIdx);
-                              activeVerseIndexRef.current = vIdx;
-                            }}
-                            className={`flex items-center gap-3 py-3 px-2 cursor-pointer hover:bg-slate-50/70 rounded-lg transition group ${
-                              currentPage === 1 ? 'justify-center' : 'justify-start'
-                            }`}
-                            dir="rtl"
-                            title={`Ayat ${ayahNum} (Klik untuk aktifkan)`}
-                          >
-                            <div className="flex-1 border-b-2 border-slate-300 max-w-xs sm:max-w-md group-hover:border-emerald-400 transition-colors" />
-                            <span className="font-quran text-lg w-8 h-8 rounded-full border border-slate-300 text-slate-700 flex items-center justify-center select-none bg-slate-50/60 shadow-2xs group-hover:border-emerald-500 group-hover:text-emerald-700 transition-colors shrink-0">
-                              ۝{toArabicDigits(ayahNum)}
+                          {/* Bismillah Header Flanked with Elegant Divider Lines */}
+                          {startingSurah.number !== 9 && startingSurah.number !== 1 && (
+                            <div className="flex items-center justify-center my-2 sm:my-2.5 px-3 text-center select-none">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-600/40 to-amber-700/60" />
+                              <span className="font-quran text-lg sm:text-2xl text-emerald-950 tracking-wider px-3">
+                                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                              </span>
+                              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-600/40 to-amber-700/60" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 15-Lines Standard Mushaf Line Words */}
+                      <div
+                        dir="rtl"
+                        style={{
+                          fontSize: `clamp(13px, calc(10px + 1.2vw), 22px)`,
+                          lineHeight: '2.3',
+                        }}
+                        className={`w-full flex items-center font-quran select-none whitespace-nowrap transition-all ${
+                          isShortLine ? 'justify-center gap-2.5 sm:gap-4' : 'justify-between'
+                        }`}
+                      >
+                        {words.map((w: any, idx: number) => {
+                          const isAyahEnd = w.char_type_name === 'end';
+                          const verseKey = w.verse_key;
+                          const vIdx = w.vIdx;
+                          const isCurrentActive = vIdx === activeVerseIndex;
+                          const isCompleted = completedVerseKeys.has(verseKey);
+                          const ayahNumber = w.ayahObj?.ayahNumber;
+
+                          if (isAyahEnd) {
+                            return (
+                              <span
+                                key={`end-${idx}-${verseKey}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveVerseIndex(vIdx);
+                                  activeVerseIndexRef.current = vIdx;
+                                }}
+                                className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 mx-0.5 rounded-full border text-[10px] sm:text-xs font-sans font-bold shadow-2xs cursor-pointer hover:scale-110 transition-all shrink-0 align-middle ${
+                                  isCompleted
+                                    ? 'border-emerald-600 bg-emerald-100 text-emerald-900 font-bold'
+                                    : isCurrentActive
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-300'
+                                    : 'border-amber-600/70 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
+                                }`}
+                                title={`Ayat ${ayahNumber} (Klik untuk aktifkan tes)`}
+                              >
+                                {ayahNumber ? toArabicDigits(ayahNumber) : w.text_uthmani}
+                              </span>
+                            );
+                          }
+
+                          // Kata Normal
+                          const wordKey = `${verseKey}_${w.position}`;
+                          const isRevealed = revealedWordKeys.has(wordKey);
+
+                          // Progressive memorization level check:
+                          let isVisible = false;
+                          if (memorizationLevel === 1) {
+                            isVisible = true;
+                          } else if (memorizationLevel === 2) {
+                            isVisible = w.position % 2 === 1 || isRevealed || isCompleted || isCurrentActive;
+                          } else {
+                            // Level 3: Ghaib (terbuka jika sudah di-reveal atau komplit)
+                            isVisible = isRevealed || isCompleted;
+                          }
+
+                          return (
+                            <span
+                              key={`w-${idx}-${w.id || w.position}-${verseKey}`}
+                              onClick={() => {
+                                setActiveVerseIndex(vIdx);
+                                activeVerseIndexRef.current = vIdx;
+                              }}
+                              className={`cursor-pointer transition-colors inline-block select-text px-0.5 rounded ${
+                                isRevealed
+                                  ? 'text-emerald-700 bg-emerald-100/90 font-bold shadow-2xs'
+                                  : isCurrentActive
+                                  ? 'text-emerald-950 font-semibold hover:text-emerald-700'
+                                  : isCompleted
+                                  ? 'text-slate-800'
+                                  : 'text-slate-900 hover:text-emerald-800'
+                              } ${
+                                !isVisible
+                                  ? 'blur-xs opacity-25 select-none hover:blur-none hover:opacity-100 transition-all'
+                                  : ''
+                              }`}
+                              title={!isVisible ? 'Kata terselubung (Lafalkan atau klik untuk melihat)' : w.text_uthmani}
+                            >
+                              {w.text_uthmani}
                             </span>
-                          </div>
-                        ) : (
-                          /* TAMPILAN KATA AYAT (Level 1, Level 2, atau Ayat Aktif Level 3) */
-                          <div
-                            onClick={() => {
-                              setActiveVerseIndex(vIdx);
-                              activeVerseIndexRef.current = vIdx;
-                            }}
-                            className={`leading-[2.8] sm:leading-[3.2] py-2 px-3 rounded-xl transition cursor-pointer ${
-                              currentPage === 1 ? 'text-center' : 'text-right'
-                            } ${
-                              isCurrentActive
-                                ? 'bg-emerald-50/50 ring-1 ring-emerald-300/60'
-                                : 'hover:bg-slate-50/50'
-                            }`}
-                            dir="rtl"
-                          >
-                            {words.map((w: any, wIdx: number) => {
-                              if (w.char_type_name === 'end') {
-                                return (
-                                  <span
-                                    key={w.id || wIdx}
-                                    className={`inline-flex items-center justify-center font-quran text-lg w-8 h-8 rounded-full border mx-1.5 align-middle select-none transition-colors ${
-                                      isCompleted
-                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
-                                        : isCurrentActive
-                                        ? 'border-emerald-400 bg-emerald-50/60 text-emerald-700'
-                                        : 'border-slate-300 text-slate-800 bg-slate-50/50'
-                                    }`}
-                                  >
-                                    ۝{toArabicDigits(ayahNum)}
-                                  </span>
-                                );
-                              }
-
-                              const wordKey = `${verse.verse_key}_${w.position}`;
-                              const isRevealed = revealedWordKeys.has(wordKey);
-
-                              let isVisible = false;
-                              if (memorizationLevel === 1) {
-                                isVisible = true;
-                              } else if (memorizationLevel === 2) {
-                                isVisible = w.position % 2 === 1 || isRevealed || isCompleted;
-                              } else {
-                                // Level 3: Terlihat jika sudah dilafalkan atau ayat sudah komplit
-                                isVisible = isRevealed || isCompleted;
-                              }
-
-                              if (isVisible) {
-                                return (
-                                  <span
-                                    key={w.id || wIdx}
-                                    className={`inline-block mx-1 font-quran text-2xl sm:text-3xl transition-colors duration-200 ${
-                                      isRevealed
-                                        ? 'text-emerald-700 font-bold'
-                                        : 'text-slate-800'
-                                    }`}
-                                  >
-                                    {w.text_uthmani}
-                                  </span>
-                                );
-                              }
-
-                              // Garis halus kata yang belum terlafalkan
-                              return (
-                                <span
-                                  key={w.id || wIdx}
-                                  className="inline-block mx-1.5 align-middle border-b-2 border-slate-300 w-10 sm:w-14 h-6 transition-all"
-                                  title="Kata tersembunyi (lafalkan untuk membuka)"
-                                />
-                              );
-                            })}
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-24 text-center text-slate-400 text-xs">
-                  Gagal memuat lembaran mushaf halaman {currentPage}.
-                </div>
-              )}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-24 text-center text-slate-400 text-xs">
+                Gagal memuat lembaran mushaf halaman {currentPage}.
+              </div>
+            )}
           </div>
 
           {/* 3. FLOATING BOTTOM ACTION BAR (Persis screenshot referensi: [Kesalahan] [📖] [👁️] [<] [>] + [MIC HIJAU]) */}
