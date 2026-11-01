@@ -8,6 +8,7 @@ import {
   LogOut,
   GraduationCap,
   AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -159,7 +160,7 @@ export default function MainLayout() {
               </NavLink>
 
               <NavLink
-                to="/app/murojaah"
+                to="/app/hafalan"
                 className={({ isActive }) =>
                   `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                     isActive
@@ -170,6 +171,20 @@ export default function MainLayout() {
               >
                 <Mic className="w-4 h-4" />
                 <span>Hafalan</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/murojaah"
+                className={({ isActive }) =>
+                  `flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`
+                }
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Murojaah</span>
               </NavLink>
 
               <NavLink
@@ -253,7 +268,7 @@ export default function MainLayout() {
 
           {/* 2. Hafalan */}
           <NavLink
-            to="/app/murojaah"
+            to="/app/hafalan"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center py-1 transition-all ${
                 isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
