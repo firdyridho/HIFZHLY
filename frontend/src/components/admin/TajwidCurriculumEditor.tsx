@@ -159,7 +159,7 @@ export default function TajwidCurriculumEditor({
       `Pastikan dengung (*ghunnah*) disempurnakan dengan tempo 2 harakat yang seimbang dan tidak tergesa-gesa.`
   );
 
-  // Step 3: Kuis & Gemini AI
+  // Step 3: Kuis Tajwid
   const [quizTitle, setQuizTitle] = useState(
     initialModule?.quiz?.title || `Evaluasi: ${initialModule?.title || 'Kuis Pemahaman Tajwid'}`
   );
@@ -334,7 +334,7 @@ export default function TajwidCurriculumEditor({
   const wordCount = contentBody.trim() ? contentBody.trim().split(/\s+/).length : 0;
   const estimatedReadMinutes = Math.max(1, Math.ceil(wordCount / 180));
 
-  // Handler Generator Kuis AI (Gemini)
+  // Handler Generator Kuis Tajwid Otomatis
   const handleGenerateAIQuiz = async () => {
     if (!title.trim()) {
       setFormError('Harap lengkapi judul materi di Step 1 sebelum membuat kuis dengan AI.');
@@ -377,13 +377,13 @@ export default function TajwidCurriculumEditor({
         setQuestions(formatted);
         if (data.title) setQuizTitle(data.title);
         setAiSuccessNotice(
-          `Gemini AI berhasil menyusun ${formatted.length} butir soal pilihan ganda berdasarkan isi modul Anda.`
+          `Berhasil menyusun ${formatted.length} butir soal pilihan ganda tajwid berdasarkan isi modul Anda.`
         );
       } else {
         throw new Error('Format respon AI tidak memuat daftar pertanyaan.');
       }
     } catch (err: any) {
-      // Fallback generator cerdas jika koneksi Gemini offline
+      // Fallback generator cerdas jika koneksi generator offline
       const fallbackQuestions: QuestionForm[] = [
         {
           questionText: `Pada kaidah ${title.trim()}, apa hukum bacaan yang berlaku saat huruf bertemu nun sukun atau tanwin?`,
@@ -568,7 +568,7 @@ export default function TajwidCurriculumEditor({
               </h1>
             </div>
             <p className="text-[11px] text-slate-500 hidden sm:block">
-              Editor 3-Langkah Lembar Kerja Dokumen &amp; Evaluasi Kuis Gemini AI
+              Editor 3-Langkah Lembar Kerja Dokumen &amp; Evaluasi Kuis Tajwid
             </p>
           </div>
         </div>
@@ -680,7 +680,7 @@ export default function TajwidCurriculumEditor({
               3
             </div>
             <div className="text-left hidden sm:block">
-              <span className="text-xs block leading-tight">Kuis &amp; AI Gemini</span>
+              <span className="text-xs block leading-tight">Kuis Evaluasi</span>
               <span className="text-[10px] text-slate-400 font-normal">Evaluasi Santri</span>
             </div>
           </button>
@@ -1366,7 +1366,7 @@ export default function TajwidCurriculumEditor({
         )}
 
         {/* ======================================================== */}
-        {/* STEP 3: BUAT KUIS & GEMINI AI GENERATOR                  */}
+        {/* STEP 3: BUAT KUIS & GENERATOR OTOMATIS                  */}
         {/* ======================================================== */}
         {currentStep === 3 && (
           <div className="space-y-6">
@@ -1379,10 +1379,10 @@ export default function TajwidCurriculumEditor({
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
-                      Generator Soal Kuis Otomatis (Gemini AI)
+                      Generator Soal Kuis Tajwid Otomatis
                     </h3>
                     <p className="text-xs text-emerald-200/90 mt-0.5">
-                      Gemini AI akan menganalisis judul dan lembar materi Word dari Step 1 &amp; 2 untuk menyusun butir soal pilihan ganda tajwid lengkap dengan kunci jawaban.
+                      Sistem cerdas akan menganalisis judul dan lembar materi Word dari Step 1 &amp; 2 untuk menyusun butir soal pilihan ganda tajwid lengkap dengan kunci jawaban.
                     </p>
                   </div>
                 </div>
@@ -1423,7 +1423,7 @@ export default function TajwidCurriculumEditor({
                     {isGeneratingAI ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Menyusun Soal dengan Gemini AI...</span>
+                        <span>Menyusun Soal Kuis Tajwid...</span>
                       </>
                     ) : (
                       <>

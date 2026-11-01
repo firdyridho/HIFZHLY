@@ -26,6 +26,12 @@ import type { TajwidModule } from '../types';
 import { getAdminSantriMonitoring, submitUstadzEvaluation, AdminSantriMonitoringItem } from '../lib/mutabaahService';
 import { TrendingUp, MessageSquare } from 'lucide-react';
 import TajwidCurriculumEditor from '../components/admin/TajwidCurriculumEditor';
+import {
+  fetchSynchronizedTajwidModules,
+  saveStoredTajwidModule,
+  deleteStoredTajwidModule,
+  TAJWID_UPDATED_EVENT,
+} from '../lib/tajwidStore';
 
 interface SantriOverview {
   id: string;
@@ -112,32 +118,22 @@ export default function AdminDashboardPage() {
   const fetchModules = async () => {
     setIsLoadingModules(true);
     try {
-      const res = await fetch('/api/v1/tajwid/modules');
-      let serverMods: TajwidModule[] = [];
-      if (res.ok) {
-        serverMods = (await res.json()) || [];
-      }
-      const rawLocal = localStorage.getItem('hifzhly_local_tajwid_modules');
-      if (rawLocal) {
-        const localMods: TajwidModule[] = JSON.parse(rawLocal);
-        const map = new Map<string, TajwidModule>();
-        serverMods.forEach((m) => map.set(m.slug, m));
-        localMods.forEach((m) => map.set(m.slug, m));
-        setModules(Array.from(map.values()));
-      } else {
-        setModules(serverMods);
-      }
-    } catch {
-      const rawLocal = localStorage.getItem('hifzhly_local_tajwid_modules');
-      if (rawLocal) {
-        try {
-          setModules(JSON.parse(rawLocal));
-        } catch {}
-      }
+      const synched = await fetchSynchronizedTajwidModules();
+      setModules(synched);
+    } catch (err) {
+      console.warn('Gagal memuat modul tajwid:', err);
     } finally {
       setIsLoadingModules(false);
     }
   };
+
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      if (Array.isArray(e.detail)) setModules(e.detail);
+    };
+    window.addEventListener(TAJWID_UPDATED_EVENT, handleUpdate);
+    return () => window.removeEventListener(TAJWID_UPDATED_EVENT, handleUpdate);
+  }, []);
 
   const fetchSantriMonitoring = async () => {
     try {
@@ -303,11 +299,8 @@ export default function AdminDashboardPage() {
       }
     }
 
-    // Persist to local cache for instant feedback
+    // Persist to synchronized store (localStorage + broadcast across tabs)
     try {
-      const localKey = 'hifzhly_local_tajwid_modules';
-      const raw = localStorage.getItem(localKey) || '[]';
-      const list = JSON.parse(raw);
       const newMod: TajwidModule = {
         id: savedModuleId || 'mod-local-' + Date.now(),
         title: moduleData.title,
@@ -320,9 +313,9 @@ export default function AdminDashboardPage() {
         orderIndex: moduleData.orderIndex,
         quiz: {
           id: 'quiz-' + Date.now(),
-          title: moduleData.quizTitle,
+          title: moduleData.quizTitle || `Kuis Evaluasi ${moduleData.title}`,
           description: `Evaluasi pemahaman materi ${moduleData.title}`,
-          passingScore: moduleData.quizPassingScore,
+          passingScore: moduleData.quizPassingScore || 70,
           questions: moduleData.questions.map((q, idx) => ({
             id: 'q-' + idx,
             questionText: q.questionText,
@@ -330,19 +323,16 @@ export default function AdminDashboardPage() {
             options: q.options.map((opt: any, oIdx: number) => ({
               id: 'opt-' + oIdx,
               optionText: opt.optionText,
+              isCorrect: Boolean(opt.isCorrect),
             })),
           })),
         },
       };
 
-      const existingIdx = list.findIndex((m: any) => m.id === newMod.id || m.slug === newMod.slug);
-      if (existingIdx >= 0) {
-        list[existingIdx] = newMod;
-      } else {
-        list.push(newMod);
-      }
-      localStorage.setItem(localKey, JSON.stringify(list));
-    } catch {}
+      saveStoredTajwidModule(newMod);
+    } catch (err) {
+      console.warn('Gagal menyimpan ke tajwid store:', err);
+    }
 
     showToast(`Modul "${moduleData.title}" berhasil disimpan dan diterbitkan.`);
     setIsEditingTajwid(false);
@@ -352,20 +342,18 @@ export default function AdminDashboardPage() {
 
   const handleDeleteModule = async (id: string, modTitle: string) => {
     if (!confirm(`Hapus modul "${modTitle}" beserta kuis terkait?`)) return;
+    deleteStoredTajwidModule(id);
     try {
       const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
-      const res = await fetch(`/api/v1/admin/tajwid/modules/${id}`, {
+      await fetch(`/api/v1/admin/tajwid/modules/${id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (res.ok) {
-        showToast(`Modul "${modTitle}" berhasil dihapus.`);
-        fetchModules();
-      } else {
-        alert('Gagal menghapus modul.');
-      }
+      showToast(`Modul "${modTitle}" berhasil dihapus.`);
     } catch {
-      alert('Koneksi terputus.');
+      showToast(`Modul "${modTitle}" dihapus secara lokal.`);
+    } finally {
+      fetchModules();
     }
   };
 
@@ -533,10 +521,10 @@ export default function AdminDashboardPage() {
             >
               <div className="flex items-center space-x-2.5">
                 <Sparkles className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-                <span>Buat Kuis AI</span>
+                <span>Buat Kuis Tajwid</span>
               </div>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                Gemini
+                Otomatis
               </span>
             </button>
           </nav>
@@ -651,7 +639,7 @@ export default function AdminDashboardPage() {
               <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {activeTab === 'santri'
                   ? 'Monitoring Hafalan & Mutabaah Santri'
-                  : 'Manajemen Kurikulum Tajwid & Kuis AI'}
+                  : 'Manajemen Kurikulum & Kuis Tajwid'}
               </h1>
               <p className="text-[11px] text-slate-500 hidden sm:block">
                 {activeTab === 'santri'
@@ -1173,7 +1161,7 @@ export default function AdminDashboardPage() {
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Tambah Modul & Kuis AI</span>
+                    <span>Tambah Modul &amp; Kuis Tajwid</span>
                   </button>
                 </div>
               </div>
@@ -1189,7 +1177,7 @@ export default function AdminDashboardPage() {
                   <BookOpen className="w-8 h-8 mx-auto text-slate-300" />
                   <p className="text-sm font-bold text-slate-700">Belum Ada Modul Tajwid</p>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Klik tombol "Tambah Modul & Kuis AI" di atas untuk menambahkan modul pertama.
+                    Klik tombol "Tambah Modul &amp; Kuis Tajwid" di atas untuk menambahkan modul pertama.
                   </p>
                 </div>
               ) : (
