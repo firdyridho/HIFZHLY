@@ -94,6 +94,7 @@ export default function HafalanPage() {
   const isTransitioningRef = useRef<boolean>(false);
   const lastAyahTransitionTimeRef = useRef<number>(0);
   const recognitionRef = useRef<any>(null);
+  const lastRecordedMistakeSpokenRef = useRef<string>('');
   const tilawaServiceRef = useRef<TilawaVoiceService | null>(null);
 
   useEffect(() => {
@@ -357,23 +358,30 @@ export default function HafalanPage() {
 
         advanceToNextAyah(curIdx, currentVerses);
       }
-    } else if (spokenTokens.length >= 3 && !isTransitioningRef.current && Date.now() - lastAyahTransitionTimeRef.current > 2000) {
+    } else if (
+      spokenTokens.length >= 3 &&
+      !isTransitioningRef.current &&
+      Date.now() - lastAyahTransitionTimeRef.current > 3000
+    ) {
       // Rekam kesalahan hanya bila kata yang diucapkan sama sekali tidak cocok dengan kata target ayat aktif
       const curAyahWords = targetWords.map((w) => w.clean);
       const isAnyMatch = spokenTokens.some((st) => curAyahWords.some((cw) => isArabicWordMatch(cw, st, false)));
       if (!isAnyMatch && targetVerse) {
-        setMistakesCount((prev) => prev + 1);
-        setMistakesList((prev) => {
-          if (
-            prev.length > 0 &&
-            prev[prev.length - 1].verseKey === targetVerse.verse_key &&
-            Date.now() - new Date(prev[prev.length - 1].timestamp).getTime() < 4000
-          ) {
-            return prev;
-          }
-          return [
-            ...prev,
-            {
+        // Cegah duplikasi kesalahan jika suara belum berubah
+        if (lastRecordedMistakeSpokenRef.current !== normalizedSpoken) {
+          lastRecordedMistakeSpokenRef.current = normalizedSpoken;
+
+          setMistakesList((prev) => {
+            // Debounce per-ayat: maksimal 1 kesalahan setiap 5 detik untuk ayat yang sama
+            if (
+              prev.length > 0 &&
+              prev[prev.length - 1].verseKey === targetVerse.verse_key &&
+              Date.now() - new Date(prev[prev.length - 1].timestamp).getTime() < 5000
+            ) {
+              return prev;
+            }
+
+            const newMistake: MistakeItem = {
               id: `${targetVerse.verse_key}-${Date.now()}`,
               verseKey: targetVerse.verse_key,
               ayahNumber: targetVerse.ayahNumber || parseInt(targetVerse.verse_key.split(':')[1] || '1', 10),
@@ -382,9 +390,13 @@ export default function HafalanPage() {
               expectedText: targetVerse.text_uthmani || targetWords.map((w) => w.text_uthmani).join(' '),
               spokenText: spokenText,
               timestamp: new Date(),
-            },
-          ];
-        });
+            };
+
+            const nextList = [...prev, newMistake];
+            setMistakesCount(nextList.length);
+            return nextList;
+          });
+        }
       }
     }
   };
@@ -396,19 +408,33 @@ export default function HafalanPage() {
     // Kunci transisi dan catat timestamp agar sisa buffer suara ayat sebelumnya tidak bocor ke ayat baru
     isTransitioningRef.current = true;
     lastAyahTransitionTimeRef.current = Date.now();
+    lastRecordedMistakeSpokenRef.current = '';
     setLiveTranscript('');
-    setLiveStatusText('...Menunggu suara');
+    setLiveStatusText('...Beralih ke ayat berikutnya');
+    
+
+    // Abort speech recognition saat ini seketika agar buffer teks lama terhapus bersih
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
+    }
 
     const nextIdx = currentIdx + 1;
     if (nextIdx < verses.length) {
       // Otomatis pindah fokus ke ayat setelahnya
       setActiveVerseIndex(nextIdx);
       activeVerseIndexRef.current = nextIdx;
-      // Berikan masa tenggang 1.5 detik agar mesin suara mulai mengevaluasi ayat baru dari kondisi bersih
+      // Berikan masa tenggang 1.2 detik agar mesin suara mulai mengevaluasi ayat baru dari kondisi bersih
       setTimeout(() => {
         isTransitioningRef.current = false;
         setLiveTranscript('');
-      }, 1500);
+        setLiveStatusText('...Menunggu suara pelafalan');
+        if (isLiveListeningRef.current) {
+          startRecognitionInstance();
+        }
+      }, 1200);
     } else {
       // Seluruh ayat pada halaman mushaf ini sudah selesai!
       isTransitioningRef.current = true;
@@ -420,6 +446,9 @@ export default function HafalanPage() {
           setCurrentPage((p) => p + 1);
         }
         isTransitioningRef.current = false;
+        if (isLiveListeningRef.current) {
+          startRecognitionInstance();
+        }
       }, 2000);
     }
   };
@@ -429,21 +458,18 @@ export default function HafalanPage() {
     processSpokenArabicRef.current = processSpokenArabic;
   });
 
-  // Start / Stop Live Listening (Web Speech API + Tilawa AI)
-  const startLiveListening = async () => {
+  // Instansiasi SpeechRecognition bersih dan terisolasi
+  const startRecognitionInstance = () => {
+    if (!isLiveListeningRef.current) return;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
 
-    // Aktifkan Tilawa AI Microphone Stream
-    if (tilawaServiceRef.current) {
-      tilawaServiceRef.current.startListening().catch(() => {});
-    }
-
-    if (!SpeechRecognition) {
-      setIsLiveListening(true);
-      isLiveListeningRef.current = true;
-      setLiveStatusText('Tilawa AI Engine aktif mendengarkan...');
-      return;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+      recognitionRef.current = null;
     }
 
     try {
@@ -453,15 +479,15 @@ export default function HafalanPage() {
       recognition.lang = 'ar-SA';
 
       recognition.onstart = () => {
-        setIsLiveListening(true);
-        isLiveListeningRef.current = true;
-        setLiveStatusText('...Menunggu suara pelafalan');
+        if (!isTransitioningRef.current) {
+          setLiveStatusText('...Menunggu suara pelafalan');
+        }
       };
 
       recognition.onresult = (event: any) => {
         if (isTransitioningRef.current) return;
 
-        // Ambil frasa yang sedang aktif diucapkan setelah jeda (dimulai dari resultIndex terbaru)
+        // Ambil frasa aktif yang diucapkan (dimulai dari resultIndex terbaru)
         let activePhrase = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           activePhrase += event.results[i][0].transcript + ' ';
@@ -476,7 +502,7 @@ export default function HafalanPage() {
       };
 
       recognition.onerror = (event: any) => {
-        if (event.error !== 'no-speech') {
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
           console.warn('Speech recognition status:', event.error);
         }
       };
@@ -486,18 +512,41 @@ export default function HafalanPage() {
           try {
             recognition.start();
           } catch {
-            setIsLiveListening(false);
-            isLiveListeningRef.current = false;
+            setTimeout(() => {
+              if (isLiveListeningRef.current && !isTransitioningRef.current) {
+                startRecognitionInstance();
+              }
+            }, 300);
           }
         }
       };
 
       recognition.start();
       recognitionRef.current = recognition;
-    } catch {
-      setIsLiveListening(true);
-      isLiveListeningRef.current = true;
+    } catch (e) {
+      console.warn('Speech recognition error:', e);
     }
+  };
+
+  // Start / Stop Live Listening (Web Speech API + Tilawa AI)
+  const startLiveListening = async () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (tilawaServiceRef.current) {
+      tilawaServiceRef.current.startListening().catch(() => {});
+    }
+
+    setIsLiveListening(true);
+    isLiveListeningRef.current = true;
+    lastRecordedMistakeSpokenRef.current = '';
+
+    if (!SpeechRecognition) {
+      setLiveStatusText('Engine suara aktif mendengarkan...');
+      return;
+    }
+
+    startRecognitionInstance();
   };
 
   const stopLiveListening = () => {
@@ -506,7 +555,7 @@ export default function HafalanPage() {
     setLiveStatusText('...Menunggu suara');
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current.abort();
       } catch {}
       recognitionRef.current = null;
     }
@@ -954,6 +1003,13 @@ export default function HafalanPage() {
 
           {/* 3. FLOATING BOTTOM ACTION BAR (Persis screenshot referensi: [Kesalahan] [📖] [👁️] [<] [>] + [MIC HIJAU]) */}
           <div className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 px-4 pointer-events-none">
+            {/* Status Suara Ringkas Khusyu' (Ditempatkan di atas dock agar tidak bertabrakan dengan bottom navigation bar) */}
+            {isLiveListening && (
+              <div className="max-w-xs mx-auto mb-2 bg-slate-900/90 backdrop-blur-md text-white text-xs px-3.5 py-1.5 rounded-full text-center truncate pointer-events-auto shadow-lg border border-slate-700/50 animate-in fade-in slide-in-from-bottom-2">
+                {liveTranscript ? `Mendengarkan: "${liveTranscript}"` : liveStatusText}
+              </div>
+            )}
+
             <div className="max-w-xl mx-auto flex items-center justify-between pointer-events-auto">
               {/* KIRI: Badge Kesalahan (Dapat diklik untuk melihat rincian kesalahan) */}
               <button
@@ -1077,12 +1133,7 @@ export default function HafalanPage() {
               </button>
             </div>
 
-            {/* Status Suara Ringkas Khusyu' (Tanpa Bunyi) */}
-            {isLiveListening && (
-              <div className="max-w-xs mx-auto mt-2 bg-slate-900/80 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full text-center truncate pointer-events-auto shadow-md">
-                {liveTranscript ? `Mendengarkan: "${liveTranscript}"` : liveStatusText}
-              </div>
-            )}
+            
           </div>
         </div>
       )}

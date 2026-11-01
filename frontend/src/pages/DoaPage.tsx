@@ -23,6 +23,117 @@ interface DoaItem {
   tag?: string[];
 }
 
+const DEFAULT_DOA_LIST: DoaItem[] = [
+  {
+    id: 'doa-1',
+    nama: 'Doa Sebelum Menghafal & Murojaah',
+    ar: 'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي وَاحْلُلْ عُقْدَةً مِّن لِّسَانِي يَفْقَهُوا قَوْلِي',
+    tr: "Rabbisyrah lii shadrii, wa yassir lii amrii, wahlul 'uqdatan mil lisaanii, yafqahuu qawlii.",
+    idn: 'Ya Tuhanku, lapangkanlah dadaku, dan mudahkanlah untukku urusanku, dan lepaskanlah kekakuan dari lidahku, agar mereka mengerti perkataanku.',
+    tentang: 'QS. Thaha: 25-28. Doa memohon kelancaran lisan dan ketenangan hati dalam menghafal kalamullah.',
+    grup: 'Doa Murojaah & Hafalan',
+  },
+  {
+    id: 'doa-2',
+    nama: 'Doa Memohon Ketetapan Hafalan Qur\'an',
+    ar: 'اللَّهُمَّ ذَكِّرْنَا مِنْهُ مَا نَسِينَا وَعَلِّمْنَا مِنْهُ مَا جَهِلْنَا وَارْزُقْنَا تِلَاوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ',
+    tr: "Allahumma dzakkirnaa minhu maa nasiinaa, wa 'allimnaa minhu maa jahilnaa, warzuqnaa tilaawatahu aanaa-al layli wa athraafan nahaar.",
+    idn: 'Ya Allah, ingatkanlah kami apa yang kami lupa dari Al-Qur\'an, ajarkanlah kami apa yang belum kami ketahui darinya, dan anugerahkanlah kami kemampuan membacanya sepanjang malam dan di ujung-ujung siang.',
+    tentang: 'Doa ahlul Qur\'an memohon penjagaan ayat-ayat yang telah dihafal agar tidak pudar dari ingatan.',
+    grup: 'Doa Murojaah & Hafalan',
+  },
+  {
+    id: 'doa-3',
+    nama: 'Doa Tambah Ilmu & Kekuatan Pemahaman',
+    ar: 'رَبِّ زِدْنِي عِلْمًا وَارْزُقْنِي فَهْمًا وَاجْعَلْنِي مِنَ الصَّالِحِينَ',
+    tr: "Rabbi zidnii 'ilman, warzuqnii fahman, waj'alnii minash-shaalihiin.",
+    idn: 'Ya Tuhanku, tambahkanlah ilmu kepadaku, dan berilah aku karunia untuk memahaminya, serta jadikanlah aku termasuk golongan orang-orang yang saleh.',
+    tentang: 'Doa memohon keterbukaan akal dan hati dalam memahami makna ayat serta kaidah tajwid.',
+    grup: 'Doa Belajar & Tholabul Ilmi',
+  },
+  {
+    id: 'doa-4',
+    nama: 'Doa Khotmil Qur\'an (Khatam)',
+    ar: 'اللَّهُمَّ ارْحَمْنَا بِالْقُرْآنِ وَاجْعَلْهُ لَنَا إِمَامًا وَنُورًا وَهُدًى وَرَحْمَةً',
+    tr: "Allahummar-hamnaa bil-qur'aan, waj'alhu lanaa imaaman wa nuuran wa hudan wa rahmah.",
+    idn: 'Ya Allah, limpahkanlah rahmat kepada kami dengan Al-Qur\'an, dan jadikanlah ia sebagai pemimpin, cahaya, petunjuk, dan rahmat bagi kami.',
+    tentang: 'Doa agung para sahabat dan tabi\'in seusai menyelesaikan khatam tilawah dan murojaah.',
+    grup: 'Doa Khatam & Keberkahan',
+  },
+  {
+    id: 'doa-5',
+    nama: 'Sayyidul Istighfar (Penghulu Istighfar)',
+    ar: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ خَلَقْتَنِي وَأَنَا عَبْدُكَ وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
+    tr: "Allahumma anta rabbii laa ilaaha illaa anta khalaqtanii wa ana 'abduka wa ana 'ala 'ahdika wa wa'dika mastatha'tu...",
+    idn: 'Ya Allah, Engkau adalah Rabb-ku, tidak ada Tuhan yang berhak disembah selain Engkau. Engkau yang menciptakanku dan aku adalah hamba-Mu...',
+    tentang: 'HR. Bukhari no. 6306. Siapa yang membacanya dengan yakin di pagi atau petang hari lalu meninggal, ia termasuk penghuni surga.',
+    grup: 'Dzikir Pagi & Petang',
+  },
+  {
+    id: 'doa-6',
+    nama: 'Doa Kebaikan Dunia & Akhirat (Sapu Jagat)',
+    ar: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+    tr: "Rabbanaa aatinaa fid-dunyaa hasanah, wa fil-aakhirati hasanah, wa qinaa 'adzaaban-naar.",
+    idn: 'Ya Tuhan kami, berilah kami kebaikan di dunia dan kebaikan di akhirat, dan lindungilah kami dari siksa neraka.',
+    tentang: 'QS. Al-Baqarah: 201. Doa yang paling sering dibaca oleh Rasulullah shallallahu \'alaihi wa sallam.',
+    grup: 'Doa Mustajab Al-Qur\'an',
+  },
+  {
+    id: 'doa-7',
+    nama: 'Doa Memohon Keteguhan Iman & Hati',
+    ar: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً إِنَّكَ أَنتَ الْوَهَّابُ',
+    tr: "Rabbanaa laa tuzigh quluubanaa ba'da idz hadaytanaa wa hab lanaa mil ladunka rahmah, innaka antal-wahhaab.",
+    idn: 'Ya Tuhan kami, janganlah Engkau jadikan hati kami condong kepada kesesatan sesudah Engkau beri petunjuk kepada kami, dan karuniakanlah kepada kami rahmat dari sisi-Mu.',
+    tentang: 'QS. Ali \'Imran: 8. Doa agar hati senantiasa istiqomah di jalan Al-Qur\'an dan sunnah.',
+    grup: 'Doa Mustajab Al-Qur\'an',
+  },
+  {
+    id: 'doa-8',
+    nama: 'Doa Masuk Masjid',
+    ar: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
+    tr: 'Allahummaf-tah lii abwaaba rahmatik.',
+    idn: 'Ya Allah, bukakanlah untukku pintu-pintu rahmat-Mu.',
+    tentang: 'HR. Muslim no. 713. Dibaca ketika melangkahkan kaki kanan masuk ke dalam masjid.',
+    grup: 'Doa Harian & Adab',
+  },
+  {
+    id: 'doa-9',
+    nama: 'Doa Keluar Masjid',
+    ar: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ',
+    tr: 'Allahumma innii as-aluka min fadhlik.',
+    idn: 'Ya Allah, sesungguhnya aku memohon karunia-Mu.',
+    tentang: 'HR. Muslim no. 713. Dibaca ketika melangkahkan kaki kiri keluar dari masjid.',
+    grup: 'Doa Harian & Adab',
+  },
+  {
+    id: 'doa-10',
+    nama: 'Doa untuk Kedua Orang Tua',
+    ar: 'رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا',
+    tr: 'Rabbigh-fir lii wa liwaalidayya warhamhumaa kamaa rabbayaanii shaghiiraa.',
+    idn: 'Ya Tuhanku, ampunilah aku dan kedua orang tuaku, dan sayangilah keduanya sebagaimana mereka telah mendidik aku di waktu kecil.',
+    tentang: 'QS. Al-Isra\': 24. Birrul walidain, salah satu kunci terbukanya keberkahan menghafal Al-Qur\'an.',
+    grup: 'Doa Mustajab Al-Qur\'an',
+  },
+  {
+    id: 'doa-11',
+    nama: 'Dzikir Pagi: Perlindungan dari Mara Bahaya',
+    ar: 'بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ',
+    tr: "Bismillaahil-ladzii laa yadhurru ma'as-mihii syay-un fil-ardhi wa laa fis-samaa-i wa huwas-samii'ul 'aliim.",
+    idn: 'Dengan nama Allah yang tidak ada sesuatu pun di bumi maupun di langit yang dapat mendatangkan mudharat bersama nama-Nya, dan Dia Maha Mendengar lagi Maha Mengetahui.',
+    tentang: 'HR. Abu Dawud & Tirmidzi. Dibaca 3 kali di pagi dan petang hari.',
+    grup: 'Dzikir Pagi & Petang',
+  },
+  {
+    id: 'doa-12',
+    nama: 'Doa Bangun Tidur',
+    ar: 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ',
+    tr: 'Alhamdu lillaahil-ladzii ahyaanaa ba\'da maa amaatanaa wa ilayhin-nusyuur.',
+    idn: 'Segala puji bagi Allah yang telah menghidupkan kami setelah mematikan kami, dan hanya kepada-Nya kami kembali.',
+    tentang: 'HR. Bukhari no. 6312. Memulai hari dengan syukur dan kesadaran spiritual.',
+    grup: 'Doa Harian & Adab',
+  },
+];
+
 export default function DoaPage() {
   const [allDoa, setAllDoa] = useState<DoaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,38 +153,39 @@ export default function DoaPage() {
     let isMounted = true;
     setLoading(true);
 
-    // Fetch dari API equran.id/apidev/doa dengan fallback internal backend
-    fetch('https://equran.id/apidev/doa')
-      .then((res) => {
-        if (!res.ok) throw new Error('EQuran DOA API offline');
-        return res.json();
-      })
+    fetch('/api/v1/doa')
+      .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!isMounted) return;
-        const items = Array.isArray(json) ? json : json.data || [];
-        if (items.length > 0) {
-          setAllDoa(items);
+        const list = Array.isArray(json)
+          ? json
+          : Array.isArray(json?.doa)
+          ? json.doa
+          : Array.isArray(json?.data)
+          ? json.data
+          : [];
+
+        if (list.length > 0) {
+          const mapped: DoaItem[] = list.map((d: any, idx: number) => ({
+            id: d.id || `doa-${idx}`,
+            nama: d.title || d.nama || 'Doa Murojaah',
+            ar: d.arabic || d.ar || '',
+            tr: d.latin || d.tr || '',
+            idn: d.translation || d.idn || '',
+            tentang: d.fadhilah || d.tentang || '',
+            grup: d.category || d.grup || 'Doa Murojaah & Hafalan',
+            tag: d.tag || [],
+          }));
+
+          const existingTitles = new Set(mapped.map((m) => m.nama));
+          const additions = DEFAULT_DOA_LIST.filter((d) => !existingTitles.has(d.nama));
+          setAllDoa([...mapped, ...additions]);
         } else {
-          throw new Error('Format kosong');
+          setAllDoa(DEFAULT_DOA_LIST);
         }
       })
       .catch(() => {
-        // Fallback ke endpoint backend Hifzhly
-        return fetch('/api/v1/doa')
-          .then((res) => (res.ok ? res.json() : []))
-          .then((backendDoa) => {
-            if (!isMounted) return;
-            const mapped = (backendDoa || []).map((d: any) => ({
-              id: d.id,
-              nama: d.title,
-              ar: d.arabic,
-              tr: d.latin,
-              idn: d.translation,
-              tentang: d.fadhilah,
-              grup: 'Doa Murojaah & Harian',
-            }));
-            setAllDoa(mapped);
-          });
+        if (isMounted) setAllDoa(DEFAULT_DOA_LIST);
       })
       .finally(() => {
         if (isMounted) setLoading(false);

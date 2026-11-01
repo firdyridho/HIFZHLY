@@ -94,9 +94,16 @@ func (r *tajwidRepository) GetAllModules(ctx context.Context) ([]model.TajwidMod
 }
 
 func (r *tajwidRepository) GetModuleBySlug(ctx context.Context, slug string) (*model.TajwidModule, error) {
+	altSlug := slug
+	if slug == "hukum-madd" {
+		altSlug = "hukum-mad"
+	} else if slug == "hukum-mad" {
+		altSlug = "hukum-madd"
+	}
+
 	if r.db == nil {
 		for _, m := range r.getFallbackModules() {
-			if m.Slug == slug {
+			if m.Slug == slug || m.Slug == altSlug {
 				return &m, nil
 			}
 		}
@@ -107,10 +114,11 @@ func (r *tajwidRepository) GetModuleBySlug(ctx context.Context, slug string) (*m
 		SELECT id, title, slug, summary, content_body, youtube_video_id, order_index, is_active, created_at, updated_at,
 		       COALESCE(thumbnail_url, ''), COALESCE(pdf_url, '')
 		FROM tajwid_modules
-		WHERE slug = $1 AND is_active = true
+		WHERE (slug = $1 OR slug = $2) AND is_active = true
+		LIMIT 1
 	`
 	var m model.TajwidModule
-	err := r.db.QueryRow(ctx, queryWithMedia, slug).Scan(
+	err := r.db.QueryRow(ctx, queryWithMedia, slug, altSlug).Scan(
 		&m.ID, &m.Title, &m.Slug, &m.Summary, &m.ContentBody,
 		&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
 		&m.ThumbnailURL, &m.PdfURL,
@@ -120,15 +128,16 @@ func (r *tajwidRepository) GetModuleBySlug(ctx context.Context, slug string) (*m
 		queryLegacy := `
 			SELECT id, title, slug, summary, content_body, youtube_video_id, order_index, is_active, created_at, updated_at
 			FROM tajwid_modules
-			WHERE slug = $1 AND is_active = true
+			WHERE (slug = $1 OR slug = $2) AND is_active = true
+			LIMIT 1
 		`
-		errLegacy := r.db.QueryRow(ctx, queryLegacy, slug).Scan(
+		errLegacy := r.db.QueryRow(ctx, queryLegacy, slug, altSlug).Scan(
 			&m.ID, &m.Title, &m.Slug, &m.Summary, &m.ContentBody,
 			&m.YoutubeVideoID, &m.OrderIndex, &m.IsActive, &m.CreatedAt, &m.UpdatedAt,
 		)
 		if errLegacy != nil {
 			for _, fm := range r.getFallbackModules() {
-				if fm.Slug == slug {
+				if fm.Slug == slug || fm.Slug == altSlug {
 					return &fm, nil
 				}
 			}

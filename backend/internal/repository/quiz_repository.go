@@ -111,3 +111,4 @@ func (r *QuizRepository) GetMonthlyLeaderboard(ctx context.Context, monthKey str
 
 	return entries, nil
 }
+

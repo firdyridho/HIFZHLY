@@ -10,7 +10,7 @@ export interface MutabaahReportItem {
   ayahEnd: number;
   totalAyahs: number;
   score: number;
-  type: 'murojaah_ai' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
+  type: 'murojaah_ai' | 'murojaah' | 'setoran_mandiri' | 'tilawah' | 'tajwid' | 'hafalan_baru';
   notes?: string;
   verifier?: string; // Ustadz Pembimbing / Mandiri
   pagesCount?: number;
@@ -54,6 +54,10 @@ export interface UserCommitment {
   targetDeadline: string;
   currentStreak: number;
   maxStreak: number;
+  progressionOrder?: 'juz_30' | 'juz_1_asc' | 'custom_surah';
+  murojaahTargetUnit?: 'surah' | 'ayah' | 'page';
+  dailyTargetMurojaahCount?: number;
+  targetJuzNumber?: number;
 }
 
 export interface AdminSantriMonitoringItem {
@@ -82,7 +86,7 @@ export interface AdminSantriMonitoringItem {
 
 const STORAGE_KEY = 'hifzhly_mutabaah_logs';
 const COMMITMENT_STORAGE_KEY = 'hifzhly_user_commitments';
-const ADMIN_MONITORING_KEY = 'hifzhly_admin_monitoring';
+// const ADMIN_MONITORING_KEY = 'hifzhly_admin_monitoring';
 
 export const INDONESIAN_MONTHS = [
   'Januari',

@@ -15,3 +15,4 @@ CREATE TABLE IF NOT EXISTS quiz_scores (
 
 CREATE INDEX IF NOT EXISTS idx_quiz_scores_month ON quiz_scores(month_key, score DESC);
 CREATE INDEX IF NOT EXISTS idx_quiz_scores_user ON quiz_scores(user_id, month_key);
+
