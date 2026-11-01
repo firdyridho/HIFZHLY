@@ -57,6 +57,7 @@ func main() {
 	murojaahHandler := handler.NewMurojaahHandler(murojaahService)
 	tajwidHandler := handler.NewTajwidHandler(tajwidService)
 	enrichmentHandler := handler.NewEnrichmentHandler(prayerService, doaService, mutabaahRepo)
+	voiceHandler := handler.NewVoiceHandler(cfg)
 
 	r := chi.NewRouter()
 
@@ -120,6 +121,10 @@ func main() {
 
 		// Murojaah AI Voice Evaluator (Word Diff & Scoring via Multipart or JSON)
 		r.Post("/murojaah/evaluate", murojaahHandler.Evaluate)
+
+		// Real-time Voice AI Engine (VPS AI-Worker / Levenshtein)
+		r.Post("/voice/evaluate", voiceHandler.EvaluateVoice)
+		r.Get("/voice/health", voiceHandler.HealthCheck)
 
 		// Spaced Repetition (SRS Due Today from PostgreSQL)
 		r.Get("/srs/today", murojaahHandler.GetDueToday)

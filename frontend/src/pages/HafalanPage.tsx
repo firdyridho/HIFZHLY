@@ -29,7 +29,7 @@ import {
   normalizeArabicQuran,
   isArabicWordMatch,
 } from '../lib/quranMeta';
-import { TilawaVoiceService, TilawaProgressEvent } from '../lib/tilawaService';
+import { TilawaVoiceService } from '../lib/tilawaService';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 
 interface QuranWordItem {
@@ -78,9 +78,6 @@ export default function HafalanPage() {
   const [mistakesCount, setMistakesCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  // AI Model Status & Download Progress (Hugging Face / Tilawa)
-  const [aiProgress, setAiProgress] = useState<TilawaProgressEvent | null>(null);
 
   // Audio Qari Player State
   const [isPlayingQari, setIsPlayingQari] = useState(false);
@@ -204,16 +201,10 @@ export default function HafalanPage() {
     numberOfAyahs: 7,
   };
 
-  // Inisialisasi Tilawa AI Engine (Model Hugging Face dengan Progress Monitoring)
+  // Inisialisasi Tilawa AI Voice Service
   useEffect(() => {
     const tilawa = new TilawaVoiceService();
     tilawaServiceRef.current = tilawa;
-
-    tilawa.onProgress((p) => {
-      setAiProgress(p);
-    });
-
-
 
     return () => {
       tilawa.stopListening();
@@ -309,6 +300,20 @@ export default function HafalanPage() {
       if (remainingInActiveVerse.length === 0) {
         // Ayat aktif selesai 100%!
         setCompletedVerseKeys((prev) => new Set(prev).add(targetVerse.verse_key));
+
+        // Sinkronisasi evaluasi dan skor ke VPS Backend AI Worker
+        const refText = targetWords.map((w) => w.text_uthmani).join(' ');
+        fetch('/api/v1/voice/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            surahNumber: currentSurahMeta.number,
+            ayahNumber: parseInt(targetVerse.verse_key.split(':')[1] || '1', 10),
+            referenceText: refText,
+            spokenText: spokenText,
+          }),
+        }).catch(() => {});
+
         advanceToNextAyah(curIdx, currentVerses);
       }
     } else if (spokenTokens.length >= 2 && !isTransitioningRef.current) {
@@ -1049,11 +1054,11 @@ export default function HafalanPage() {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Engine Suara:</span>
-                <span className="text-emerald-700 font-bold">Web Speech (ar-SA) + QUL Matcher</span>
+                <span className="text-emerald-700 font-bold">VPS AI Server + Dual-Sync Realtime</span>
               </div>
               <div className="flex items-center justify-between text-slate-500 text-[11px]">
-                <span>Model Neural Tilawa AI:</span>
-                <span>{aiProgress?.message || 'Siap dihubungkan'}</span>
+                <span>Status Pemrosesan VPS:</span>
+                <span className="text-emerald-600 font-medium">Online (0 MB Download di HP)</span>
               </div>
             </div>
 

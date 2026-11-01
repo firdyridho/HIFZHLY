@@ -12,6 +12,7 @@ type Config struct {
 	RedisPort    string
 	JWTSecret    string
 	GeminiAPIKey string
+	AIWorkerURL  string
 }
 
 func LoadConfig() *Config {
@@ -25,6 +26,11 @@ func LoadConfig() *Config {
 		env = "development"
 	}
 
+	aiWorkerURL := os.Getenv("AI_WORKER_URL")
+	if aiWorkerURL == "" {
+		aiWorkerURL = "http://ai-worker:5000"
+	}
+
 	return &Config{
 		AppPort:      port,
 		AppEnv:       env,
@@ -33,6 +39,7 @@ func LoadConfig() *Config {
 		RedisPort:    os.Getenv("REDIS_PORT"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
+		AIWorkerURL:  aiWorkerURL,
 	}
 }
 
