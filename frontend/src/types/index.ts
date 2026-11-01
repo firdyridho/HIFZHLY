@@ -95,14 +95,16 @@ export interface QuizQuestionReview {
 }
 
 export interface QuizSubmitResponse {
-  attemptId: string;
+  attemptId?: string;
+  quizId?: string;
   score: number;
   totalQuestions: number;
   correctAnswers: number;
   passed: boolean;
   passingScore: number;
-  completedAt: string;
-  review: QuizQuestionReview[];
+  completedAt?: string;
+  review?: QuizQuestionReview[];
+  reviews?: QuizQuestionReview[];
 }
 
 export interface WordDiffItem {

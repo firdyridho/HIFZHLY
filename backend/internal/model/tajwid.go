@@ -78,6 +78,7 @@ type QuizSubmissionResponse struct {
 	Passed         bool                 `json:"passed"`
 	PassingScore   int                  `json:"passingScore"`
 	Reviews        []QuestionReviewItem `json:"reviews"`
+	Review         []QuestionReviewItem `json:"review,omitempty"`
 }
 
 // ==========================================

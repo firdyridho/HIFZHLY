@@ -130,6 +130,7 @@ func (s *tajwidService) SubmitQuiz(ctx context.Context, userID, quizID string, r
 		Passed:         passed,
 		PassingScore:   quiz.PassingScore,
 		Reviews:        reviews,
+		Review:         reviews,
 	}, nil
 }
 

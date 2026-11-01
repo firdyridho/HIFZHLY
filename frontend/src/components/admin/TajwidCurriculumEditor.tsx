@@ -17,6 +17,8 @@ import {
   Bold,
   Italic,
   Underline,
+  Undo2,
+  Redo2,
   List,
   ListOrdered,
   AlignLeft,
@@ -193,7 +195,7 @@ export default function TajwidCurriculumEditor({
 
   // AI Generator controls
   const [aiDifficulty, setAiDifficulty] = useState('sedang');
-  const [aiQuestionCount, setAiQuestionCount] = useState(3);
+  const [aiQuestionCount, setAiQuestionCount] = useState(5);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiSuccessNotice, setAiSuccessNotice] = useState<string | null>(null);
 
@@ -219,8 +221,35 @@ export default function TajwidCurriculumEditor({
 
   const parsedYoutubeId = extractYoutubeVideoId(youtubeUrl);
 
-  // Word Editor toolbar actions
+  // Word Editor toolbar actions & Undo/Redo history
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const historyRef = useRef<string[]>([contentBody]);
+  const historyIndexRef = useRef<number>(0);
+
+  const pushHistory = (newVal: string) => {
+    const curIdx = historyIndexRef.current;
+    const newHist = historyRef.current.slice(0, curIdx + 1);
+    newHist.push(newVal);
+    if (newHist.length > 60) newHist.shift();
+    historyRef.current = newHist;
+    historyIndexRef.current = newHist.length - 1;
+  };
+
+  const handleUndo = () => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1;
+      const prevVal = historyRef.current[historyIndexRef.current];
+      setContentBody(prevVal);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1;
+      const nextVal = historyRef.current[historyIndexRef.current];
+      setContentBody(nextVal);
+    }
+  };
 
   const insertFormatting = (prefix: string, suffix: string = '') => {
     const textarea = textAreaRef.current;
@@ -233,12 +262,62 @@ export default function TajwidCurriculumEditor({
 
     const replacement = prefix + (selected || 'teks') + suffix;
     const updated = text.substring(0, start) + replacement + text.substring(end);
+    pushHistory(updated);
     setContentBody(updated);
 
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, start + prefix.length + (selected ? selected.length : 4));
     }, 10);
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newVal = e.target.value;
+    setContentBody(newVal);
+    pushHistory(newVal);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+    if (isCtrlOrMeta && !e.altKey) {
+      const key = e.key.toLowerCase();
+      if (key === 'b') {
+        e.preventDefault();
+        insertFormatting('**', '**');
+        return;
+      }
+      if (key === 'i') {
+        e.preventDefault();
+        insertFormatting('*', '*');
+        return;
+      }
+      if (key === 'u') {
+        e.preventDefault();
+        insertFormatting('<u>', '</u>');
+        return;
+      }
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        return;
+      }
+      if (key === 'y') {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      insertFormatting('  ', '');
+      return;
+    }
   };
 
   const insertArabicBlock = () => {
@@ -339,10 +418,32 @@ export default function TajwidCurriculumEditor({
             { optionText: 'إِيَّاكَ نَعْبُدُ', isCorrect: false },
           ],
         },
+        {
+          questionText: `Apa karakteristik makhraj atau sifat huruf utama yang harus diperhatikan pada kaidah ${title.trim()}?`,
+          verseArabic: '',
+          syarahExplanation: 'Menjaga makhraj dan sifat huruf (seperti istisla, hams, atau jahr) mencegah terjadinya pergeseran makna ayat.',
+          options: [
+            { optionText: 'Keseimbangan makhraj tanpa berlebihan (tawassuth)', isCorrect: true },
+            { optionText: 'Ditekan terlalu kuat di tenggorokan', isCorrect: false },
+            { optionText: 'Dihilangkan desis hurufnya', isCorrect: false },
+            { optionText: 'Dibaca samar tanpa aturan', isCorrect: false },
+          ],
+        },
+        {
+          questionText: `Kesalahan fatal (lahn jali) yang harus dihindari qari saat mempraktikkan ${title.trim()} adalah...`,
+          verseArabic: '',
+          syarahExplanation: 'Lahn jali dapat mengubah struktur kata atau makna kalimat dalam Al-Qur\'an dan hukumnya haram dalam tilawah.',
+          options: [
+            { optionText: 'Mengubah harakat atau menjatuhkan huruf', isCorrect: true },
+            { optionText: 'Membaca tartil dengan tenang', isCorrect: false },
+            { optionText: 'Menyempurnakan waqaf pada akhir ayat', isCorrect: false },
+            { optionText: 'Memanjangkan bacaan sesuai ukuran 2 harakat', isCorrect: false },
+          ],
+        },
       ];
       setQuestions(fallbackQuestions);
       setAiSuccessNotice(
-        `Berhasil menyusun 3 butir soal standar kurikulum tajwid untuk "${title.trim()}".`
+        `Berhasil menyusun 5 butir soal standar kurikulum tajwid untuk "${title.trim()}".`
       );
     } finally {
       setIsGeneratingAI(false);
@@ -1034,6 +1135,26 @@ export default function TajwidCurriculumEditor({
           <div className="space-y-4">
             {/* Word Formatting Toolbar (Ribbon Style) */}
             <div className="sticky top-[69px] z-30 bg-white border border-slate-200 rounded-2xl p-2 shadow-sm flex flex-wrap items-center gap-1.5">
+              {/* Undo & Redo Shortcuts */}
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+                title="Batalkan / Undo (Ctrl+Z)"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleRedo}
+                className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+                title="Ulangi / Redo (Ctrl+Y / Ctrl+Shift+Z)"
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
+
+              <div className="h-5 w-px bg-slate-200 mx-1" />
+
               {/* Heading Presets */}
               <button
                 type="button"
@@ -1200,7 +1321,8 @@ export default function TajwidCurriculumEditor({
                 <textarea
                   ref={textAreaRef}
                   value={contentBody}
-                  onChange={(e) => setContentBody(e.target.value)}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Tuliskan penjelasan kaidah tajwid, definisi, contoh ayat berharakat, dan pembahasan di sini..."
                   className="flex-1 w-full bg-transparent border-0 text-slate-800 text-sm sm:text-base leading-relaxed focus:outline-hidden resize-none font-sans min-h-[500px]"
                 />
