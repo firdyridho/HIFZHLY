@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Lock,
   ArrowRight,
@@ -14,7 +14,6 @@ import {
 import type { UserProfile } from '../types';
 
 export default function LoginPage() {
-  const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,134 +39,68 @@ export default function LoginPage() {
 
   const executeLogin = async (userIdentifier: string, userPass: string) => {
     setErrorMessage('');
-    setLoading(true);
 
-    const cleanIdentifier = userIdentifier.trim().toLowerCase();
+    const cleanIdentifier = userIdentifier.trim();
     const cleanPass = userPass.trim();
 
-    try {
-      let loggedUser: UserProfile | null = null;
-      let tokenStr: string = '';
-
-      // 1. Coba hubungi backend API dengan batas waktu 1 detik
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000);
-
-        const res = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            usernameOrEmail: userIdentifier.trim(),
-            password: userPass,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          loggedUser = data.user;
-          tokenStr = data.token;
-        }
-      } catch {
-        // Backend offline / timeout: lanjut ke auto-deteksi lokal
-      }
-
-      // 2. Jika backend berhasil mengautentikasi
-      if (loggedUser) {
-        // Jika akun adalah admin, paksa role tetap 'admin' meskipun di database sempat tersimpan 'user'
-        if (cleanIdentifier === 'admin' || cleanIdentifier === 'admin@hifzhly.id' || cleanIdentifier.includes('admin') || cleanPass === 'admin123') {
-          loggedUser.role = 'admin';
-        }
-
-        localStorage.setItem('hifzhly_auth_token', tokenStr);
-        localStorage.setItem('token', tokenStr);
-        localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
-        localStorage.setItem('user', JSON.stringify(loggedUser));
-
-        const role = (loggedUser.role || '').toLowerCase();
-        if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
-          window.location.href = '/admin';
-        } else {
-          window.location.href = '/app';
-        }
-        return;
-      }
-
-      // 3. Auto-Deteksi Akun Admin / Musyrif secara Lokal
-      let isLocalAdmin =
-        cleanIdentifier === 'admin' ||
-        cleanIdentifier === 'admin@hifzhly.id' ||
-        cleanIdentifier.includes('admin') ||
-        cleanIdentifier.includes('musyrif') ||
-        cleanIdentifier.includes('ustadz') ||
-        cleanIdentifier.includes('ustaz') ||
-        cleanIdentifier.includes('pengelola') ||
-        cleanIdentifier.includes('pembina') ||
-        cleanPass === 'admin123' ||
-        searchParams.get('role') === 'admin';
-
-      // Cek Database Pengguna Lokal (Akun yang didaftarkan di RegisterPage)
-      try {
-        const dbRaw = localStorage.getItem('hifzhly_users_db');
-        if (dbRaw) {
-          const db = JSON.parse(dbRaw);
-          if (db[cleanIdentifier]) {
-            const r = (db[cleanIdentifier].role || '').toLowerCase();
-            if (r === 'admin' || r === 'ustadz' || r === 'musyrif') {
-              isLocalAdmin = true;
-            }
-          }
-        }
-      } catch {}
-
-      // Jika Terdeteksi sebagai Admin
-      if (isLocalAdmin) {
-        const adminProfile: UserProfile = {
-          id: '00000000-0000-0000-0000-000000000001',
-          username: cleanIdentifier === 'admin' || !cleanIdentifier ? 'admin' : cleanIdentifier,
-          email: cleanIdentifier.includes('@') ? cleanIdentifier : 'admin@hifzhly.id',
-          fullName: 'Ustadz Pembina (Admin)',
-          role: 'admin',
-          dailyTargetAyahs: 20,
-          currentStreak: 14,
-        };
-        const token = tokenStr || 'jwt_hifzhly_admin_' + Date.now();
-
-        localStorage.setItem('hifzhly_auth_token', token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('hifzhly_user_profile', JSON.stringify(adminProfile));
-        localStorage.setItem('user', JSON.stringify(adminProfile));
-
-        // Langsung arahkan ke Dashboard Admin
-        window.location.href = '/admin';
-        return;
-      }
-
-      // 4. Jika Akun Santri / Pengguna Biasa
-      const santriProfile: UserProfile = {
-        id: '1',
-        username: cleanIdentifier || 'ahmad_hifzh',
-        email: cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier || 'ahmad_hifzh'}@santri.hifzhly.id`,
-        fullName: cleanIdentifier === 'ahmad_hifzh' || !cleanIdentifier ? 'Ahmad Al-Hafizh' : cleanIdentifier,
-        role: 'user',
-        dailyTargetAyahs: 10,
-        currentStreak: 5,
-      };
-      const token = tokenStr || 'jwt_hifzhly_santri_' + Date.now();
-
-      localStorage.setItem('hifzhly_auth_token', token);
-      localStorage.setItem('token', token);
-      localStorage.setItem('hifzhly_user_profile', JSON.stringify(santriProfile));
-      localStorage.setItem('user', JSON.stringify(santriProfile));
-
-      // Langsung arahkan ke Aplikasi Santri
-      window.location.href = '/app';
+    if (!cleanIdentifier || !cleanPass) {
+      setErrorMessage('Username/email dan kata sandi wajib diisi.');
       return;
+    }
+
+    setLoading(true);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usernameOrEmail: cleanIdentifier,
+          password: cleanPass,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Username atau kata sandi tidak valid. Silakan periksa kembali.');
+      }
+
+      const loggedUser: UserProfile = data.user;
+      const tokenStr: string = data.token;
+
+      if (!loggedUser || !tokenStr) {
+        throw new Error('Format respon autentikasi tidak valid dari server.');
+      }
+
+      // Pastikan role admin konsisten
+      if (cleanIdentifier.toLowerCase() === 'admin' || cleanIdentifier.toLowerCase() === 'admin@hifzhly.id') {
+        loggedUser.role = 'admin';
+      }
+
+      localStorage.setItem('hifzhly_auth_token', tokenStr);
+      localStorage.setItem('token', tokenStr);
+      localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
+      localStorage.setItem('user', JSON.stringify(loggedUser));
+
+      const role = (loggedUser.role || '').toLowerCase();
+      if (role === 'admin' || role === 'ustadz' || role === 'musyrif') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/app';
+      }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Terjadi kesalahan sistem saat menghubungi server.');
+      if (err.name === 'AbortError') {
+        setErrorMessage('Koneksi ke server waktu habis (timeout). Harap periksa jaringan internet Anda.');
+      } else {
+        setErrorMessage(err.message || 'Terjadi kesalahan sistem saat menghubungi server.');
+      }
     } finally {
       setLoading(false);
     }

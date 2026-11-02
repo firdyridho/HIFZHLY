@@ -130,6 +130,26 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 				User:    *adminUser,
 			}, nil
 		}
+		// Built-in Demo Santri fallback (untuk santri/pengujian sistem)
+		if (req.UsernameOrEmail == "ahmad_hifzh" || req.UsernameOrEmail == "ahmad_hifzh@santri.hifzhly.id") && req.Password == "santri123" {
+			santriUser := &model.User{
+				ID:               "00000000-0000-0000-0000-000000000002",
+				Username:         "ahmad_hifzh",
+				Email:            "ahmad_hifzh@santri.hifzhly.id",
+				FullName:         "Ahmad Al-Hafizh",
+				Role:             "user",
+				DailyTargetAyahs: 10,
+			}
+			token, err := s.generateJWT(santriUser.ID, santriUser.Username, santriUser.Role)
+			if err != nil {
+				return nil, fmt.Errorf("gagal menerbitkan token: %w", err)
+			}
+			return &model.AuthResponse{
+				Message: "Login santri berhasil",
+				Token:   token,
+				User:    *santriUser,
+			}, nil
+		}
 		return nil, fmt.Errorf("kredensial login tidak valid")
 	}
 

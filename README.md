@@ -371,3 +371,4 @@ Proyek ini dikembangkan untuk kemaslahatan pendidikan Al-Qur'an di Indonesia. Se
 
 > *"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."*  
 > **(HR. Bukhari no. 5027)**
+
