@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import {
@@ -42,12 +42,13 @@ export default function Scroll3DCarousel() {
 
   const [currentIdx, setCurrentIdx] = useState(0);
 
-  smoothProgress.on("change", (latest) => {
-    const idx = Math.min(3, Math.max(0, Math.round(latest * 3)));
-    if (idx !== currentIdx) {
-      setCurrentIdx(idx);
-    }
-  });
+  useEffect(() => {
+    const unsubscribe = smoothProgress.on("change", (latest) => {
+      const idx = Math.min(3, Math.max(0, Math.round(latest * 3)));
+      setCurrentIdx((prev) => (prev !== idx ? idx : prev));
+    });
+    return () => unsubscribe();
+  }, [smoothProgress]);
 
   // 4 Core Pillar Cards
   const CARDS: CarouselCardData[] = [

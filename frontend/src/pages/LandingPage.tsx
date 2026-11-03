@@ -34,13 +34,13 @@ export default function LandingPage() {
     <>
       <Link
         to="/login"
-        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all"
+        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-center"
       >
         Masuk
       </Link>
       <Link
         to="/register"
-        className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl shadow-xs shadow-emerald-600/20 transition-all active:scale-95"
+        className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl shadow-xs shadow-emerald-600/20 transition-all active:scale-95 text-center"
       >
         Daftar Santri
       </Link>
@@ -53,7 +53,7 @@ export default function LandingPage() {
       <TubelightNavbar items={navItems} rightActions={rightActions} />
 
       {/* Hero Section & Live Simulation Sandbox */}
-      <section id="simulasi" className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50">
+      <section id="simulasi" className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-b from-white via-emerald-50/20 to-slate-50 scroll-mt-24">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column: Simple & Punchy Hero Proposition */}
@@ -134,22 +134,22 @@ export default function LandingPage() {
       <ScholarlyStats />
 
       {/* 3D Scroll-Driven Carousel Section ("Semua yang Kamu Butuhkan untuk Menjaga Hafalan") */}
-      <div id="fitur">
+      <div id="fitur" className="scroll-mt-24">
         <Scroll3DCarousel />
       </div>
 
       {/* Scroll Timeline Section ("Terus Gulir, Selami Arsitektur Evaluasi Hifzhly") */}
-      <div id="arsitektur">
+      <div id="arsitektur" className="scroll-mt-24">
         <MushafScrollytelling />
       </div>
 
       {/* Step-by-Step Interactive Workflow Timeline */}
-      <div id="alur">
+      <div id="alur" className="scroll-mt-24">
         <TimelineWorkflow />
       </div>
 
       {/* Interactive FAQ Section */}
-      <div id="faq">
+      <div id="faq" className="scroll-mt-24">
         <FaqSection />
       </div>
 
