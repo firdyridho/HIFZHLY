@@ -251,37 +251,40 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/90 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Top Breadcrumb Bar */}
-      <div className="w-full max-w-5xl mb-4 flex items-center justify-between text-xs text-slate-500">
-        <Link
-          to="/"
-          className="inline-flex items-center space-x-1.5 hover:text-emerald-700 transition-colors font-semibold"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Kembali ke Beranda</span>
-        </Link>
-        <span className="text-[11px] text-slate-400">Platform Evaluasi Tahfidz Al-Qur'an</span>
-      </div>
-
-      {/* Main Sliding Split Card (Desktop) */}
-      <div className="relative w-full max-w-5xl min-h-[640px] bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden hidden lg:block">
-        {/* Underlying Forms Grid */}
-        <div className="grid grid-cols-2 min-h-[640px]">
-          {/* Left Form Slot: Register Form (Visible when isRegister is true) */}
+    <div className="min-h-screen w-full bg-white relative overflow-hidden font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* ========================================================
+          FULL SCREEN EDGE-TO-EDGE SLIDING CONTAINER (DESKTOP)
+         ======================================================== */}
+      <div className="hidden lg:block w-full h-screen min-h-[640px] relative overflow-hidden">
+        {/* Underneath Two-Column Form Layout (50vw Left | 50vw Right) */}
+        <div className="grid grid-cols-2 w-full h-full">
+          {/* Left 50% Slot: Register Form (Exposed when isRegister is true) */}
           <div
-            className={`p-10 flex flex-col justify-center transition-all duration-300 ${
+            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${
               isRegister
                 ? 'opacity-100 pointer-events-auto scale-100'
                 : 'opacity-0 pointer-events-none scale-95'
             }`}
           >
-            <div className="max-w-sm w-full mx-auto space-y-4">
+            {/* Top Back Nav */}
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <Link
+                to="/"
+                className="inline-flex items-center space-x-2 text-slate-500 hover:text-emerald-700 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Beranda</span>
+              </Link>
+              <span className="text-[11px] text-slate-400">Pendaftaran Santri</span>
+            </div>
+
+            {/* Form Content */}
+            <div className="max-w-md w-full mx-auto my-auto space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                   Daftar Akun Baru
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   Mulai perjalanan hafalan Al-Qur'an yang terukur dan ilmiah
                 </p>
               </div>
@@ -289,11 +292,11 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
               {regError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-                  <span className="leading-snug">{regError}</span>
+                  <span className="leading-snug font-medium">{regError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleRegisterSubmit} className="space-y-3">
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Nama Lengkap
@@ -305,13 +308,13 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                       value={regFullName}
                       onChange={(e) => setRegFullName(e.target.value)}
                       placeholder="Nama lengkap santri atau pembina"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                     />
-                    <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                       Username
@@ -323,9 +326,9 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                         value={regUsername}
                         onChange={(e) => setRegUsername(e.target.value)}
                         placeholder="Username unik"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                       />
-                      <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     </div>
                   </div>
 
@@ -340,9 +343,9 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
                         placeholder="nama@email.com"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                       />
-                      <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     </div>
                   </div>
                 </div>
@@ -358,15 +361,15 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Minimal 6 karakter"
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                     />
-                    <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <button
                       type="button"
                       onClick={() => setShowRegPassword(!showRegPassword)}
                       className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
                     >
-                      {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -382,15 +385,15 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
                       placeholder="Ulangi kata sandi"
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                     />
-                    <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <button
                       type="button"
                       onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
                       className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
                     >
-                      {showRegConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -401,12 +404,12 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                     id="regTermsDesktop"
                     checked={regAgreeTerms}
                     onChange={(e) => setRegAgreeTerms(e.target.checked)}
-                    className="mt-0.5 w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                    className="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
                   />
-                  <label htmlFor="regTermsDesktop" className="text-[11px] text-slate-500 leading-tight cursor-pointer">
-                    Menyetujui{' '}
+                  <label htmlFor="regTermsDesktop" className="text-xs text-slate-500 leading-tight cursor-pointer">
+                    Saya menyetujui{' '}
                     <Link to="/terms" className="font-semibold text-emerald-700 hover:underline">
-                      Ketentuan Layanan &amp; Privasi Suara
+                      Ketentuan Layanan &amp; Kebijakan Privasi Suara
                     </Link>
                   </label>
                 </div>
@@ -414,51 +417,69 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer mt-2"
+                  className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer mt-2"
                 >
                   {regLoading ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Mendaftarkan...</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Mendaftarkan Akun...</span>
                     </>
                   ) : (
                     <>
                       <span>Daftar Akun Santri</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
               </form>
             </div>
+
+            {/* Bottom Footer Note */}
+            <div className="text-[11px] text-slate-400 text-center">
+              Platform Evaluasi Murojaah Mandiri • Standar Kemenag RI
+            </div>
           </div>
 
-          {/* Right Form Slot: Login Form (Visible when isRegister is false) */}
+          {/* Right 50% Slot: Login Form (Exposed when isRegister is false) */}
           <div
-            className={`p-10 flex flex-col justify-center transition-all duration-300 ${
+            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${
               !isRegister
                 ? 'opacity-100 pointer-events-auto scale-100'
                 : 'opacity-0 pointer-events-none scale-95'
             }`}
           >
-            <div className="max-w-sm w-full mx-auto space-y-5">
+            {/* Top Back Nav */}
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <Link
+                to="/"
+                className="inline-flex items-center space-x-2 text-slate-500 hover:text-emerald-700 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Beranda</span>
+              </Link>
+              <span className="text-[11px] text-slate-400">Portal Masuk</span>
+            </div>
+
+            {/* Form Content */}
+            <div className="max-w-md w-full mx-auto my-auto space-y-6">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                   Masuk ke Hifzhly
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Akses ruang murojaah hafalan santri maupun portal monitoring
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                  Akses ruang murojaah hafalan mandiri santri maupun monitoring asatidz
                 </p>
               </div>
 
               {loginError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2">
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-                  <span className="leading-snug">{loginError}</span>
+                  <span className="leading-snug font-medium">{loginError}</span>
                 </div>
               )}
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Username atau Email
                   </label>
@@ -468,14 +489,14 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                       required
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="Masukkan username atau email"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      placeholder="Contoh: ahmad_hifzh atau admin"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                     />
-                    <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   </div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Kata Sandi
                   </label>
@@ -485,28 +506,28 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                       required
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Masukkan kata sandi"
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      placeholder="Masukkan kata sandi akunmu"
+                      className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
                     />
-                    <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                      className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
                     >
-                      {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Subtle 1-Click Demo Buttons (Clean, Zero Badges) */}
+                {/* Clean 1-Click Demo Testing Buttons (Zero Badges) */}
                 <div className="pt-1">
-                  <p className="text-[10px] text-slate-400 mb-1.5 font-medium">Akses Pengujian Cepat:</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[11px] text-slate-400 mb-1.5 font-medium">Akses Pengujian Cepat:</p>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={fillDemoAdmin}
-                      className="py-1.5 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 transition-colors cursor-pointer"
+                      className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                       <span>Admin Demo</span>
@@ -514,7 +535,7 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                     <button
                       type="button"
                       onClick={fillDemoSantri}
-                      className="py-1.5 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 transition-colors cursor-pointer"
+                      className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
                     >
                       <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
                       <span>Santri Demo</span>
@@ -525,99 +546,109 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer pt-2"
+                  className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer pt-2"
                 >
                   {loginLoading ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Memverifikasi...</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Memverifikasi Akun...</span>
                     </>
                   ) : (
                     <>
                       <span>Masuk ke Hifzhly</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
               </form>
             </div>
+
+            {/* Bottom Footer Note */}
+            <div className="text-[11px] text-slate-400 text-center">
+              Platform Evaluasi Murojaah Mandiri • Standar Kemenag RI
+            </div>
           </div>
         </div>
 
-        {/* The Sliding Overlay Panel (Width: 50%, Full Height) */}
+        {/* ========================================================
+            FULL-HEIGHT SLIDING OVERLAY PANEL (50vw Width, 100vh Height)
+           ======================================================== */}
         <div
-          className={`absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-10 flex flex-col justify-between transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shadow-2xl ${
+          className={`absolute top-0 bottom-0 left-0 w-1/2 h-full bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-14 xl:p-20 flex flex-col justify-between transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shadow-2xl ${
             isRegister ? 'translate-x-full' : 'translate-x-0'
           }`}
         >
           {/* Subtle Watermark Islamic Typography */}
           <div
-            className="absolute -right-12 -bottom-12 font-quran text-[13rem] text-emerald-500/5 select-none pointer-events-none leading-none"
+            className="absolute -right-16 -bottom-16 font-quran text-[18rem] text-emerald-500/5 select-none pointer-events-none leading-none"
             dir="rtl"
             aria-hidden="true"
           >
             حفظ
           </div>
 
-          {/* Top Logo */}
-          <div className="relative z-10 flex items-center space-x-2.5">
-            <img src="/logo saja.png" alt="Hifzhly" className="w-8 h-8 object-contain" />
-            <span className="font-extrabold tracking-tight text-white text-base">Hifzhly</span>
+          {/* Top Logo & Title */}
+          <div className="relative z-10 flex items-center space-x-3">
+            <img src="/logo saja.png" alt="Hifzhly" className="w-10 h-10 object-contain drop-shadow-md" />
+            <div>
+              <span className="font-black tracking-tight text-white text-xl block leading-none">Hifzhly</span>
+              <span className="text-[10px] text-emerald-400 font-medium">Asisten Murojaah Cerdas</span>
+            </div>
           </div>
 
-          {/* Center Quranic Quotes - Dynamic Slide Content */}
-          <div className="relative z-10 space-y-4 my-auto max-w-sm">
+          {/* Center Quranic Quotes with High-Contrast Islamic Typography */}
+          <div className="relative z-10 space-y-6 my-auto max-w-lg">
             {isRegister ? (
-              <div className="space-y-3 animate-in fade-in duration-300">
-                <p className="font-quran text-2xl leading-relaxed text-right text-emerald-200" dir="rtl">
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <p className="font-quran text-4xl leading-loose text-right text-emerald-200" dir="rtl">
                   بَلْ هُوَ ءَايَٰتٌۢ بَيِّنَٰتٌ فِى صُدُورِ ٱلَّذِينَ أُوتُوا۟ ٱلْعِلْمَ
                 </p>
-                <p className="text-xs text-slate-300 leading-relaxed italic border-l-2 border-emerald-500/40 pl-3 font-serif">
+                <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-emerald-500/50 pl-4 font-serif">
                   "Sebenarnya, Al-Qur'an itu adalah ayat-ayat yang nyata di dalam dada orang-orang yang diberi ilmu."
                 </p>
-                <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider block">
+                <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider block">
                   QS. Al-'Ankabut [29: 49]
                 </span>
               </div>
             ) : (
-              <div className="space-y-3 animate-in fade-in duration-300">
-                <p className="font-quran text-2xl leading-relaxed text-right text-emerald-200" dir="rtl">
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <p className="font-quran text-4xl leading-loose text-right text-emerald-200" dir="rtl">
                   وَلَقَدْ يَسَّرْنَا ٱلْقُرْءَانَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ
                 </p>
-                <p className="text-xs text-slate-300 leading-relaxed italic border-l-2 border-emerald-500/40 pl-3 font-serif">
+                <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-emerald-500/50 pl-4 font-serif">
                   "Dan sungguh, telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran?"
                 </p>
-                <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider block">
+                <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider block">
                   QS. Al-Qamar [54: 17]
                 </span>
               </div>
             )}
           </div>
 
-          {/* Bottom Switch Slider Trigger (Clean, Scholarly, Zero Badges) */}
-          <div className="relative z-10 pt-4 border-t border-emerald-800/40">
+          {/* Bottom Switch Trigger (Clean & Slop-Free) */}
+          <div className="relative z-10 pt-6 border-t border-emerald-800/40">
             {isRegister ? (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-300">Sudah memiliki akun?</span>
+                <span className="text-xs text-slate-300">Sudah memiliki akun santri?</span>
                 <button
                   type="button"
                   onClick={() => switchMode(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-emerald-500/40 hover:bg-emerald-900/60 text-white text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-emerald-500/40 hover:bg-emerald-900/60 text-white text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer shadow-xs"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ArrowLeft className="w-4 h-4" />
                   <span>Masuk Akun</span>
                 </button>
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-300">Belum memiliki akun?</span>
+                <span className="text-xs text-slate-300">Belum memiliki akun Hifzhly?</span>
                 <button
                   type="button"
                   onClick={() => switchMode(true)}
-                  className="px-3.5 py-1.5 rounded-xl border border-emerald-500/40 hover:bg-emerald-900/60 text-white text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-emerald-500/40 hover:bg-emerald-900/60 text-white text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer shadow-xs"
                 >
                   <span>Daftar Santri</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -625,16 +656,27 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
         </div>
       </div>
 
-      {/* Mobile Auth Card (< lg Screen) */}
-      <div className="w-full max-w-md mx-auto space-y-4 lg:hidden">
-        {/* Mobile Header Brand & Segmented Switch */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3 text-center">
-          <div className="flex items-center justify-center space-x-2">
-            <img src="/logo saja.png" alt="Hifzhly" className="w-8 h-8 object-contain" />
-            <span className="font-extrabold text-slate-900 text-base">Hifzhly</span>
+      {/* ========================================================
+          FULL SCREEN MOBILE VIEW (< lg Screen)
+         ======================================================== */}
+      <div className="lg:hidden min-h-screen w-full flex flex-col justify-between p-6 sm:p-8 bg-white">
+        {/* Top Header & Toggle */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/"
+              className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-emerald-700 font-medium"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Beranda</span>
+            </Link>
+            <div className="flex items-center space-x-2">
+              <img src="/logo saja.png" alt="Hifzhly" className="w-6 h-6 object-contain" />
+              <span className="font-extrabold text-slate-900 text-sm">Hifzhly</span>
+            </div>
           </div>
 
-          {/* Segmented Controller (Zero Slop / Badges) */}
+          {/* Clean Segmented Controller */}
           <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
             <button
               type="button"
@@ -661,13 +703,13 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
           </div>
         </div>
 
-        {/* Mobile Forms Container */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm">
+        {/* Mobile Form Body */}
+        <div className="my-auto py-6">
           {isRegister ? (
             /* Mobile Register Form */
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-sm mx-auto">
               <div>
-                <h2 className="text-xl font-black text-slate-900">Daftar Akun Baru</h2>
+                <h1 className="text-2xl font-black text-slate-900">Daftar Akun Baru</h1>
                 <p className="text-xs text-slate-500 mt-0.5">Mulai hafalan Al-Qur'an terukur</p>
               </div>
 
@@ -791,9 +833,9 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
             </div>
           ) : (
             /* Mobile Login Form */
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-sm mx-auto">
               <div>
-                <h2 className="text-xl font-black text-slate-900">Masuk ke Hifzhly</h2>
+                <h1 className="text-2xl font-black text-slate-900">Masuk ke Hifzhly</h1>
                 <p className="text-xs text-slate-500 mt-0.5">Akses ruang murojaah hafalan mandiri</p>
               </div>
 
@@ -878,6 +920,11 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
               </form>
             </div>
           )}
+        </div>
+
+        {/* Mobile Bottom Note */}
+        <div className="text-[11px] text-slate-400 text-center pt-4">
+          Hifzhly © 2026 Tim FIFA • Standar Kemenag RI
         </div>
       </div>
     </div>
