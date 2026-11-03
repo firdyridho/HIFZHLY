@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -160,7 +159,7 @@ export function TubelightNavbar({
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all",
+          "sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all shadow-xs",
           className
         )}
       >
@@ -192,8 +191,8 @@ export function TubelightNavbar({
             </Link>
           )}
 
-          {/* Desktop Tubelight Nav Items Container */}
-          <nav className="hidden md:flex items-center bg-slate-100/90 border border-slate-200/90 backdrop-blur-lg p-1 rounded-full shadow-xs">
+          {/* Desktop Nav Items Container - Clean, Segmented & Rock-Solid */}
+          <nav className="hidden md:flex items-center bg-slate-100/90 border border-slate-200/90 p-1 rounded-full shadow-xs gap-0.5">
             {items.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.name;
@@ -204,32 +203,14 @@ export function TubelightNavbar({
                   href={item.url}
                   onClick={(e) => handleNavClick(e, item)}
                   className={cn(
-                    "relative cursor-pointer text-xs font-semibold px-3 sm:px-4.5 py-2 rounded-full transition-colors flex items-center space-x-1.5 select-none",
-                    "text-slate-600 hover:text-emerald-700",
-                    isActive && "text-emerald-950 font-bold"
+                    "relative cursor-pointer text-xs font-semibold px-3.5 sm:px-4 py-2 rounded-full transition-all duration-200 flex items-center space-x-1.5 select-none",
+                    isActive
+                      ? "bg-emerald-600 text-white font-bold shadow-xs shadow-emerald-700/25"
+                      : "text-slate-600 hover:text-emerald-700 hover:bg-slate-200/60"
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-emerald-100" : "text-slate-400")} />
                   <span>{item.name}</span>
-
-                  {/* Tubelight Lamp Indicator with Glowing Beam */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="tubelight-lamp"
-                      className="absolute inset-0 w-full bg-white rounded-full -z-10 shadow-xs border border-emerald-500/30"
-                      initial={false}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 30,
-                      }}
-                    >
-                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-emerald-600 rounded-t-full">
-                        <div className="absolute w-12 h-5 bg-emerald-500/25 rounded-full blur-md -top-2 -left-2" />
-                        <div className="absolute w-8 h-4 bg-emerald-500/30 rounded-full blur-sm -top-1" />
-                      </div>
-                    </motion.div>
-                  )}
                 </a>
               );
             })}
@@ -257,55 +238,47 @@ export function TubelightNavbar({
           </button>
         </div>
 
-        {/* Mobile Animated Dropdown Drawer (Positioned absolute to avoid any page layout shift) */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="md:hidden absolute top-full left-0 right-0 z-50 border-b border-slate-200/90 bg-white/98 backdrop-blur-xl px-4 py-4 shadow-xl space-y-3"
-            >
-              <div className="space-y-1">
-                {items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.name;
+        {/* Mobile Dropdown Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 z-50 border-b border-slate-200/90 bg-white/98 backdrop-blur-xl px-4 py-4 shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="space-y-1">
+              {items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.name;
 
-                  return (
-                    <a
-                      key={item.name}
-                      href={item.url}
-                      onClick={(e) => {
-                        handleNavClick(e, item);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={cn(
-                        "flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer",
-                        isActive
-                          ? "bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold"
-                          : "text-slate-700 hover:bg-slate-50"
-                      )}
-                    >
-                      <Icon className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span>{item.name}</span>
-                    </a>
-                  );
-                })}
+                return (
+                  <a
+                    key={item.name}
+                    href={item.url}
+                    onClick={(e) => {
+                      handleNavClick(e, item);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer",
+                      isActive
+                        ? "bg-emerald-600 text-white font-bold shadow-xs"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-100" : "text-emerald-600")} />
+                    <span>{item.name}</span>
+                  </a>
+                );
+              })}
+            </div>
+
+            {/* Mobile Actions Container */}
+            {rightActions && (
+              <div
+                className="pt-3 border-t border-slate-100 flex flex-col gap-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {rightActions}
               </div>
-
-              {/* Mobile Actions Container */}
-              {rightActions && (
-                <div
-                  className="pt-3 border-t border-slate-100 flex flex-col gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {rightActions}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Mobile Backdrop Overlay (Click outside to close) */}
