@@ -16,6 +16,7 @@ import TargetPage from '../pages/TargetPage';
 import SettingsPage from '../pages/SettingsPage';
 import QuizPage from '../pages/QuizPage';
 import DoaPage from '../pages/DoaPage';
+import DownloadPage from '../pages/DownloadPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 export default function AppRoutes() {
@@ -23,6 +24,7 @@ export default function AppRoutes() {
     <Routes>
       {/* 1. Public Landing & Auth Pages */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/terms" element={<TermsPage />} />

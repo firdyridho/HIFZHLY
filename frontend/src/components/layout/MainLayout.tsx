@@ -9,6 +9,7 @@ import {
   GraduationCap,
   AlertCircle,
   Settings,
+  Download,
 } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
@@ -129,8 +130,17 @@ export default function MainLayout() {
               </span>
             </Link>
 
-            {/* Header Right Actions: Hanya Pengaturan & Keluar */}
+            {/* Header Right Actions: Download, Pengaturan & Keluar */}
             <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <Link
+                to="/download"
+                className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors"
+                title="Download Aplikasi Native (Windows, Mac, Android, iOS)"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline">Download</span>
+              </Link>
+
               <NavLink
                 to="/app/settings"
                 className={({ isActive }) =>
