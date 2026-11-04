@@ -48,3 +48,108 @@ export function playDengSound() {
 
 // Backward compatibility alias
 export const playTengChime = playDengSound;
+
+/**
+ * Web Audio API synthesizer for pleasant, affirmative Islamic acoustic harmonic chime.
+ * Used when user selects correct answer or achieves milestone in Tajwid Academy.
+ */
+export function playSuccessChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // Pentatonic ascending chime notes: E5 (659.25Hz) -> G#5 (830.61Hz) -> B5 (987.77Hz)
+    const notes = [659.25, 830.61, 987.77];
+    notes.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + idx * 0.1;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.6);
+    });
+
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([40, 60, 40]);
+    }
+  } catch (e) {
+    console.warn('Success chime warning:', e);
+  }
+}
+
+/**
+ * Subtle soft acoustic tap tone for UI feedback during quiz stepper.
+ */
+export function playClickTone() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.08);
+
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+  } catch (e) {
+    console.warn('Click tone warning:', e);
+  }
+}
+
+/**
+ * Celebration harmonic chime for 100% / high score completion.
+ */
+export function playCelebrationChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // Majestically tuned chord (C# minor pentatonic shimmer)
+    const freqs = [554.37, 659.25, 830.61, 987.77, 1108.73];
+    freqs.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + idx * 0.09;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(0.25, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 1.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 1.2);
+    });
+
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([60, 80, 100, 150]);
+    }
+  } catch (e) {
+    console.warn('Celebration chime warning:', e);
+  }
+}
