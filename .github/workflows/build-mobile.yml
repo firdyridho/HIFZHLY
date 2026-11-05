@@ -18,6 +18,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build Android APK
@@ -59,11 +62,28 @@ jobs:
         working-directory: frontend/android
         run: ./gradlew assembleDebug --stacktrace
 
+      - name: Rename APK for Direct Download
+        run: cp frontend/android/app/build/outputs/apk/debug/app-debug.apk frontend/android/app/build/outputs/apk/debug/hifzhly-v1.0.apk
+
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Hifzhly-Android-APK
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          path: frontend/android/app/build/outputs/apk/debug/hifzhly-v1.0.apk
           if-no-files-found: error
           retention-days: 14
 
+      - name: Publish Public Release for 1-Click Direct Download
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0-apk
+          name: Hifzhly Android App v1.0.0
+          body: |
+            Unduh langsung berkas instalasi resmi Hifzhly untuk smartphone Android.
+            - Versi: 1.0.0
+            - Nama Berkas: hifzhly-v1.0.apk
+            - Mode: Standalone Offline Murojaah AI
+          files: frontend/android/app/build/outputs/apk/debug/hifzhly-v1.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

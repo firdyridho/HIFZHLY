@@ -24,7 +24,6 @@ import {
   Sliders,
   Copy,
   Download,
-  ExternalLink,
   Share2,
 } from 'lucide-react';
 import { playSuccessChime, playClickTone } from '../lib/soundUtils';
@@ -214,12 +213,26 @@ export default function DownloadPage() {
 
   const currentPlatform = PLATFORMS_DATA.find((p) => p.id === selectedPlatformId) || PLATFORMS_DATA[0];
 
+  const DIRECT_APK_DOWNLOAD_URL =
+    'https://github.com/firdyridho/HIFZHLY/releases/download/v1.0.0-apk/hifzhly-v1.0.apk';
+
+  const handleStartAndroidDownload = () => {
+    playSuccessChime();
+    setIsAndroidDownloadModalOpen(true);
+    const link = document.createElement('a');
+    link.href = DIRECT_APK_DOWNLOAD_URL;
+    link.download = 'hifzhly-v1.0.apk';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleOpenActionModal = (platform: PlatformDetails) => {
     playClickTone();
     setSelectedPlatformId(platform.id);
 
     if (platform.id === 'android') {
-      setIsAndroidDownloadModalOpen(true);
+      handleStartAndroidDownload();
     } else if (platform.id === 'ios') {
       setIsIosGuideModalOpen(true);
     } else {
@@ -363,10 +376,7 @@ export default function DownloadPage() {
             {/* Action 1: Download Android APK */}
             <button
               type="button"
-              onClick={() => {
-                playClickTone();
-                setIsAndroidDownloadModalOpen(true);
-              }}
+              onClick={handleStartAndroidDownload}
               className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
             >
               <Download className="w-4 h-4" />
@@ -943,39 +953,40 @@ export default function DownloadPage() {
 
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
-                  <Smartphone className="w-6 h-6 text-emerald-700" />
+                  <Download className="w-6 h-6 text-emerald-700 animate-pulse" />
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                    Download APK Hifzhly Android
+                    Mengunduh APK Hifzhly...
                   </h3>
                   <span className="text-xs text-emerald-800 font-mono font-bold">
-                    Versi 1.0 • Capacitor Native Core
+                    hifzhly-v1.0.apk • 18.5 MB
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs text-slate-600 font-sans">
-                <div className="font-bold text-slate-800">Petunjuk Pemasangan Cepat:</div>
-                <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
-                  <li>Unduh file <strong className="text-slate-900">app-debug.apk</strong> melalui tombol di bawah.</li>
-                  <li>Buka file APK yang telah diunduh di file manager HP Anda.</li>
-                  <li>Jika muncul peringatan keamanan, pilih <strong className="text-slate-900">"Izinkan dari sumber ini"</strong> atau <strong className="text-slate-900">"Install anyway"</strong>.</li>
-                  <li>Aplikasi Hifzhly siap dibuka untuk murojaah langsung!</li>
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/60 space-y-2 text-xs text-slate-700 font-sans">
+                <div className="font-bold text-emerald-950 flex items-center space-x-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  <span>Berkas APK sedang diunduh ke HP Anda:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-600">
+                  <li>Tunggu unduhan selesai pada bilah notifikasi HP Anda.</li>
+                  <li>Buka file <strong className="text-slate-900">hifzhly-v1.0.apk</strong> setelah selesai.</li>
+                  <li>Jika muncul konfirmasi keamanan, pilih <strong className="text-slate-900">"Tetap Pasang" (Install anyway)</strong>.</li>
+                  <li>Aplikasi Hifzhly siap dibuka untuk murojaah offline!</li>
                 </ol>
               </div>
 
               <div className="pt-1 space-y-2">
                 <a
-                  href="https://github.com/firdyridho/HIFZHLY/actions"
-                  target="_blank"
-                  rel="noreferrer"
+                  href={DIRECT_APK_DOWNLOAD_URL}
+                  download="hifzhly-v1.0.apk"
                   onClick={() => playClickTone()}
-                  className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
+                  className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Unduh File APK dari GitHub Actions</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Unduh Ulang File APK (Jika Tidak Otomatis)</span>
                 </a>
 
                 <button
