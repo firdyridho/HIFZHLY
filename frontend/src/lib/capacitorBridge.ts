@@ -100,3 +100,48 @@ export async function getPersistentItem(key: string): Promise<string | null> {
   return localStorage.getItem(key);
 }
 
+/**
+ * URL Base Backend Server Produksi
+ */
+export const PROD_API_BASE = 'https://hifzhly.vercel.app';
+
+/**
+ * Setup global fetch interceptor untuk Capacitor Native Mobile.
+ * Mengarahkan seluruh pemanggilan relatif /api/* ke backend produksi.
+ */
+export function setupNativeFetchInterceptor(): void {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const originalFetch = window.fetch;
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    let finalInput: RequestInfo | URL = input;
+
+    if (typeof input === 'string') {
+      if (input.startsWith('/api')) {
+        finalInput = `${PROD_API_BASE}${input}`;
+      }
+    } else if (input instanceof URL) {
+      if (input.pathname.startsWith('/api')) {
+        finalInput = new URL(`${PROD_API_BASE}${input.pathname}${input.search}`);
+      }
+    } else if (input instanceof Request) {
+      try {
+        const reqUrl = new URL(input.url);
+        if (reqUrl.pathname.startsWith('/api')) {
+          finalInput = new Request(`${PROD_API_BASE}${reqUrl.pathname}${reqUrl.search}`, input);
+        }
+      } catch {
+        if (input.url.startsWith('/api')) {
+          finalInput = new Request(`${PROD_API_BASE}${input.url}`, input);
+        }
+      }
+    }
+
+    return originalFetch(finalInput, init);
+  };
+}
+
+// Jalankan otomatis interceptor
+setupNativeFetchInterceptor();
+
+

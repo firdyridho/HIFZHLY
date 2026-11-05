@@ -8,6 +8,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true,
+    allowNavigation: ['hifzhly.vercel.app', '43.129.37.163:8080'],
   },
   plugins: {
     SplashScreen: {
