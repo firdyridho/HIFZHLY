@@ -27,8 +27,10 @@ export default function MainLayout() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  // Active reading check to replace double header
+  // Active reading & recitation check to replace double header and adapt mobile navigation
   const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz'));
+  const isRecitationSession = location.pathname.startsWith('/app/hafalan') || location.pathname.startsWith('/app/murojaah');
+  const hideHeader = isQuranReading || isRecitationSession;
 
   // Auth Guard: Jika tidak ada token (misal setelah logout), dilarang masuk dan wajib login
   const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
@@ -114,8 +116,8 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Clean Minimalist Header (Hidden when actively reading Quran to prevent double headers) */}
-      {!isQuranReading && (
+      {/* Clean Minimalist Header (Hidden when actively reading/reciting Quran to prevent double headers) */}
+      {!hideHeader && (
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             {/* Brand Logo & Name */}
@@ -173,82 +175,84 @@ export default function MainLayout() {
       )}
 
       {/* Main Content Container */}
-      <main className={isQuranReading ? "flex-1 w-full mx-auto p-0 pb-20 md:pb-6" : "flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8"}>
+      <main className={hideHeader ? "flex-1 w-full mx-auto p-0 pb-20 md:pb-6" : "flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8"}>
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Murojaah with Mic in slot 2, Mutabaah in slot 4, Keluar in slot 5) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
-        <div className="max-w-md mx-auto grid grid-cols-5 items-center justify-items-center">
-          {/* 1. Qur'an */}
-          <NavLink
-            to="/app/mushaf"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 transition-all ${
-                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`
-            }
-          >
-            <BookOpen className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Qur'an</span>
-          </NavLink>
+      {/* Mobile Bottom Navigation Bar (Hidden when on active recitation session where dedicated bar is rendered) */}
+      {!isRecitationSession && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
+          <div className="max-w-md mx-auto grid grid-cols-5 items-center justify-items-center">
+            {/* 1. Qur'an */}
+            <NavLink
+              to="/app/mushaf"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 transition-all ${
+                  isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`
+              }
+            >
+              <BookOpen className="w-5 h-5" />
+              <span className="text-[10px] mt-1 font-medium">Qur'an</span>
+            </NavLink>
 
-          {/* 2. Hafalan */}
-          <NavLink
-            to="/app/hafalan"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 transition-all ${
-                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`
-            }
-          >
-            <Mic className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Hafalan</span>
-          </NavLink>
+            {/* 2. Hafalan */}
+            <NavLink
+              to="/app/hafalan"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 transition-all ${
+                  isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`
+              }
+            >
+              <Mic className="w-5 h-5" />
+              <span className="text-[10px] mt-1 font-medium">Hafalan</span>
+            </NavLink>
 
-          {/* 3. Beranda (Center Elevated Green Floating Action Button) */}
-          <NavLink
-            to="/app"
-            end
-            className={({ isActive }) =>
-              `-mt-7 flex flex-col items-center group cursor-pointer ${
-                isActive ? 'text-emerald-700 font-black' : 'text-slate-600'
-              }`
-            }
-          >
-            <div className="w-13 h-13 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border-3 border-white group-active:scale-95 transition-all">
-              <Home className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-bold mt-0.5">Beranda</span>
-          </NavLink>
+            {/* 3. Beranda (Center Elevated Green Floating Action Button) */}
+            <NavLink
+              to="/app"
+              end
+              className={({ isActive }) =>
+                `-mt-7 flex flex-col items-center group cursor-pointer ${
+                  isActive ? 'text-emerald-700 font-black' : 'text-slate-600'
+                }`
+              }
+            >
+              <div className="w-13 h-13 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border-3 border-white group-active:scale-95 transition-all">
+                <Home className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-bold mt-0.5">Beranda</span>
+            </NavLink>
 
-          {/* 4. Mutabaah */}
-          <NavLink
-            to="/app/mutabaah"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 transition-all ${
-                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`
-            }
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
-          </NavLink>
+            {/* 4. Mutabaah */}
+            <NavLink
+              to="/app/mutabaah"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 transition-all ${
+                  isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`
+              }
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-[10px] mt-1 font-medium">Mutabaah</span>
+            </NavLink>
 
-          {/* 5. Tajwid */}
-          <NavLink
-            to="/app/tajwid"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 transition-all ${
-                isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`
-            }
-          >
-            <GraduationCap className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-medium">Tajwid</span>
-          </NavLink>
-        </div>
-      </nav>
+            {/* 5. Tajwid */}
+            <NavLink
+              to="/app/tajwid"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 transition-all ${
+                  isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'
+                }`
+              }
+            >
+              <GraduationCap className="w-5 h-5" />
+              <span className="text-[10px] mt-1 font-medium">Tajwid</span>
+            </NavLink>
+          </div>
+        </nav>
+      )}
 
       {/* SWEETALERT-STYLE LOGOUT CONFIRMATION MODAL */}
       {showLogoutConfirm && (
