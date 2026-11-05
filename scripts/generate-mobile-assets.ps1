@@ -88,18 +88,18 @@ function Generate-SplashScreen {
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
     $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 
-    # Clean Dark Islamic Emerald Background (#022c22)
-    $bgColor = [System.Drawing.ColorTranslator]::FromHtml("#022c22")
+    # Clean Luminous White Background (#ffffff)
+    $bgColor = [System.Drawing.ColorTranslator]::FromHtml("#ffffff")
     $g.Clear($bgColor)
 
     # Center Logo size (about 25% of min dimension)
     $minDim = [Math]::Min($Width, $Height)
-    $logoSize = [int]($minDim * 0.32)
+    $logoSize = [int]($minDim * 0.28)
     if ($logoSize -lt 96) { $logoSize = 96 }
     if ($logoSize -gt 320) { $logoSize = 320 }
 
     $x = [int](($Width - $logoSize) / 2)
-    $y = [int](($Height - $logoSize) / 2) - [int]($logoSize * 0.1)
+    $y = [int](($Height - $logoSize) / 2)
 
     $g.DrawImage($srcImg, $x, $y, $logoSize, $logoSize)
 
@@ -110,10 +110,14 @@ function Generate-SplashScreen {
     $bmp.Dispose()
 }
 
+# Logo murni untuk splash screen (tanpa kotak / border)
+$splashSource = Join-Path $projectRoot "frontend/public/logo saja.png"
+if (-not (Test-Path $splashSource)) { $splashSource = $sourceIcon }
+
 # Update default splash.png
 $defaultSplash = Join-Path $resDir "drawable/splash.png"
-Generate-SplashScreen $sourceIcon $defaultSplash 1080 1920
-Write-Host "Updated drawable/splash.png"
+Generate-SplashScreen $splashSource $defaultSplash 1080 1920
+Write-Host "Updated drawable/splash.png (Clean White & Green)"
 
 # Update portrait and landscape splash folders if present
 $splashDirs = @(
@@ -128,8 +132,8 @@ foreach ($s in $splashDirs) {
     $dirPath = Join-Path $resDir $s.Dir
     if (Test-Path $dirPath) {
         $out = Join-Path $dirPath "splash.png"
-        Generate-SplashScreen $sourceIcon $out $s.W $s.H
-        Write-Host "Updated $($s.Dir)/splash.png"
+        Generate-SplashScreen $splashSource $out $s.W $s.H
+        Write-Host "Updated $($s.Dir)/splash.png (Clean White & Green)"
     }
 }
 

@@ -25,9 +25,9 @@ export async function initNativeAppShell(): Promise<void> {
   if (!isNativePlatform()) return;
 
   try {
-    // Set Status Bar ke tema Emerald Hifzhly (#022c22)
-    await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: '#022c22' });
+    // Set Status Bar ke tema Bersih Luminous Hifzhly (#ffffff)
+    await StatusBar.setStyle({ style: Style.Light });
+    await StatusBar.setBackgroundColor({ color: '#ffffff' });
     await StatusBar.setOverlaysWebView({ overlay: false });
   } catch (err) {
     console.warn('StatusBar init notice:', err);

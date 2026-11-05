@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.hifzhly.app',
   appName: 'Hifzhly',
   webDir: 'dist',
-  backgroundColor: '#022c22',
+  backgroundColor: '#ffffff',
   server: {
     androidScheme: 'https',
     cleartext: true,
@@ -12,16 +12,16 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1800,
+      launchShowDuration: 1200,
       launchAutoHide: true,
-      backgroundColor: '#022c22',
+      backgroundColor: '#ffffff',
       androidSplashResourceName: 'splash',
-      androidScaleType: 'CENTER_CROP',
+      androidScaleType: 'CENTER',
       showSpinner: false,
     },
     StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#022c22',
+      style: 'LIGHT',
+      backgroundColor: '#ffffff',
       overlaysWebView: false,
     },
   },
