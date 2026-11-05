@@ -2,9 +2,13 @@ import { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import Lenis from 'lenis';
 import AppRoutes from './routes';
+import { initNativeAppShell } from './lib/capacitorBridge';
 
 export default function App() {
   useEffect(() => {
+    // Initialize Capacitor Native App Shell (Status Bar, Splash Screen)
+    initNativeAppShell();
+
     // Initialize Lenis for smooth inertial scrolling
     const lenis = new Lenis({
       duration: 1.1,
