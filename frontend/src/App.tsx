@@ -3,6 +3,8 @@ import { BrowserRouter } from 'react-router-dom';
 import Lenis from 'lenis';
 import AppRoutes from './routes';
 import { initNativeAppShell } from './lib/capacitorBridge';
+import AppUpdateBanner from './components/common/AppUpdateBanner';
+import CleanSplashScreen from './components/common/CleanSplashScreen';
 
 export default function App() {
   useEffect(() => {
@@ -50,7 +52,9 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <CleanSplashScreen />
       <AppRoutes />
+      <AppUpdateBanner />
     </BrowserRouter>
   );
 }

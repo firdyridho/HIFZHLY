@@ -18,13 +18,35 @@ import QuizPage from '../pages/QuizPage';
 import DoaPage from '../pages/DoaPage';
 import DownloadPage from '../pages/DownloadPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import { isNativePlatform } from '../lib/capacitorBridge';
 
 export default function AppRoutes() {
+  const isMobileApp = isNativePlatform();
+  const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
+
   return (
     <Routes>
-      {/* 1. Public Landing & Auth Pages */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/download" element={<DownloadPage />} />
+      {/* 1. Public Landing & Auth Pages (Pada Mobile App langsung dialihkan ke Login atau Dashboard) */}
+      <Route
+        path="/"
+        element={
+          isMobileApp ? (
+            <Navigate to={token ? '/app' : '/login'} replace />
+          ) : (
+            <LandingPage />
+          )
+        }
+      />
+      <Route
+        path="/download"
+        element={
+          isMobileApp ? (
+            <Navigate to={token ? '/app' : '/login'} replace />
+          ) : (
+            <DownloadPage />
+          )
+        }
+      />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/terms" element={<TermsPage />} />

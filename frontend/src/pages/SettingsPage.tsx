@@ -21,8 +21,11 @@ import {
   Play,
   Square,
   Navigation,
+  Download,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
+import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
+import { checkForUpdate, executeAppUpdate, type UpdateInfo } from '../lib/appUpdateService';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -47,6 +50,30 @@ export default function SettingsPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
+
+  // App Update & Developer State
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateCheckStatus, setUpdateCheckStatus] = useState('');
+  const [foundUpdateInfo, setFoundUpdateInfo] = useState<UpdateInfo | null>(null);
+
+  const handleManualCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateCheckStatus('Memeriksa server rilis...');
+    setFoundUpdateInfo(null);
+    try {
+      const res = await checkForUpdate();
+      if (res.hasUpdate) {
+        setFoundUpdateInfo(res);
+        setUpdateCheckStatus(`Pembaruan v${res.latestVersion} tersedia!`);
+      } else {
+        setUpdateCheckStatus('Hifzhly sudah menggunakan versi terbaru.');
+      }
+    } catch {
+      setUpdateCheckStatus('Gagal terhubung ke server pembaruan.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   // Password Form State
   const [oldPassword, setOldPassword] = useState('');
@@ -503,6 +530,67 @@ export default function SettingsPage() {
             <p className="text-slate-700 leading-relaxed">
               Pastikan Anda mengaktifkan Autentikasi Dua Faktor (2FA) untuk mencegah akses tidak sah ke data mutabaah dan riwayat hafalan Al-Qur'an Anda.
             </p>
+          </div>
+
+          {/* SECTION: DETAIL APLIKASI & PENGEMBANG */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs space-y-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/icon_favicon.png"
+                alt="Hifzhly Logo"
+                className="w-11 h-11 object-contain rounded-2xl border border-slate-200/80 p-1.5 bg-emerald-50/80 shadow-xs"
+              />
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Hifzhly Mobile</h3>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Versi {APP_VERSION} (Build {APP_BUILD})
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t border-slate-100 pt-3 text-xs">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Pengembang:</span>
+                <span className="font-bold text-emerald-800">{APP_DEVELOPER}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Perizinan:</span>
+                <span className="font-medium text-slate-700">Mikrofon, Notifikasi, Maps</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Platform:</span>
+                <span className="font-medium text-slate-700">Android APK &amp; PWA</span>
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={handleManualCheckUpdate}
+                disabled={isCheckingUpdate}
+                className="w-full py-2.5 px-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+                <span>{isCheckingUpdate ? 'Memeriksa Server...' : 'Periksa Pembaruan Aplikasi'}</span>
+              </button>
+
+              {foundUpdateInfo && foundUpdateInfo.hasUpdate && (
+                <button
+                  type="button"
+                  onClick={() => executeAppUpdate(foundUpdateInfo.downloadUrl)}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md shadow-emerald-600/20 active:scale-95 animate-in fade-in"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh Pembaruan v{foundUpdateInfo.latestVersion}</span>
+                </button>
+              )}
+
+              {updateCheckStatus && (
+                <p className="text-[11px] text-center text-slate-600 font-medium animate-in fade-in">
+                  {updateCheckStatus}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
