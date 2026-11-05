@@ -9,3 +9,4 @@ export const APP_DEVELOPER = 'Firdy Ridho Fillah (FIFA)';
 export const APP_DEVELOPER_TITLE = 'Lead Software Architect & Developer';
 export const APP_RELEASE_URL = 'https://github.com/firdyridho/HIFZHLY/releases/latest';
 export const APK_DIRECT_URL = 'https://github.com/firdyridho/HIFZHLY/releases/latest/download/hifzhly-latest.apk';
+

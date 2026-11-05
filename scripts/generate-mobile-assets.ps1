@@ -134,3 +134,4 @@ foreach ($s in $splashDirs) {
 }
 
 Write-Host "All Android Icons & Splash Screens generated successfully!"
+

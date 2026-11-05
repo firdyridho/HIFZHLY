@@ -117,3 +117,4 @@ export function executeAppUpdate(downloadUrl: string = APK_DIRECT_URL): void {
     window.open(downloadUrl || APP_RELEASE_URL, '_blank');
   }
 }
+
