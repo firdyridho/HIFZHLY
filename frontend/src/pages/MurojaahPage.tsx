@@ -32,6 +32,7 @@ import {
   isArabicWordMatch,
 } from '../lib/quranMeta';
 import { TilawaVoiceService } from '../lib/tilawaService';
+import { isNativePlatform, triggerHaptic } from '../lib/capacitorBridge';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 import MistakesDetailModal, { MistakeItem } from '../components/murojaah/MistakesDetailModal';
 
@@ -94,6 +95,7 @@ export default function MurojaahPage() {
   const isTransitioningRef = useRef<boolean>(false);
   const lastAyahTransitionTimeRef = useRef<number>(0);
   const recognitionRef = useRef<any>(null);
+  const restartTimerRef = useRef<any>(null);
   const lastRecordedMistakeSpokenRef = useRef<string>('');
   const tilawaServiceRef = useRef<TilawaVoiceService | null>(null);
 
@@ -253,6 +255,16 @@ export default function MurojaahPage() {
     tilawaServiceRef.current = tilawa;
 
     return () => {
+      isLiveListeningRef.current = false;
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
       tilawa.stopListening();
     };
   }, []);
@@ -335,6 +347,7 @@ export default function MurojaahPage() {
     if (matchedAny) {
       revealedWordsRef.current = nextSet;
       setRevealedWordKeys(new Set(nextSet));
+      triggerHaptic('light').catch(() => {});
 
       const remainingInActiveVerse = targetWords.filter(
         (w) => !nextSet.has(`${targetVerse.verse_key}_${w.position}`)
@@ -342,6 +355,7 @@ export default function MurojaahPage() {
 
       if (remainingInActiveVerse.length === 0) {
         // Ayat aktif selesai 100%!
+        triggerHaptic('success').catch(() => {});
         setCompletedVerseKeys((prev) => new Set(prev).add(targetVerse.verse_key));
 
         // Sinkronisasi evaluasi ke VPS Backend AI Worker
@@ -474,14 +488,20 @@ export default function MurojaahPage() {
     }
 
     try {
+      const isMobile = isNativePlatform() || /android|iphone|ipad|ipod/i.test(navigator.userAgent);
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      
+      // Pada Android WebView, continuous = false mencegah engine Google Speech freeze / beep / putus koneksi
+      recognition.continuous = !isMobile;
       recognition.interimResults = true;
       recognition.lang = 'ar-SA';
+      if ('maxAlternatives' in recognition) {
+        recognition.maxAlternatives = 1;
+      }
 
       recognition.onstart = () => {
         if (!isTransitioningRef.current) {
-          setLiveStatusText('...Menunggu suara pelafalan');
+          setLiveStatusText('...Mendengarkan tilawah');
         }
       };
 
@@ -503,22 +523,31 @@ export default function MurojaahPage() {
       };
 
       recognition.onerror = (event: any) => {
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          console.warn('Speech recognition status:', event.error);
+        const error = event.error;
+        // 'no-speech' wajar terjadi saat santri jeda nafas atau mengingat ayat berikutnya
+        if (error === 'no-speech' || error === 'aborted') {
+          return;
         }
+        if (error === 'network') {
+          setLiveStatusText('Memeriksa koneksi suara...');
+          return;
+        }
+        if (error === 'not-allowed') {
+          setLiveStatusText('Izin mikrofon diperlukan');
+          return;
+        }
+        console.warn('Speech recognition status:', error);
       };
 
       recognition.onend = () => {
         if (isLiveListeningRef.current && !isTransitioningRef.current) {
-          try {
-            recognition.start();
-          } catch {
-            setTimeout(() => {
-              if (isLiveListeningRef.current && !isTransitioningRef.current) {
-                startRecognitionInstance();
-              }
-            }, 300);
-          }
+          // Restart secara halus dengan buffer agar hardware audio Android tidak bentrok
+          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = setTimeout(() => {
+            if (isLiveListeningRef.current && !isTransitioningRef.current) {
+              startRecognitionInstance();
+            }
+          }, isMobile ? 120 : 250);
         }
       };
 
@@ -534,7 +563,9 @@ export default function MurojaahPage() {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    
+    if (tilawaServiceRef.current && tilawaServiceRef.current.isReady) {
+      tilawaServiceRef.current.startListening().catch(() => {});
+    }
 
     setIsLiveListening(true);
     isLiveListeningRef.current = true;
@@ -551,6 +582,10 @@ export default function MurojaahPage() {
   const stopLiveListening = () => {
     setIsLiveListening(false);
     isLiveListeningRef.current = false;
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     setLiveStatusText('...Menunggu suara');
     if (recognitionRef.current) {
       try {
@@ -558,7 +593,9 @@ export default function MurojaahPage() {
       } catch {}
       recognitionRef.current = null;
     }
-    
+    if (tilawaServiceRef.current && tilawaServiceRef.current.isReady) {
+      tilawaServiceRef.current.stopListening();
+    }
   };
 
   const handleToggleListening = () => {

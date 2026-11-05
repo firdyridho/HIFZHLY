@@ -1,5 +1,4 @@
-import { isNativePlatform } from './capacitorBridge';
-import { APP_VERSION, APK_DIRECT_URL, APP_RELEASE_URL } from '../version';
+import { APP_VERSION, APK_DIRECT_URL } from '../version';
 
 export interface UpdateInfo {
   hasUpdate: boolean;
@@ -64,26 +63,62 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     }
 
     const data = await res.json();
-    const tag = (data.tag_name || '').replace(/-apk$/i, '');
-    const releaseVersion = tag.replace(/^v/i, '') || APP_VERSION;
-    const hasUpdate = isNewerVersion(releaseVersion, APP_VERSION);
+    
+    // Ekstraksi versi dari beberapa sumber: release name, tag_name, atau asset filenames
+    const versionCandidates: string[] = [];
+    const extractVer = (text?: string): string | null => {
+      if (!text) return null;
+      const m = /(?:v|version\s*)?(\d+\.\d+\.\d+)/i.exec(text);
+      return m ? m[1] : null;
+    };
+
+    const fromName = extractVer(data.name);
+    if (fromName) versionCandidates.push(fromName);
+
+    const fromTag = extractVer(data.tag_name);
+    if (fromTag) versionCandidates.push(fromTag);
+
+    if (Array.isArray(data.assets)) {
+      for (const asset of data.assets) {
+        const fromAsset = extractVer(asset.name);
+        if (fromAsset) versionCandidates.push(fromAsset);
+      }
+    }
+
+    // Ambil versi tertinggi yang ditemukan di remote
+    let bestRemoteVersion = APP_VERSION;
+    for (const cand of versionCandidates) {
+      if (isNewerVersion(cand, bestRemoteVersion)) {
+        bestRemoteVersion = cand;
+      }
+    }
+
+    const hasUpdate = isNewerVersion(bestRemoteVersion, APP_VERSION);
 
     // Cari aset APK langsung jika ada
     let apkDownloadUrl = APK_DIRECT_URL;
     if (Array.isArray(data.assets)) {
-      const apkAsset = data.assets.find(
+      const latestAsset = data.assets.find(
+        (a: any) => typeof a.name === 'string' && a.name.includes('latest') && a.name.endsWith('.apk')
+      );
+      const versionedAsset = data.assets.find(
+        (a: any) => typeof a.name === 'string' && a.name.includes(bestRemoteVersion) && a.name.endsWith('.apk')
+      );
+      const anyApkAsset = data.assets.find(
         (a: any) => typeof a.name === 'string' && a.name.endsWith('.apk')
       );
-      if (apkAsset && apkAsset.browser_download_url) {
-        apkDownloadUrl = apkAsset.browser_download_url;
+
+      const chosenAsset = latestAsset || versionedAsset || anyApkAsset;
+      if (chosenAsset && chosenAsset.browser_download_url) {
+        apkDownloadUrl = chosenAsset.browser_download_url;
       }
     }
 
     return {
       hasUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: releaseVersion,
-      releaseName: data.name || `Hifzhly v${releaseVersion}`,
+      latestVersion: bestRemoteVersion,
+      releaseName: data.name || `Hifzhly v${bestRemoteVersion}`,
       releaseNotes: data.body || 'Pembaruan stabilitas hafalan dan fitur kecerdasan buatan.',
       downloadUrl: apkDownloadUrl,
       isChecking: false,
@@ -100,21 +135,19 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
  * Eksekusi pengunduhan APK di latar belakang dan memicu paket instalasi native Android
  */
 export function executeAppUpdate(downloadUrl: string = APK_DIRECT_URL): void {
-  if (isNativePlatform()) {
-    // Pada Android native, membuka link APK langsung akan mengaktifkan Android DownloadManager di status bar
-    // dan setelah selesai sistem Android langsung menawarkan prompt Update In-Place tanpa buka web
+  try {
+    // Pada Android native atau browser, buka dengan target _system agar Download Manager OS mengambil file APK langsung
+    window.open(downloadUrl, '_system');
+  } catch {
     const a = document.createElement('a');
     a.href = downloadUrl;
-    a.download = 'hifzhly-update.apk';
+    a.download = 'hifzhly-latest.apk';
     a.target = '_blank';
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
       document.body.removeChild(a);
     }, 500);
-  } else {
-    // Di web, buka halaman download atau link rilis resmi
-    window.open(downloadUrl || APP_RELEASE_URL, '_blank');
   }
 }
 

@@ -80,8 +80,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0-apk
+          tag_name: v1.0.${{ github.run_number }}
           name: Hifzhly Android App v1.0.${{ github.run_number }}
+          make_latest: true
           body: |
             Unduh langsung berkas instalasi resmi Hifzhly untuk smartphone Android.
             - Versi: 1.0.${{ github.run_number }}
