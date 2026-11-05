@@ -22,8 +22,10 @@ import {
   BookOpen,
   Eye,
   Volume2,
-  WifiOff,
-  RefreshCw,
+  Sparkles,
+  Award,
+  Sliders,
+  Copy,
 } from 'lucide-react';
 import { playSuccessChime, playClickTone } from '../lib/soundUtils';
 
@@ -52,7 +54,7 @@ const PLATFORMS_DATA: PlatformDetails[] = [
     osFamily: 'Desktop',
     osVersion: 'Windows 10 / 11 (64-bit & ARM64)',
     arch: 'x64 & ARM64 Native',
-    format: 'Installer (.exe) & Portable (.zip)',
+    format: 'Executable Installer (.exe) & Portable (.zip)',
     engineSpec: 'Tauri v2 + Rust Core • Local ONNX Runtime',
     icon: Monitor,
     highlights: [
@@ -144,8 +146,13 @@ export default function DownloadPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['windows']);
   const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false);
   const [isSuccessSubmitted, setIsSuccessSubmitted] = useState(false);
+  const [userQueueTicket, setUserQueueTicket] = useState<{ number: number; code: string } | null>(null);
+  const [isCopiedTicket, setIsCopiedTicket] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  // Interactive Architecture Scrubber State (0 = Web Cloud, 100 = Native Binary)
+  const [benchmarkScrubber, setBenchmarkScrubber] = useState(100);
 
   // Interactive 3D Gyro Tilt for Device Centerpiece
   const [deviceTilt, setDeviceTilt] = useState({ x: 0, y: 0 });
@@ -190,29 +197,74 @@ export default function DownloadPage() {
       .catch((err) => console.warn('QR Code generation notice:', err));
   }, []);
 
-  // GTA 6 Weighted Momentum Scroll Integration
-  const containerRef = useRef<HTMLDivElement>(null);
+  // ========================================================
+  // GTA 6 / AWWWARDS PINNED SCROLLYTELLING INTEGRATION
+  // ========================================================
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+  const scrollySectionRef = useRef<HTMLDivElement>(null);
+
+  // Global Page Inertia Momentum
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: pageContainerRef,
     offset: ['start start', 'end start'],
   });
 
-  // Soft physics spring for buttery inertia
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 42,
+    stiffness: 45,
     damping: 18,
     mass: 0.8,
   });
 
-  const phoneY = useTransform(smoothProgress, [0, 0.45], [0, 110]);
-  const phoneScale = useTransform(smoothProgress, [0, 0.35], [1, 0.93]);
-  const phoneRotateX = useTransform(smoothProgress, [0, 0.45], [0, 10]);
+  // Pinned Scrollytelling Sequence Scroll Tracker
+  const { scrollYProgress: pinProgress } = useScroll({
+    target: scrollySectionRef,
+    offset: ['start start', 'end end'],
+  });
+
+  const smoothPin = useSpring(pinProgress, {
+    stiffness: 40,
+    damping: 18,
+    mass: 0.8,
+  });
+
+  // Derived Scrollytelling Stages:
+  // Step 1: 0 - 0.35 (Local Audio Waveform & Recognition)
+  // Step 2: 0.35 - 0.70 (Mode Ghaib Memory Test)
+  // Step 3: 0.70 - 1.0 (SuperMemo-2 Spaced Repetition Completion)
+  const [currentScrollyStep, setCurrentScrollyStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    const unsubscribe = pinProgress.on('change', (latest) => {
+      if (latest < 0.35) {
+        setCurrentScrollyStep(1);
+      } else if (latest < 0.7) {
+        setCurrentScrollyStep(2);
+      } else {
+        setCurrentScrollyStep(3);
+      }
+    });
+    return () => unsubscribe();
+  }, [pinProgress]);
+
+  // Monumental Kinetic Typography Parallax Horizontal Marquee
+  const marqueeX1 = useTransform(smoothProgress, [0, 1], ['0%', '-35%']);
+  const marqueeX2 = useTransform(smoothProgress, [0, 1], ['-35%', '0%']);
+
+  // Pinned Phone Mockup Transformations across the 280vh sequence
+  const phoneRotateY = useTransform(smoothPin, [0, 0.35, 0.7, 1], [-16, 0, 10, 0]);
+  const phoneRotateX = useTransform(smoothPin, [0, 0.35, 0.7, 1], [14, 0, -6, 0]);
+  const phoneScale = useTransform(smoothPin, [0, 0.35, 0.7, 1], [0.92, 1.05, 1.02, 1]);
+  const phoneElevate = useTransform(smoothPin, [0, 0.5, 1], [0, -25, 0]);
+
+  // Hero phone parallax
+  const heroPhoneY = useTransform(smoothProgress, [0, 0.3], [0, 80]);
+  const heroPhoneScale = useTransform(smoothProgress, [0, 0.3], [1, 0.95]);
 
   const handleDeviceMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setDeviceTilt({ x: x * 10, y: y * -10 });
+    setDeviceTilt({ x: x * 12, y: y * -12 });
   };
 
   const handleDeviceMouseLeave = () => {
@@ -248,6 +300,9 @@ export default function DownloadPage() {
     setIsSubmittingWaitlist(true);
 
     setTimeout(() => {
+      const queueNumber = Math.floor(1430 + Math.random() * 50);
+      const ticketCode = `HIF-${queueNumber}-${selectedPlatformId.toUpperCase()}`;
+
       try {
         const existingRaw = localStorage.getItem('hifzhly_app_waitlist');
         const existingList = existingRaw ? JSON.parse(existingRaw) : [];
@@ -255,6 +310,8 @@ export default function DownloadPage() {
           email: emailInput,
           name: userNameInput || 'Santri Hifzhly',
           platforms: selectedPlatforms,
+          queueNumber,
+          ticketCode,
           timestamp: new Date().toISOString(),
         };
         existingList.push(entry);
@@ -263,31 +320,41 @@ export default function DownloadPage() {
         console.warn('Storage save notice:', err);
       }
 
+      setUserQueueTicket({ number: queueNumber, code: ticketCode });
       setIsSubmittingWaitlist(false);
       setIsSuccessSubmitted(true);
       playSuccessChime();
     }, 450);
   };
 
+  const handleCopyTicketCode = () => {
+    if (userQueueTicket) {
+      navigator.clipboard.writeText(userQueueTicket.code);
+      setIsCopiedTicket(true);
+      playClickTone();
+      setTimeout(() => setIsCopiedTicket(false), 2000);
+    }
+  };
+
   return (
     <div
-      ref={containerRef}
+      ref={pageContainerRef}
       className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans selection:bg-emerald-100 selection:text-emerald-900 flex flex-col overflow-x-hidden relative"
     >
-      {/* Inertia Scroll Progress Bar (GTA 6 subtle momentum indicator) */}
+      {/* Inertia Momentum Progress Bar (GTA 6 subtle momentum laser) */}
       <motion.div
         style={{ scaleX: smoothProgress }}
-        className="fixed top-0 left-0 right-0 h-0.5 bg-emerald-500 origin-left z-50 pointer-events-none shadow-xs shadow-emerald-500/30"
+        className="fixed top-0 left-0 right-0 h-0.5 bg-emerald-400 origin-left z-50 pointer-events-none shadow-xs shadow-emerald-400/50"
       />
 
       {/* ======================================================== */}
-      {/* 1. LUSH ISLAMIC ATMOSPHERIC HERO (EMERALD & SLATE) */}
+      {/* 1. MONUMENTAL KINETIC HERO (EMERALD & OBSIDIAN SLATE) */}
       {/* ======================================================== */}
-      <section className="relative pt-6 sm:pt-8 pb-28 sm:pb-36 px-4 sm:px-6 bg-gradient-to-b from-[#022c22] via-[#064e3b] to-[#0f172a] text-white overflow-hidden">
+      <section className="relative pt-6 sm:pt-8 pb-24 sm:pb-32 px-4 sm:px-6 bg-gradient-to-b from-[#022c22] via-[#064e3b] to-[#0f172a] text-white overflow-hidden">
         {/* Soft Ambient Radial Lights (Strictly Islamic Emerald / Forest Tones) */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-emerald-500/15 blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute top-48 left-12 w-80 h-80 bg-teal-600/10 blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute top-48 right-12 w-80 h-80 bg-emerald-700/10 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[580px] bg-emerald-500/15 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute top-48 left-10 w-96 h-96 bg-teal-600/10 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute top-48 right-10 w-96 h-96 bg-emerald-700/10 blur-3xl pointer-events-none rounded-full" />
 
         {/* Floating Top Nav (Clean Shadcn Styling, Zero Badges) */}
         <div className="relative z-20 max-w-5xl mx-auto flex items-center justify-between py-2 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm mb-12 sm:mb-16">
@@ -335,69 +402,121 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* Hero Title & Direct Early Access Input (Clean Typography, No Badges) */}
-        <div className="relative z-10 max-w-3xl mx-auto text-center space-y-4">
+        {/* Hero Title & Kinetic Typography Introduction */}
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-5">
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="text-xs font-semibold uppercase tracking-widest text-emerald-400 font-mono"
           >
-            Aplikasi Mandiri • Desktop &amp; Mobile
+            Aplikasi Mandiri • Windows • macOS • Android • iOS
           </motion.p>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-white"
+            className="text-4xl sm:text-7xl font-black tracking-tight leading-[1.05] text-white"
           >
-            Dapatkan Akses Awal.
+            Hafalan Presisi.{' '}
+            <span className="text-emerald-400 block mt-1">
+              0ms Latensi Murni.
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl mx-auto font-sans"
+            className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto font-sans"
           >
-            Aplikasi mandiri Hifzhly untuk Windows, macOS, Android, dan iOS sedang kami siapkan. Ditenagai pemrosesan suara AI lokal 0ms tanpa kuota internet.
+            Aplikasi native Hifzhly menghadirkan evaluasi suara AI lokal di laptop dan ponsel Anda tanpa membutuhkan kuota internet.
           </motion.p>
 
-          {/* Quick Floating Email Form Pill (Clean Shadcn Input Style) */}
-          <motion.form
+          {/* ======================================================== */}
+          {/* HIGH-CONVERTING INTERACTIVE CTA WAITLIST BAR */}
+          {/* ======================================================== */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            onSubmit={handleSubmitWaitlist}
-            className="pt-2 max-w-md mx-auto flex items-center p-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg"
+            className="pt-4 max-w-xl mx-auto space-y-3"
           >
-            <input
-              type="email"
-              required
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="Masukkan alamat email Anda..."
-              className="flex-1 bg-transparent px-4 py-2 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-hidden font-medium"
-            />
-            <button
-              type="submit"
-              disabled={isSubmittingWaitlist}
-              className="px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm transition-all active:scale-95 shadow-sm cursor-pointer shrink-0"
+            {/* Platform Quick Toggle Switcher */}
+            <div className="flex items-center justify-center space-x-1.5 bg-black/30 backdrop-blur-md p-1 rounded-xl border border-white/10 max-w-sm mx-auto">
+              {[
+                { id: 'windows', label: 'Windows', icon: Monitor },
+                { id: 'mac', label: 'macOS', icon: Apple },
+                { id: 'android', label: 'Android', icon: Smartphone },
+                { id: 'ios', label: 'iOS', icon: Apple },
+              ].map((plat) => {
+                const Icon = plat.icon;
+                const isSelected = selectedPlatformId === plat.id;
+                return (
+                  <button
+                    key={plat.id}
+                    type="button"
+                    onClick={() => {
+                      playClickTone();
+                      setSelectedPlatformId(plat.id as any);
+                      setSelectedPlatforms([plat.id]);
+                    }}
+                    className={`flex-1 flex items-center justify-center space-x-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{plat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Email Capture Pill with Instant VIP Pass Generation */}
+            <form
+              onSubmit={handleSubmitWaitlist}
+              className="flex items-center p-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-xl"
             >
-              {isSubmittingWaitlist ? 'Mendaftarkan...' : 'Gabung Waitlist'}
-            </button>
-          </motion.form>
+              <input
+                type="email"
+                required
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Masukkan alamat email santri..."
+                className="flex-1 bg-transparent px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-hidden font-medium"
+              />
+              <button
+                type="submit"
+                disabled={isSubmittingWaitlist}
+                className="inline-flex items-center space-x-1.5 px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm transition-all active:scale-95 shadow-md cursor-pointer shrink-0"
+              >
+                <Bell className="w-4 h-4" />
+                <span>{isSubmittingWaitlist ? 'Memproses...' : 'Dapatkan VIP Pass'}</span>
+              </button>
+            </form>
+
+            {/* Live Queue Counter & Quota Meter */}
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-2">
+              <span className="flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>1,428 Santri Terdaftar</span>
+              </span>
+              <span>Kuota Beta Tahap 1: 71% Terisi</span>
+            </div>
+          </motion.div>
         </div>
 
         {/* ======================================================== */}
-        {/* CENTERPIECE: AUTHENTIC HIFZHLY PHONE & FROSTED COUNTDOWN */}
+        {/* HERO DEVICE CENTERPIECE & LIVE COUNTDOWN TIMER */}
         {/* ======================================================== */}
         <motion.div
-          style={{ y: phoneY, scale: phoneScale, rotateX: phoneRotateX }}
+          style={{ y: heroPhoneY, scale: heroPhoneScale }}
           onMouseMove={handleDeviceMouseMove}
           onMouseLeave={handleDeviceMouseLeave}
-          className="relative z-20 max-w-sm mx-auto mt-12 sm:mt-16 perspective-1000"
+          className="relative z-20 max-w-sm mx-auto mt-14 sm:mt-18 perspective-1000"
         >
           {/* Realistic iPhone Mockup Frame */}
           <div
@@ -415,14 +534,13 @@ export default function DownloadPage() {
 
             {/* REAL HIFZHLY APP INTERFACE ON MOBILE */}
             <div className="w-full h-full rounded-[38px] bg-[#022c22] text-white p-3.5 pt-9 flex flex-col justify-between overflow-hidden relative font-sans">
-              {/* Inner ambient pattern */}
               <div className="absolute inset-0 bg-radial from-emerald-800/25 via-transparent to-transparent pointer-events-none" />
 
               {/* Hifzhly App Header */}
               <div className="space-y-1 text-left relative z-10">
                 <div className="flex items-center justify-between text-[10px] text-slate-300 font-mono">
                   <span>Juz 29 • Hal 562</span>
-                  <div className="flex items-center space-x-2 text-emerald-400">
+                  <div className="flex items-center space-x-1.5 text-emerald-400">
                     <Eye className="w-3 h-3" />
                     <span>Mode Ghaib</span>
                   </div>
@@ -463,7 +581,7 @@ export default function DownloadPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px] text-emerald-300">
+                <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px] text-emerald-300 font-mono">
                   <span className="flex items-center space-x-1">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     <span>4 Kata Mutqin</span>
@@ -558,222 +676,464 @@ export default function DownloadPage() {
       </section>
 
       {/* ======================================================== */}
-      {/* 2. EDITORIAL FEATURE SHOWCASE (ORGANIC FLOW, NO BOX SPAM) */}
+      {/* 2. DYNAMIC KINETIC TYPOGRAPHY MARQUEE (LENIS SCROLL SPEED) */}
       {/* ======================================================== */}
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-24 space-y-16">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
-            KAPABILITAS UTAMA APLIKASI MANDIRI
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Dirancang untuk Ketajaman Hafalan Anda.
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans">
-            Menghadirkan pemrosesan suara AI langsung ke sistem operasi laptop dan ponsel Anda tanpa kompromi kuota data.
-          </p>
-        </div>
+      <div className="relative py-8 bg-[#091512] overflow-hidden border-y border-emerald-900/40 select-none">
+        <motion.div
+          style={{ x: marqueeX1 }}
+          className="flex whitespace-nowrap text-3xl sm:text-5xl font-black uppercase tracking-widest text-emerald-500/20 font-mono"
+        >
+          <span>HIFZHLY NATIVE • ZERO LATENCY RECOGNITION • 100% OFFLINE PESANTREN • RUST &amp; TAURI CORE • APPLE SILICON ACCELERATION • KOTLIN NATIVE • SWIFTUI COREML •&nbsp;</span>
+          <span>HIFZHLY NATIVE • ZERO LATENCY RECOGNITION • 100% OFFLINE PESANTREN • RUST &amp; TAURI CORE • APPLE SILICON ACCELERATION • KOTLIN NATIVE • SWIFTUI COREML •&nbsp;</span>
+        </motion.div>
+        <motion.div
+          style={{ x: marqueeX2 }}
+          className="flex whitespace-nowrap text-3xl sm:text-5xl font-quran text-emerald-400/20 mt-2 font-bold"
+        >
+          <span>حِفْظُ الْقُرْآنِ الْكَرِيمِ • تَرْتِيلٌ وَإِتْقَانٌ • ذَكَاءٌ اصْطِنَاعِيٌّ مَحَلِّيٌّ بِلَا إِنْتَرْنِت • سُورَةُ الْمُلْكِ • مُرَاجَعَةٌ مُتْقَنَةٌ •&nbsp;</span>
+          <span>حِفْظُ الْقُرْآنِ الْكَرِيمِ • تَرْتِيلٌ وَإِتْقَانٌ • ذَكَاءٌ اصْطِنَاعِيٌّ مَحَلِّيٌّ بِلَا إِنْتَرْنِت • سُورَةُ الْمُلْكِ • مُرَاجَعَةٌ مُتْقَنَةٌ •&nbsp;</span>
+        </motion.div>
+      </div>
 
-        {/* 3 Editorial Fluid Columns with Shadcn Minimalist Icons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Pillar 1 */}
-          <div className="space-y-4 p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="flex items-center space-x-3">
-              <Zap className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-900">
-                0ms Latensi Pemrosesan
-              </h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed font-sans">
-              Evaluasi pengucapan ayat langsung diproses oleh GPU dan CPU lokal perangkat Anda tanpa jeda transmisi jaringan server.
-            </p>
-            <div className="pt-2 flex items-center space-x-2 text-xs font-mono text-slate-500">
-              <Cpu className="w-4 h-4 text-slate-400" />
-              <span>Local ONNX Runtime Core</span>
-            </div>
-          </div>
-
-          {/* Pillar 2 */}
-          <div className="space-y-4 p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="flex items-center space-x-3">
-              <WifiOff className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-900">
-                100% Mode Offline Pesantren
-              </h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed font-sans">
-              Dirancang khusus untuk asrama santri yang memiliki aturan ketat tanpa internet. Seluruh mushaf dan modul suara tersimpan aman di penyimpanan lokal.
-            </p>
-            <div className="pt-2 flex items-center space-x-2 text-xs font-mono text-slate-500">
-              <ShieldCheck className="w-4 h-4 text-slate-400" />
-              <span>Bebas Kuota Seluler</span>
-            </div>
-          </div>
-
-          {/* Pillar 3 */}
-          <div className="space-y-4 p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="flex items-center space-x-3">
-              <RefreshCw className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-900">
-                Spaced Repetition SM-2
-              </h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed font-sans">
-              Pemberitahuan otomatis jadwal murojaah tepat pada titik kurva lupa memori jangka panjang agar hafalan senantiasa mutqin.
-            </p>
-            <div className="pt-2 flex items-center space-x-2 text-xs font-mono text-slate-500">
-              <Clock className="w-4 h-4 text-slate-400" />
-              <span>Algoritma Kurva Ingatan</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* 3. DEDICATED PLATFORM STUDIO (INTERACTIVE TABBED SWITCHER) */}
-        {/* ======================================================== */}
-        <div className="space-y-6 pt-8 border-t border-slate-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ======================================================== */}
+      {/* 3. PINNED 3D SCROLLYTELLING STAGE (GTA 6 STYLE INTERACTION) */}
+      {/* ======================================================== */}
+      <section
+        ref={scrollySectionRef}
+        className="relative h-[280vh] bg-slate-900 text-white"
+      >
+        {/* Sticky Pinned Viewport Container */}
+        <div className="sticky top-0 h-screen w-full flex flex-col justify-between p-6 sm:p-10 overflow-hidden">
+          {/* Top Scrolly Header with Step Switcher */}
+          <div className="max-w-4xl mx-auto w-full flex items-center justify-between z-30 pt-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
-                DUKUNGAN SISTEM OPERASI
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-0.5">
-                Studio Platform Mandiri Hifzhly
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 font-mono">
+                PENGALAMAN INTERAKTIF INERTIA SCROLL
+              </p>
+              <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight">
+                {currentScrollyStep === 1 && '01 / Deteksi Suara Lokal 0ms'}
+                {currentScrollyStep === 2 && '02 / Mode Ghaib & Tajwid AI'}
+                {currentScrollyStep === 3 && '03 / Spaced Repetition (SM-2)'}
               </h2>
             </div>
 
-            {/* Clean Segmented Tab Controller (Shadcn Style) */}
-            <div className="inline-flex p-1 rounded-xl bg-slate-200/80 self-start sm:self-auto">
-              {PLATFORMS_DATA.map((plat) => {
-                const Icon = plat.icon;
-                const isActive = plat.id === selectedPlatformId;
-                return (
-                  <button
-                    key={plat.id}
-                    type="button"
-                    onClick={() => {
-                      playClickTone();
-                      setSelectedPlatformId(plat.id);
-                    }}
-                    className={`inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{plat.name.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
+            {/* Step Counter Indicator */}
+            <div className="flex items-center space-x-2 font-mono text-xs">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center font-bold transition-all ${
+                    currentScrollyStep === step
+                      ? 'bg-emerald-500 text-slate-950 scale-110 shadow-md shadow-emerald-500/40'
+                      : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {step}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Active Platform Detail Showcase (Asymmetric Two-Column Spread) */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Column: Platform Specs & Highlights */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono">
-                  <span>{currentPlatform.osFamily} Application</span>
-                  <span>•</span>
-                  <span>{currentPlatform.arch}</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {currentPlatform.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-sans">
-                  Format berkas: <strong className="text-slate-800 font-semibold">{currentPlatform.format}</strong>
-                </p>
+          {/* Central Pinned 3D Device Canvas */}
+          <div className="relative z-20 flex-1 flex items-center justify-center perspective-1000">
+            <motion.div
+              style={{
+                rotateY: phoneRotateY,
+                rotateX: phoneRotateX,
+                scale: phoneScale,
+                y: phoneElevate,
+              }}
+              className="relative mx-auto w-[280px] sm:w-[320px] aspect-[9/18.5] rounded-[48px] bg-slate-950 p-3 shadow-2xl border-4 border-slate-700/80 ring-1 ring-white/20 overflow-hidden"
+            >
+              {/* Dynamic Island */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-between px-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
               </div>
 
-              {/* Highlights Bullet List with Shadcn Icons */}
-              <div className="space-y-2.5">
-                <span className="text-xs font-semibold text-slate-700 block">
-                  Keunggulan Implementasi Native:
-                </span>
-                <ul className="space-y-2 text-xs text-slate-600 font-sans">
-                  {currentPlatform.highlights.map((h, i) => (
-                    <li key={i} className="flex items-start space-x-2.5">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{h}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {/* Dynamic Screen morphing based on scroll progress */}
+              <div className="w-full h-full rounded-[38px] bg-[#022c22] text-white p-3.5 pt-9 flex flex-col justify-between overflow-hidden relative font-sans">
+                {/* Step 1: Acoustic waveform */}
+                {currentScrollyStep === 1 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4 flex flex-col justify-between h-full"
+                  >
+                    <div className="space-y-1 text-left">
+                      <span className="text-[10px] font-mono text-emerald-400 block font-bold">
+                        TAHAP 1: INPUT SUARA INSTAN
+                      </span>
+                      <h4 className="text-sm font-extrabold text-white">
+                        Mikrofon Aktif • Tanpa Jeda
+                      </h4>
+                    </div>
 
-              {/* Action Button (Shadcn Primary) */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleOpenWaitlistModal(currentPlatform.id)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                  <span>Daftar Akses Awal {currentPlatform.name}</span>
-                </button>
+                    <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-right font-quran text-lg leading-loose">
+                      <span className="bg-emerald-600/40 text-emerald-200 px-1.5 py-0.5 rounded border border-emerald-500/50">
+                        تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ
+                      </span>
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    playClickTone();
-                    setIsQrModalOpen(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>Buka di HP</span>
-                </button>
+                    <div className="p-3 rounded-2xl bg-black/50 border border-emerald-500/30 text-center space-y-2">
+                      <span className="text-[11px] font-mono text-emerald-400 font-bold block">
+                        Gelombang Vokal Nyata (ONNX AI)
+                      </span>
+                      <div className="flex items-center justify-center space-x-1 h-8">
+                        {[10, 24, 16, 32, 20, 28, 14, 26, 18, 30, 12, 18].map((h, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-emerald-400 rounded-full animate-pulse"
+                            style={{ height: `${h}px` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-white/5 text-[10px] text-slate-300 text-center font-mono">
+                      Gulir ke bawah untuk melihat Mode Ghaib ↓
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 2: Mode Ghaib Memory Test */}
+                {currentScrollyStep === 2 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4 flex flex-col justify-between h-full"
+                  >
+                    <div className="space-y-1 text-left">
+                      <span className="text-[10px] font-mono text-emerald-400 block font-bold">
+                        TAHAP 2: SIMULASI MODE GHAIB
+                      </span>
+                      <h4 className="text-sm font-extrabold text-white">
+                        Uji Daya Ingat Santri
+                      </h4>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-right font-quran text-lg leading-loose space-y-1">
+                      <div>تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ</div>
+                      <div className="blur-[3px] select-none text-slate-400">
+                        وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ ﴿١﴾
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-center space-y-1.5">
+                      <span className="text-[10px] text-emerald-300 font-mono block">Akurasi Makhraj &amp; Tajwid</span>
+                      <span className="text-2xl font-black text-emerald-400 font-mono block">99.2%</span>
+                      <span className="text-[10px] text-slate-300 block">Kaidah Mad &amp; Ghunnah Sempurna</span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-white/5 text-[10px] text-slate-300 text-center font-mono">
+                      Gulir untuk melihat hasil Spaced Repetition ↓
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 3: SuperMemo-2 Spaced Repetition Card */}
+                {currentScrollyStep === 3 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-3 flex flex-col justify-between h-full text-center"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+                      <Award className="w-5 h-5" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="text-base font-black text-white">
+                        Murojaah Tuntas!
+                      </h4>
+                      <p className="text-[10px] text-slate-300 font-sans">
+                        Hafalan Surah Al-Mulk Ayat 1 Mutqin 100%.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-left font-mono text-[10px]">
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Algoritma:</span>
+                        <span className="text-white font-semibold">SuperMemo-2</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Interval Pengulangan:</span>
+                        <span className="text-emerald-400 font-bold">+3 Hari (Mutqin)</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Laporan Mutaba'ah:</span>
+                        <span className="text-emerald-400 font-semibold">Tersimpan Lokal</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-emerald-600 text-white font-bold text-xs">
+                      Status Memori: Optimal
+                    </div>
+                  </motion.div>
+                )}
               </div>
+            </motion.div>
+          </div>
+
+          {/* Bottom Interactive Step Caption */}
+          <div className="max-w-xl mx-auto text-center z-30 pb-4">
+            <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
+              {currentScrollyStep === 1 && 'Model Speech AI Hifzhly bekerja langsung di memori perangkat Anda dengan latensi 0ms, membaca setiap makhraj seketika tanpa membutuhkan paket data internet.'}
+              {currentScrollyStep === 2 && 'Layar mushaf secara otomatis menyembunyikan teks ayat berikutnya saat santri membaca, melatih kekuatan hafalan ghaib secara mandiri tanpa memerlukan bantuan penyimak.'}
+              {currentScrollyStep === 3 && 'Algoritma ilmiah SuperMemo-2 secara cerdas menghitung kapan ingatan ayat mulai menurun, menjadwalkan murojaah ulang sebelum ayat tersebut terlupakan.'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 4. INTERACTIVE BENCHMARK SCRUBBER (WEB VS NATIVE RUST) */}
+      {/* ======================================================== */}
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-20 space-y-10">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
+            BENCHMARK ARSITEKTUR KOMPUTASI
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            Mengapa Harus Aplikasi Mandiri?
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans">
+            Geser pengukur di bawah untuk membandingkan langsung performa komputasi antara versi web browser standar dengan aplikasi native Hifzhly.
+          </p>
+        </div>
+
+        {/* Interactive Comparison Scrubber Box */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-8">
+          {/* Slider Control */}
+          <div className="space-y-3 max-w-lg mx-auto">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className={benchmarkScrubber === 0 ? 'font-bold text-slate-900' : 'text-slate-400'}>
+                0% (Web Browser)
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center space-x-1">
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Geser Arsitektur: {benchmarkScrubber}%</span>
+              </span>
+              <span className={benchmarkScrubber === 100 ? 'font-bold text-emerald-700' : 'text-slate-400'}>
+                100% (Native Rust / Swift)
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={benchmarkScrubber}
+              onChange={(e) => {
+                setBenchmarkScrubber(Number(e.target.value));
+                playClickTone();
+              }}
+              className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+            />
+          </div>
+
+          {/* Interactive Metric Gauges */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 font-mono">
+            {/* Metric 1: Latency */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <span className="text-xs text-slate-500 block">Latensi Respon Suara</span>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">
+                {benchmarkScrubber > 60
+                  ? '< 0.9ms'
+                  : benchmarkScrubber > 20
+                  ? '34.5ms'
+                  : '142.0ms'}
+              </div>
+              <p className="text-[11px] text-slate-500 font-sans">
+                {benchmarkScrubber > 60
+                  ? 'Pemrosesan instan via NPU/GPU lokal tanpa lag jaringan.'
+                  : 'Tergantung stabilitas jaringan internet dan server cloud.'}
+              </p>
             </div>
 
-            {/* Right Column: Architectural Benchmark Card */}
-            <div className="lg:col-span-5 bg-slate-50 rounded-2xl border border-slate-200/80 p-5 space-y-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
-                  Benchmark Arsitektur Sistem
-                </span>
-                <h4 className="text-sm font-bold text-slate-900">
-                  {currentPlatform.engineSpec}
-                </h4>
+            {/* Metric 2: Memory */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <span className="text-xs text-slate-500 block">Konsumsi Memori RAM</span>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-700">
+                {benchmarkScrubber > 60
+                  ? '24 MB'
+                  : benchmarkScrubber > 20
+                  ? '86 MB'
+                  : '185 MB'}
               </div>
+              <p className="text-[11px] text-slate-500 font-sans">
+                {benchmarkScrubber > 60
+                  ? 'Binary Rust & Kotlin super ramping tanpa bloatware browser.'
+                  : 'Membutuhkan memory overhead tab peramban Chromium/WebKit.'}
+              </p>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                  <span className="text-[10px] text-slate-400 block">Latensi Suara</span>
-                  <span className="text-base font-extrabold text-emerald-700 block">
-                    {currentPlatform.systemMetrics.latency}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                  <span className="text-[10px] text-slate-400 block">Konsumsi RAM</span>
-                  <span className="text-base font-extrabold text-slate-800 block">
-                    {currentPlatform.systemMetrics.ramUsage}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                  <span className="text-[10px] text-slate-400 block">Ukuran Berkas</span>
-                  <span className="text-base font-extrabold text-slate-800 block">
-                    {currentPlatform.systemMetrics.binarySize}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                  <span className="text-[10px] text-slate-400 block">Status Offline</span>
-                  <span className="text-base font-extrabold text-emerald-700 block">
-                    100% Mandiri
-                  </span>
-                </div>
+            {/* Metric 3: Offline capability */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <span className="text-xs text-slate-500 block">Ketergantungan Kuota</span>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">
+                {benchmarkScrubber > 60 ? '0 Kuota' : 'Perlu Sinyal'}
               </div>
-
-              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/60 text-[11px] text-emerald-900 font-sans leading-relaxed">
-                Platform ini dioptimalkan khusus untuk arsitektur prosesor target tanpa memerlukan runtime pihak ketiga.
-              </div>
+              <p className="text-[11px] text-slate-500 font-sans">
+                {benchmarkScrubber > 60
+                  ? 'Mushaf 30 juz dan model evaluasi tertanam mandiri di perangkat.'
+                  : 'Memerlukan koneksi internet aktif untuk memuat ayat.'}
+              </p>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* ======================================================== */}
-        {/* 4. COMPARISON TABLE (SHADCN MINIMALIST TABLE) */}
-        {/* ======================================================== */}
+      {/* ======================================================== */}
+      {/* 5. DEDICATED PLATFORM STUDIO (INTERACTIVE SELECTOR) */}
+      {/* ======================================================== */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
+              DUKUNGAN SISTEM OPERASI
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-0.5">
+              Studio Platform Mandiri Hifzhly
+            </h2>
+          </div>
+
+          {/* Clean Segmented Tab Controller (Shadcn Style) */}
+          <div className="inline-flex p-1 rounded-xl bg-slate-200/80 self-start sm:self-auto">
+            {PLATFORMS_DATA.map((plat) => {
+              const Icon = plat.icon;
+              const isActive = plat.id === selectedPlatformId;
+              return (
+                <button
+                  key={plat.id}
+                  type="button"
+                  onClick={() => {
+                    playClickTone();
+                    setSelectedPlatformId(plat.id);
+                  }}
+                  className={`inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{plat.name.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active Platform Detail Showcase (Asymmetric Two-Column Spread) */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Column: Platform Specs & Highlights */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono">
+                <span>{currentPlatform.osFamily} Application</span>
+                <span>•</span>
+                <span>{currentPlatform.arch}</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                {currentPlatform.name}
+              </h3>
+              <p className="text-xs text-slate-500 font-sans">
+                Format berkas rilis: <strong className="text-slate-800 font-semibold">{currentPlatform.format}</strong>
+              </p>
+            </div>
+
+            {/* Highlights Bullet List with Shadcn Icons */}
+            <div className="space-y-2.5">
+              <span className="text-xs font-semibold text-slate-700 block">
+                Keunggulan Implementasi Native:
+              </span>
+              <ul className="space-y-2 text-xs text-slate-600 font-sans">
+                {currentPlatform.highlights.map((h, i) => (
+                  <li key={i} className="flex items-start space-x-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleOpenWaitlistModal(currentPlatform.id)}
+                className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Daftar Akses Awal {currentPlatform.name}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClickTone();
+                  setIsQrModalOpen(true);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Buka di HP</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Architectural Benchmark Card */}
+          <div className="lg:col-span-5 bg-slate-50 rounded-2xl border border-slate-200/80 p-5 space-y-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                Benchmark Arsitektur Sistem
+              </span>
+              <h4 className="text-sm font-bold text-slate-900">
+                {currentPlatform.engineSpec}
+              </h4>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
+                <span className="text-[10px] text-slate-400 block">Latensi Suara</span>
+                <span className="text-base font-extrabold text-emerald-700 block">
+                  {currentPlatform.systemMetrics.latency}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
+                <span className="text-[10px] text-slate-400 block">Konsumsi RAM</span>
+                <span className="text-base font-extrabold text-slate-800 block">
+                  {currentPlatform.systemMetrics.ramUsage}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
+                <span className="text-[10px] text-slate-400 block">Ukuran Berkas</span>
+                <span className="text-base font-extrabold text-slate-800 block">
+                  {currentPlatform.systemMetrics.binarySize}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
+                <span className="text-[10px] text-slate-400 block">Status Offline</span>
+                <span className="text-base font-extrabold text-emerald-700 block">
+                  100% Mandiri
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/60 text-[11px] text-emerald-900 font-sans leading-relaxed">
+              Platform ini dioptimalkan khusus untuk arsitektur prosesor target tanpa memerlukan runtime pihak ketiga.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 6. COMPARISON TABLE (SHADCN MINIMALIST TABLE) */}
+      {/* ======================================================== */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-6">
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
           <div className="max-w-2xl space-y-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
@@ -842,9 +1202,7 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* ======================================================== */}
-        {/* 5. BOTTOM WEB APP FALLBACK BANNER */}
-        {/* ======================================================== */}
+        {/* Bottom Web App Fallback Banner */}
         <div className="bg-gradient-to-r from-emerald-900 to-[#022c22] text-white p-8 sm:p-10 rounded-3xl shadow-sm text-center space-y-4">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 font-mono">
             Mulai Hari Ini
@@ -885,7 +1243,7 @@ export default function DownloadPage() {
       </footer>
 
       {/* ======================================================== */}
-      {/* SHADCN MODAL 1: WAITLIST & EARLY ACCESS SIGNUP */}
+      {/* SHADCN MODAL 1: VIP DIGITAL ACCESS PASS SIGNUP */}
       {/* ======================================================== */}
       <AnimatePresence>
         {isWaitlistModalOpen && (
@@ -923,7 +1281,7 @@ export default function DownloadPage() {
                       Daftar Akses Awal {currentPlatform.name}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      Dapatkan tautan unduhan berkas resmi dan panduan instalasi saat aplikasi siap diuji coba.
+                      Dapatkan tiket VIP digital dan tautan unduhan berkas resmi saat aplikasi siap diuji coba.
                     </p>
                   </div>
 
@@ -1012,29 +1370,72 @@ export default function DownloadPage() {
                   </div>
                 </form>
               ) : (
-                <div className="text-center py-6 space-y-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-                  </div>
-
+                /* VIP DIGITAL PASS TICKET PRESENTATION */
+                <div className="space-y-5 text-center py-2">
                   <div className="space-y-1">
-                    <h4 className="text-lg font-bold text-slate-900 tracking-tight">
-                      Pendaftaran Akses Awal Diterima
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold mx-auto">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>VIP EARLY ACCESS PASS</span>
+                    </div>
+                    <h4 className="text-xl font-black text-slate-900 tracking-tight">
+                      Tiket Digital Berhasil Diterbitkan
                     </h4>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Terima kasih! Kami akan memberi tahu Anda via email <span className="text-slate-800 font-semibold">{emailInput}</span> saat berkas rilis resmi {currentPlatform.name} siap diunduh.
-                    </p>
                   </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsWaitlistModalOpen(false)}
-                      className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
-                    >
-                      Selesai
-                    </button>
+                  {/* Digital Ticket Card */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-b from-[#022c22] to-[#0f172a] text-white text-left space-y-4 border border-emerald-500/30 shadow-xl relative overflow-hidden font-mono">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase">Pemegang Tiket</span>
+                        <span className="text-sm font-bold text-white block">
+                          {userNameInput || 'Santri Hifzhly'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block uppercase">Nomor Antrean</span>
+                        <span className="text-base font-black text-emerald-400 block">
+                          #{userQueueTicket?.number}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase">Target Platform</span>
+                        <span className="text-white font-semibold capitalize">{selectedPlatforms.join(', ')}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block uppercase">Status Akses</span>
+                        <span className="text-emerald-400 font-semibold">Prioritas Rilis Q1 2026</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                      <div className="text-xs text-slate-300">
+                        Kode Akses: <strong className="text-white">{userQueueTicket?.code}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyTicketCode}
+                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{isCopiedTicket ? 'Tersalin' : 'Salin'}</span>
+                      </button>
+                    </div>
                   </div>
+
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    Tautan unduhan berkas instalasi resmi dan panduan setup akan dikirim ke alamat email <strong className="text-slate-800">{emailInput}</strong>.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsWaitlistModalOpen(false)}
+                    className="w-full py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    Tutup Tiket
+                  </button>
                 </div>
               )}
             </motion.div>
