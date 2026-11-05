@@ -7,7 +7,6 @@ import {
   Monitor,
   Smartphone,
   Apple,
-  Sparkles,
   CheckCircle2,
   Bell,
   Cpu,
@@ -19,10 +18,10 @@ import {
   QrCode,
   Check,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 import { playSuccessChime, playClickTone } from '../lib/soundUtils';
 
-// Types
 interface PlatformCardData {
   id: 'windows' | 'mac' | 'android' | 'ios';
   name: string;
@@ -43,57 +42,57 @@ const PLATFORMS: PlatformCardData[] = [
     id: 'windows',
     name: 'Windows Desktop',
     category: 'desktop',
-    osVersion: 'Windows 10 / 11 (64-bit)',
+    osVersion: 'Windows 10 / 11 (64-bit & ARM64)',
     arch: 'x64 & ARM64 Native',
-    format: '.exe Setup / Portable .zip',
+    format: 'Installer (.exe) & Portable (.zip)',
     statusText: 'Tahap Finalisasi Kompilasi',
-    statusBadge: 'Coming Soon • v0.9 Pre-Release',
+    statusBadge: 'Dalam Pengembangan • v0.9 Pre-Release',
     icon: Monitor,
     releaseQuarter: 'Q1 2026',
     techSpec: 'Tauri v2 + Rust Core • Local ONNX Runtime',
     highlights: [
       'Mesin Speech AI offline mandiri tanpa membutuhkan kuota internet',
       'Latensi pengenalan suara 0 milidetik langsung dari mikrofon PC',
-      'Shortcut global untuk setoran hafalan cepat saat beraktivitas',
-      'Penyimpanan database hafalan terenkripsi lokal di disk',
+      'Pintasan keyboard global untuk setoran hafalan cepat saat beraktivitas',
+      'Database hafalan dan riwayat murojaah tersimpan lokal di komputer',
     ],
   },
   {
     id: 'mac',
     name: 'macOS Desktop',
     category: 'desktop',
-    osVersion: 'macOS Monterey 12 s/d Sequoia 15',
+    osVersion: 'macOS 12 Monterey hingga 15 Sequoia',
     arch: 'Apple Silicon (M1–M4) & Intel Universal',
-    format: 'Universal .dmg Installer',
+    format: 'Universal Package (.dmg)',
     statusText: 'Optimalisasi Metal Shaders',
-    statusBadge: 'Coming Soon • Private Beta',
+    statusBadge: 'Dalam Pengembangan • Private Beta',
     icon: Apple,
     releaseQuarter: 'Q1 2026',
     techSpec: 'Apple Metal Performance Shaders • Native Cocoa',
     highlights: [
-      'Akselerasi hardware Neural Engine Apple Silicon super hemat daya',
-      'Widget Menu Bar status hafalan harian dan waktu sholat',
-      'Desain antarmuka native macOS dengan glassmorphism eksklusif',
-      'Zero fan noise & performa evaluasi tilawah instan',
+      'Akselerasi Neural Engine Apple Silicon dengan konsumsi daya minimal',
+      'Widget Menu Bar status hafalan harian dan pengingat waktu sholat',
+      'Antarmuka native macOS yang selaras dengan tema sistem operasi',
+      'Performa evaluasi bacaan instan tanpa membebani kipas laptop',
     ],
   },
   {
     id: 'android',
     name: 'Android Mobile',
     category: 'mobile',
-    osVersion: 'Android 9.0 (Pie) s/d Android 15',
+    osVersion: 'Android 9.0 (Pie) hingga Android 15',
     arch: 'arm64-v8a & armeabi-v7a',
-    format: 'Google Play Store & APK Langsung',
+    format: 'Google Play Store & Berkas APK',
     statusText: 'Uji Coba Closed Alpha Pesantren',
-    statusBadge: 'Coming Soon • Closed Alpha',
+    statusBadge: 'Dalam Pengembangan • Closed Alpha',
     icon: Smartphone,
     releaseQuarter: 'Q2 2026',
-    techSpec: 'Kotlin Native Modules • TensorFlow Lite / ONNX',
+    techSpec: 'Kotlin Native Modules • Local Neural Network',
     highlights: [
-      'Getaran haptik responsif seketika saat terdeteksi salah makhraj',
-      'Mode Asrama Pesantren (100% offline tanpa sinyal seluler)',
-      'Widget Homescreen jadwal review hafalan (SuperMemo-2)',
-      'Audio player murottal 30 juz berlatar belakang saat layar mati',
+      'Getaran haptik responsif saat terdeteksi kekeliruan makhraj huruf',
+      'Mode Asrama Pesantren (berfungsi penuh tanpa koneksi seluler)',
+      'Widget layar utama untuk jadwal murojaah (SuperMemo-2)',
+      'Pemutar murottal 30 juz di latar belakang saat layar ponsel terkunci',
     ],
   },
   {
@@ -102,62 +101,20 @@ const PLATFORMS: PlatformCardData[] = [
     category: 'mobile',
     osVersion: 'iOS 16.0+ (iPhone & iPad)',
     arch: 'Apple Neural Engine CoreML',
-    format: 'Apple App Store & TestFlight Beta',
+    format: 'App Store & Apple TestFlight',
     statusText: 'Persiapan Pengujian TestFlight',
-    statusBadge: 'Coming Soon • TestFlight Preview',
-    icon: Smartphone,
+    statusBadge: 'Dalam Pengembangan • TestFlight Preview',
+    icon: Apple,
     releaseQuarter: 'Q2 2026',
     techSpec: 'SwiftUI • CoreML Offline Recitation Engine',
     highlights: [
-      'Dukungan Dynamic Island & Live Activities durasi murojaah',
+      'Dukungan Dynamic Island dan Live Activities durasi murojaah',
       'Integrasi Siri Shortcuts "Mulai Murojaah Surah Al-Mulk"',
-      'Sinkronisasi aman via Apple CloudKit dan akun santri',
-      'Antarmuka iPad split-view mushaf digital dan evaluasi suara',
+      'Sinkronisasi aman via Apple CloudKit dan akun santri terdaftar',
+      'Tata letak split-view di iPad untuk membaca mushaf sembari evaluasi',
     ],
   },
 ];
-
-// React Bits style Interactive Spotlight Card Component
-function SpotlightCard({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/90 transition-all duration-300 hover:border-slate-700 hover:shadow-2xl ${className}`}
-    >
-      {/* Radial Spotlight Overlay following mouse cursor */}
-      <div
-        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
-        style={{
-          opacity: isHovered ? 1 : 0,
-          background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(16, 185, 129, 0.12), transparent 40%)`,
-        }}
-      />
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-}
 
 export default function DownloadPage() {
   const [activeCategory, setActiveCategory] = useState<'all' | 'desktop' | 'mobile'>('all');
@@ -170,39 +127,36 @@ export default function DownloadPage() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // GSAP Entrance Stagger Animation
   const heroRef = useRef<HTMLDivElement>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Generate QR Code for Mobile quick share / waitlist
     QRCode.toDataURL(window.location.href, {
-      width: 240,
-      margin: 1.5,
+      width: 220,
+      margin: 1,
       color: {
-        dark: '#022c22',
+        dark: '#0f172a',
         light: '#ffffff',
       },
     })
       .then((url) => setQrCodeDataUrl(url))
       .catch((err) => console.warn('QR code gen warning:', err));
 
-    // GSAP Stagger Entrance
     if (heroRef.current && cardsContainerRef.current) {
       const ctx = gsap.context(() => {
-        gsap.from('.gsap-hero-item', {
-          y: 24,
+        gsap.from('.gsap-hero-elem', {
+          y: 20,
+          opacity: 0,
+          duration: 0.6,
+          stagger: 0.08,
+          ease: 'power3.out',
+        });
+        gsap.from('.gsap-card-elem', {
+          y: 30,
           opacity: 0,
           duration: 0.7,
           stagger: 0.1,
-          ease: 'power3.out',
-        });
-        gsap.from('.gsap-card-item', {
-          y: 35,
-          opacity: 0,
-          duration: 0.8,
-          stagger: 0.12,
-          delay: 0.25,
+          delay: 0.2,
           ease: 'power3.out',
         });
       });
@@ -257,83 +211,82 @@ export default function DownloadPage() {
       setIsSubmittingWaitlist(false);
       setIsSuccessSubmitted(true);
       playSuccessChime();
-    }, 600);
+    }, 500);
   };
 
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 font-sans selection:bg-emerald-500/20 selection:text-emerald-300 relative overflow-x-hidden">
-      {/* Subtle Matrix Dot Grid Background (Clean & High-tech) */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:28px_28px] opacity-40 pointer-events-none" />
-
-      {/* Top Ambient Glow Accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent blur-3xl pointer-events-none" />
-
-      {/* Navigation Header */}
-      <header className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between border-b border-slate-800/80">
-        <Link
-          to="/"
-          className="flex items-center space-x-3 group"
-          onClick={() => playClickTone()}
-        >
-          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500 transition-colors shadow-xs">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          </div>
-          <div>
-            <span className="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase block">
-              Hifzhly Cross-Platform Suite
-            </span>
-            <span className="text-base font-extrabold text-white tracking-tight">
-              Aplikasi Mandiri
-            </span>
-          </div>
-        </Link>
-
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={() => {
-              playClickTone();
-              setIsQrModalOpen(true);
-            }}
-            className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-xs"
-          >
-            <QrCode className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Scan QR Ponsel</span>
-          </button>
-
+    <div className="min-h-screen bg-slate-50/70 text-slate-800 font-sans selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
+      {/* Top Header Navigation */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link
-            to="/app"
+            to="/"
             onClick={() => playClickTone()}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+            className="flex items-center space-x-3 group"
           >
-            <span>Buka Web App</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <div className="w-8 h-8 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 group-hover:text-emerald-700 group-hover:border-emerald-300 transition-colors">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <img
+                src="/logo saja.png"
+                alt="Hifzhly Logo"
+                className="w-6 h-6 object-contain"
+              />
+              <span className="font-extrabold text-lg text-slate-900 tracking-tight">
+                Hifzhly<span className="text-emerald-600">.</span>
+              </span>
+              <span className="text-slate-300 mx-1 hidden sm:inline">|</span>
+              <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
+                Aplikasi Desktop &amp; Mobile
+              </span>
+            </div>
           </Link>
+
+          <div className="flex items-center space-x-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                playClickTone();
+                setIsQrModalOpen(true);
+              }}
+              className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+            >
+              <QrCode className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Buka di HP</span>
+            </button>
+
+            <Link
+              to="/app"
+              onClick={() => playClickTone()}
+              className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95"
+            >
+              <span>Gunakan Versi Web</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Main Content Container */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-16">
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-16">
         {/* HERO SECTION */}
-        <div ref={heroRef} className="text-center max-w-3xl mx-auto space-y-5">
-          <div className="gsap-hero-item inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-700/80 text-emerald-400 text-xs font-semibold font-mono tracking-wide shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Tahap Pengembangan Akhir • Multi-Platform Native</span>
+        <div ref={heroRef} className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="gsap-hero-elem inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold font-mono tracking-wide">
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+            <span>Multi-Platform Native Suite • Dalam Tahap Akhir</span>
           </div>
 
-          <h1 className="gsap-hero-item text-3xl sm:text-5xl font-black text-white tracking-tight leading-[1.15]">
-            Bawa Hifzhly ke Seluruh{' '}
-            <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-              Perangkat Anda.
-            </span>
+          <h1 className="gsap-hero-elem text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Hafalan Lebih Kuat di Seluruh Perangkat Anda.
           </h1>
 
-          <p className="gsap-hero-item text-sm sm:text-base text-slate-400 leading-relaxed font-sans max-w-2xl mx-auto">
-            Aplikasi mandiri desktop dan mobile dengan performa native instan, model evaluasi tilawah offline tanpa kuota, dan sinkronisasi cloud mutaba'ah santri.
+          <p className="gsap-hero-elem text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+            Kami sedang merampungkan aplikasi native mandiri untuk Windows, macOS, Android, dan iOS. Ditenagai pemrosesan suara lokal tanpa internet dan performa yang ringan.
           </p>
 
-          {/* Category Filter Pills */}
-          <div className="gsap-hero-item pt-4 flex items-center justify-center space-x-2">
+          {/* Clean Segmented Filter Bar */}
+          <div className="gsap-hero-elem pt-3 flex items-center justify-center space-x-1.5">
             {[
               { id: 'all', label: 'Semua Platform (4)' },
               { id: 'desktop', label: 'Desktop (Windows & Mac)' },
@@ -348,8 +301,8 @@ export default function DownloadPage() {
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   activeCategory === tab.id
-                    ? 'bg-slate-100 text-slate-950 border-white shadow-sm font-extrabold'
-                    : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'
                 }`}
               >
                 {tab.label}
@@ -366,61 +319,58 @@ export default function DownloadPage() {
           {filteredPlatforms.map((platform) => {
             const Icon = platform.icon;
             return (
-              <SpotlightCard key={platform.id} className="gsap-card-item p-7 flex flex-col justify-between">
-                <div className="space-y-6">
-                  {/* Platform Header */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-13 h-13 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-                        <Icon className="w-6 h-6" />
+              <div
+                key={platform.id}
+                className="gsap-card-elem bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div className="space-y-5">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center space-x-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-800 shrink-0">
+                        <Icon className="w-6 h-6 text-slate-700" />
                       </div>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                            {platform.category === 'desktop' ? 'Desktop App' : 'Mobile App'}
-                          </span>
-                          <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                            • {platform.releaseQuarter}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-black text-white tracking-tight mt-0.5">
+                        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                          {platform.category === 'desktop' ? 'Desktop App' : 'Mobile App'} • {platform.releaseQuarter}
+                        </span>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
                           {platform.name}
                         </h3>
                       </div>
                     </div>
 
-                    {/* Status Badge */}
-                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold font-mono shrink-0">
-                      <Clock className="w-3 h-3 text-emerald-400" />
+                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0 font-mono">
+                      <Clock className="w-3 h-3 text-slate-500" />
                       <span>{platform.statusBadge.split('•')[0].trim()}</span>
                     </span>
                   </div>
 
-                  {/* Architecture & Format Specs */}
-                  <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1 font-mono text-xs">
-                    <div className="flex items-center justify-between text-slate-400">
+                  {/* Architecture Specification Box */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5 text-xs font-sans">
+                    <div className="flex items-center justify-between text-slate-500">
                       <span>Dukungan Sistem:</span>
-                      <span className="text-slate-200 font-medium">{platform.osVersion}</span>
+                      <span className="text-slate-800 font-semibold">{platform.osVersion}</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400">
-                      <span>Arsitektur &amp; Format:</span>
-                      <span className="text-slate-300 font-medium">{platform.format}</span>
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span>Format Berkas:</span>
+                      <span className="text-slate-800 font-semibold">{platform.format}</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400 pt-1 border-t border-slate-800/60">
+                    <div className="flex items-center justify-between text-slate-500 pt-1 border-t border-slate-200/60">
                       <span>Mesin Komputasi:</span>
-                      <span className="text-emerald-400 font-medium">{platform.techSpec.split('•')[0].trim()}</span>
+                      <span className="text-emerald-800 font-semibold">{platform.techSpec.split('•')[0].trim()}</span>
                     </div>
                   </div>
 
                   {/* Highlights Bullet List */}
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
-                      Keunggulan Versi Native:
+                      Karakteristik &amp; Keunggulan:
                     </span>
-                    <ul className="space-y-2 text-xs text-slate-300">
+                    <ul className="space-y-2 text-xs text-slate-600">
                       {platform.highlights.map((h, i) => (
                         <li key={i} className="flex items-start space-x-2.5 leading-relaxed">
-                          <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                           <span>{h}</span>
                         </li>
                       ))}
@@ -429,88 +379,88 @@ export default function DownloadPage() {
                 </div>
 
                 {/* Card Action Button */}
-                <div className="pt-6 mt-6 border-t border-slate-800/80 flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-slate-500 font-mono">
-                    Status: <span className="text-slate-300 font-semibold">{platform.statusText}</span>
+                <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <div className="text-[11px] text-slate-400 font-sans">
+                    Status: <span className="text-slate-700 font-semibold">{platform.statusText}</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleOpenWaitlistModal(platform)}
-                    className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 text-white font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer group"
+                    className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer"
                   >
-                    <Bell className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white" />
-                    <span>Dapatkan Akses Awal</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    <Bell className="w-3.5 h-3.5 text-slate-300" />
+                    <span>Daftar Akses Awal</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              </SpotlightCard>
+              </div>
             );
           })}
         </div>
 
         {/* COMPARISON TABLE: WEB APP VS NATIVE APP */}
-        <div className="p-7 sm:p-9 rounded-3xl bg-slate-900/60 border border-slate-800/80 space-y-6">
-          <div className="max-w-2xl space-y-1.5">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-              Arsitektur &amp; Performa
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-6">
+          <div className="max-w-2xl space-y-1">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
+              Perbandingan Arsitektur
             </span>
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Mengapa Aplikasi Native Jauh Lebih Tangguh?
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Kapabilitas Versi Web vs Aplikasi Native
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-sans">
-              Perbandingan kemampuan antarmuka Web App (yang saat ini berjalan di browser) dengan versi Native Desktop dan Mobile yang sedang kami rampungkan.
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-sans">
+              Anda tidak perlu menunggu aplikasi native untuk mulai menghafal. Versi web Hifzhly sudah dapat digunakan secara penuh hari ini.
             </p>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-mono">
-                  <th className="py-3 px-4 font-bold">Kapabilitas Fitur</th>
-                  <th className="py-3 px-4 font-bold">Web App (Live Sekarang)</th>
-                  <th className="py-3 px-4 font-bold text-emerald-400">Aplikasi Native (Desktop / Mobile)</th>
+                <tr className="border-b border-slate-200 text-slate-500 font-mono">
+                  <th className="py-3 px-4 font-bold">Fitur &amp; Kemampuan</th>
+                  <th className="py-3 px-4 font-bold text-slate-800">Web App (Aktif Saat Ini)</th>
+                  <th className="py-3 px-4 font-bold text-emerald-800">Aplikasi Native (Dalam Pengembangan)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/70 text-slate-300 font-sans">
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-sans">
                 <tr>
-                  <td className="py-3.5 px-4 font-semibold text-white">Evaluasi Recitation Suara</td>
-                  <td className="py-3.5 px-4 text-slate-400">Real-Time (Streaming Web Audio)</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400 flex items-center space-x-1.5">
-                    <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>0 Latensi Murni (Local Neural Inference)</span>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">Evaluasi Suara Real-Time</td>
+                  <td className="py-3.5 px-4 text-slate-600">Aktif (Melalui Browser Microphone)</td>
+                  <td className="py-3.5 px-4 font-bold text-emerald-700 flex items-center space-x-1.5">
+                    <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>0 Latensi (Local Neural Engine)</span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3.5 px-4 font-semibold text-white">Akses Offline di Pesantren</td>
-                  <td className="py-3.5 px-4 text-slate-400">Memerlukan Koneksi Server</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400 flex items-center space-x-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">Penggunaan Offline di Pesantren</td>
+                  <td className="py-3.5 px-4 text-slate-600">Perlu Koneksi Internet</td>
+                  <td className="py-3.5 px-4 font-bold text-emerald-700 flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>100% Offline (Tanpa Kuota / Sinyal)</span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3.5 px-4 font-semibold text-white">Konsumsi Memori &amp; Baterai</td>
-                  <td className="py-3.5 px-4 text-slate-400">Standar Browser Tab Chromium</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400 flex items-center space-x-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Super Ringan (~35 MB RAM Rust/Kotlin)</span>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">Penggunaan Memori &amp; Daya</td>
+                  <td className="py-3.5 px-4 text-slate-600">Standar Tab Web Browser</td>
+                  <td className="py-3.5 px-4 font-bold text-emerald-700 flex items-center space-x-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Sangat Ringan (Binary Rust &amp; Kotlin)</span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3.5 px-4 font-semibold text-white">Notifikasi Murojaah &amp; Sholat</td>
-                  <td className="py-3.5 px-4 text-slate-400">Web Push (Saat Browser Terbuka)</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400 flex items-center space-x-1.5">
-                    <Bell className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Native OS Alarms, Widget, &amp; Haptic</span>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">Notifikasi Sholat &amp; Murojaah</td>
+                  <td className="py-3.5 px-4 text-slate-600">Web Push Notification</td>
+                  <td className="py-3.5 px-4 font-bold text-emerald-700 flex items-center space-x-1.5">
+                    <Bell className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Alarm Sistem, Widget Layar, &amp; Haptic</span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3.5 px-4 font-semibold text-white">Keamanan &amp; Enkripsi</td>
-                  <td className="py-3.5 px-4 text-slate-400">HTTPS &amp; Cookie / Token Web</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-400 flex items-center space-x-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>OS Keychain / Keystore Enkripsi Lokal</span>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">Keamanan Data Hafalan</td>
+                  <td className="py-3.5 px-4 text-slate-600">Tersimpan di Cloud Database</td>
+                  <td className="py-3.5 px-4 font-bold text-emerald-700 flex items-center space-x-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Enkripsi Disk Lokal + Auto Cloud Backup</span>
                   </td>
                 </tr>
               </tbody>
@@ -519,34 +469,34 @@ export default function DownloadPage() {
         </div>
 
         {/* BOTTOM CALL TO ACTION: WEB APP FALLBACK */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 text-center space-y-5">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold">
+        <div className="bg-emerald-900 text-white p-8 sm:p-10 rounded-3xl shadow-sm text-center space-y-4">
+          <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-emerald-200 text-xs font-mono font-bold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Tidak Perlu Menunggu Versi Native</span>
-          </div>
+            <span>Siap Digunakan Kapan Saja</span>
+          </span>
 
           <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Gunakan Versi Web App Hifzhly Sekarang Juga.
+            Mulai Menghafal di Peramban Web Anda Sekarang.
           </h3>
 
-          <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
-            Seluruh fitur AI voice alignment, mushaf 30 juz, materi tajwid, dan mutaba'ah santri sudah dapat diakses langsung lewat peramban web di laptop maupun smartphone Anda.
+          <p className="text-xs sm:text-sm text-emerald-100 max-w-lg mx-auto leading-relaxed font-sans">
+            Seluruh fitur evaluasi suara AI, mushaf 30 juz, materi tajwid, dan mutaba'ah santri sudah dapat Anda akses langsung tanpa perlu instalasi tambahan.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/app"
               onClick={() => playClickTone()}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-7 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-7 py-3 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs shadow-xs transition-all active:scale-95"
             >
-              <span>Mulai di Browser Gratis</span>
+              <span>Buka Aplikasi Web</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
             <Link
               to="/app/tajwid"
               onClick={() => playClickTone()}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-xl bg-emerald-800/80 hover:bg-emerald-800 text-white font-bold text-xs border border-white/20 transition-all"
             >
               <span>Pelajari Tajwid Academy</span>
             </Link>
@@ -554,9 +504,9 @@ export default function DownloadPage() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-slate-800/80 py-8 text-center text-xs text-slate-500 font-mono">
-        <p>Hifzhly Cross-Platform Suite • Tim FIFA Universitas Sultan Ageng Tirtayasa</p>
+      {/* Clean Scholarly Footer */}
+      <footer className="border-t border-slate-200 bg-white py-8 mt-12 text-center text-xs text-slate-500 font-mono">
+        <p>© 2026 Hifzhly • Tim FIFA Universitas Sultan Ageng Tirtayasa</p>
       </footer>
 
       {/* ======================================================== */}
@@ -565,63 +515,60 @@ export default function DownloadPage() {
       <AnimatePresence>
         {selectedPlatformForWaitlist && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedPlatformForWaitlist(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
             />
 
-            {/* Modal Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6 z-10 text-slate-100"
+              className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 shadow-2xl space-y-6 z-10 text-slate-800"
             >
-              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setSelectedPlatformForWaitlist(null)}
-                className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+                className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
 
               {!isSuccessSubmitted ? (
                 <form onSubmit={handleSubmitWaitlist} className="space-y-5">
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 block">
-                      Program Early Access Santri
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-800 block">
+                      Program Akses Awal
                     </span>
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       Daftar Akses Awal {selectedPlatformForWaitlist.name}
                     </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                      Jadilah yang pertama mencoba berkas installer resmi saat rilis. Kami akan mengirimkan tautan download dan instruksi pemasangan langsung ke email Anda.
+                    <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                      Dapatkan tautan unduhan berkas resmi dan panduan instalasi saat aplikasi siap diuji coba.
                     </p>
                   </div>
 
                   <div className="space-y-3 font-sans">
                     <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Nama Lengkap / Panggilan
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Nama Lengkap / Santri
                       </label>
                       <input
                         type="text"
                         value={userNameInput}
                         onChange={(e) => setUserNameInput(e.target.value)}
                         placeholder="Contoh: Ahmad Rayhan"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-sans"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:border-emerald-600 focus:bg-white transition-all font-sans"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Alamat Email Aktif <span className="text-emerald-400">*</span>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Alamat Email Aktif <span className="text-emerald-700">*</span>
                       </label>
                       <input
                         type="email"
@@ -629,13 +576,12 @@ export default function DownloadPage() {
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder="nama@santri.com"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-sans"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:border-emerald-600 focus:bg-white transition-all font-sans"
                       />
                     </div>
 
-                    {/* Platform Checkbox Selection */}
                     <div className="pt-1">
-                      <label className="text-xs font-semibold text-slate-300 block mb-2">
+                      <label className="text-xs font-semibold text-slate-700 block mb-2">
                         Pilih Platform yang Anda Gunakan:
                       </label>
                       <div className="grid grid-cols-2 gap-2">
@@ -653,12 +599,12 @@ export default function DownloadPage() {
                               onClick={() => handleTogglePlatformChoice(p.id)}
                               className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
                                 isChecked
-                                  ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300'
-                                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                                  ? 'bg-emerald-50 border-emerald-600 text-emerald-900 shadow-2xs'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                               }`}
                             >
                               <span>{p.label}</span>
-                              {isChecked && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                              {isChecked && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                             </button>
                           );
                         })}
@@ -666,53 +612,52 @@ export default function DownloadPage() {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-end space-x-3">
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3">
                     <button
                       type="button"
                       onClick={() => setSelectedPlatformForWaitlist(null)}
-                      className="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-bold transition-all cursor-pointer"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmittingWaitlist}
-                      className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                      className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
                     >
                       {isSubmittingWaitlist ? (
                         <span>Mendaftarkan...</span>
                       ) : (
                         <>
                           <Bell className="w-3.5 h-3.5" />
-                          <span>Kirim &amp; Dapatkan Undangan</span>
+                          <span>Kirim Pendaftaran</span>
                         </>
                       )}
                     </button>
                   </div>
                 </form>
               ) : (
-                /* SUCCESS STATE */
                 <div className="text-center py-6 space-y-4">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-7 h-7" />
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-700" />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <h4 className="text-xl font-black text-white tracking-tight">
-                      Pendaftaran Berhasil!
+                  <div className="space-y-1">
+                    <h4 className="text-xl font-black text-slate-900 tracking-tight">
+                      Pendaftaran Diterima
                     </h4>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed font-sans">
-                      Terima kasih! Kami telah mencatat email <span className="text-emerald-300 font-semibold">{emailInput}</span> untuk notifikasi berkas rilis resmi {selectedPlatformForWaitlist.name}.
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-sans">
+                      Terima kasih! Kami akan memberi tahu Anda via email <span className="text-slate-800 font-semibold">{emailInput}</span> saat berkas rilis resmi {selectedPlatformForWaitlist.name} siap diunduh.
                     </p>
                   </div>
 
-                  <div className="pt-4">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setSelectedPlatformForWaitlist(null)}
-                      className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-all cursor-pointer"
+                      className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer"
                     >
-                      Tutup
+                      Selesai
                     </button>
                   </div>
                 </div>
@@ -733,54 +678,54 @@ export default function DownloadPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsQrModalOpen(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-7 text-center space-y-5 z-10"
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="relative w-full max-w-sm rounded-3xl bg-white border border-slate-200 p-6 sm:p-7 text-center space-y-4 z-10 shadow-2xl"
             >
               <button
                 type="button"
                 onClick={() => setIsQrModalOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+                className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="space-y-1">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 block">
-                  Scan Lewat Smartphone
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-800 block">
+                  Akses Cepat Smartphone
                 </span>
-                <h4 className="text-lg font-black text-white tracking-tight">
-                  Akses Halaman Download di HP
+                <h4 className="text-base font-black text-slate-900 tracking-tight">
+                  Pindai Melalui Kamera Ponsel
                 </h4>
               </div>
 
               {qrCodeDataUrl ? (
-                <div className="p-4 bg-white rounded-2xl inline-block shadow-xl mx-auto border-4 border-slate-800">
+                <div className="p-3 bg-white rounded-2xl inline-block border border-slate-200 shadow-xs mx-auto">
                   <img
                     src={qrCodeDataUrl}
                     alt="QR Code Download"
-                    className="w-48 h-48 mx-auto"
+                    className="w-44 h-44 mx-auto"
                   />
                 </div>
               ) : (
-                <div className="w-48 h-48 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center text-xs text-slate-400">
+                <div className="w-44 h-44 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-xs text-slate-400">
                   Membuat QR Code...
                 </div>
               )}
 
-              <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                Arahkan kamera ponsel Anda ke QR code di atas untuk mendaftar beta tester Android / iOS secara langsung.
+              <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                Arahkan kamera ponsel Anda ke QR code di atas untuk membuka halaman pendaftaran akses awal ini di smartphone.
               </p>
 
               <button
                 type="button"
                 onClick={() => setIsQrModalOpen(false)}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-all cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer"
               >
                 Tutup
               </button>
