@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
-import { checkForUpdate, executeAppUpdate, type UpdateInfo } from '../lib/appUpdateService';
+import { checkForUpdate, executeAppUpdate, getInstalledAppInfo, type UpdateInfo } from '../lib/appUpdateService';
 import {
   isAdzanNotificationEnabled,
   setAdzanNotificationEnabled,
@@ -61,9 +61,18 @@ export default function SettingsPage() {
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
 
   // App Update & Developer State
+  const [installedVersion, setInstalledVersion] = useState<string>(APP_VERSION);
+  const [installedBuild, setInstalledBuild] = useState<string>(APP_BUILD);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateCheckStatus, setUpdateCheckStatus] = useState('');
   const [foundUpdateInfo, setFoundUpdateInfo] = useState<UpdateInfo | null>(null);
+
+  useEffect(() => {
+    getInstalledAppInfo().then((info) => {
+      setInstalledVersion(info.version);
+      setInstalledBuild(info.build);
+    });
+  }, []);
 
   const handleManualCheckUpdate = async () => {
     setIsCheckingUpdate(true);
@@ -586,7 +595,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Hifzhly Mobile</h3>
                 <p className="text-[11px] text-slate-500 font-mono">
-                  Versi {APP_VERSION} (Build {APP_BUILD})
+                  Versi {installedVersion} (Build {installedBuild})
                 </p>
               </div>
             </div>

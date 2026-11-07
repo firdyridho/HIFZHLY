@@ -7,7 +7,7 @@ import {
   type UpdateInfo,
   type ApkDownloadProgress,
 } from '../../lib/appUpdateService';
-import { APP_VERSION, APP_DEVELOPER } from '../../version';
+import { APP_DEVELOPER } from '../../version';
 import { isNativePlatform } from '../../lib/capacitorBridge';
 
 export default function AppUpdateBanner() {
@@ -76,7 +76,7 @@ export default function AppUpdateBanner() {
                 {isComplete ? 'Unduhan Selesai' : isDownloading ? 'Mengunduh Pembaruan' : 'Pembaruan Tersedia'}
               </h3>
               <p className="text-xs text-slate-500 font-mono">
-                v{APP_VERSION} → Baru: v{updateInfo.latestVersion}
+                v{updateInfo.currentVersion} → Baru: v{updateInfo.latestVersion}
               </p>
             </div>
           </div>
