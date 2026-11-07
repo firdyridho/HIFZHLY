@@ -1,6 +1,7 @@
 /**
  * adzanNotificationService.ts
  * Layanan Notifikasi Lokal Jadwal Sholat & Adzan di Smartphone Android / iOS (Capacitor)
+ * Mendukung audio lantunan Adzan Makkah penuh, ikon minimalis status bar, dan tombol hentikan suara di banner
  */
 
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -12,7 +13,10 @@ export interface PrayerTimeItem {
 }
 
 const STORAGE_KEY = 'hifzhly_adzan_notif_enabled';
-const ADZAN_CHANNEL_ID = 'hifzhly-adzan-channel';
+export const ADZAN_CHANNEL_ID = 'hifzhly-adzan-channel-v2';
+export const ADZAN_ACTION_TYPE_ID = 'ADZAN_BANNER_ACTIONS';
+export const ACTION_STOP_ADZAN = 'STOP_ADZAN';
+export const ACTION_OPEN_APP = 'OPEN_APP';
 
 const PRAYER_IDS: Record<string, number> = {
   Subuh: 101,
@@ -22,26 +26,112 @@ const PRAYER_IDS: Record<string, number> = {
   Isya: 105,
 };
 
+let activeAdzanAudio: HTMLAudioElement | null = null;
+let isListenerAttached = false;
+
 /**
- * Inisialisasi Channel Notifikasi Android dengan prioritas tinggi
+ * Hentikan pemutaran audio adzan yang sedang aktif
+ */
+export function stopAdzanAudio(): void {
+  if (activeAdzanAudio) {
+    try {
+      activeAdzanAudio.pause();
+      activeAdzanAudio.currentTime = 0;
+    } catch {}
+    activeAdzanAudio = null;
+  }
+}
+
+/**
+ * Putar audio adzan Makkah secara langsung (Web fallback atau preview)
+ */
+export function playAdzanAudio(): void {
+  try {
+    stopAdzanAudio();
+    const audio = new Audio('/audio/adzan.mp3');
+    activeAdzanAudio = audio;
+    audio.play().catch(() => {});
+  } catch (err) {
+    console.warn('Gagal memutar audio adzan:', err);
+  }
+}
+
+/**
+ * Periksa apakah suara adzan sedang berkumandang
+ */
+export function isAdzanPlaying(): boolean {
+  return activeAdzanAudio !== null && !activeAdzanAudio.paused;
+}
+
+/**
+ * Pasang pendengar aksi tombol banner notifikasi (Hentikan Suara & Buka Aplikasi)
+ */
+export function setupAdzanActionListener(): void {
+  if (!isNativePlatform() || isListenerAttached) return;
+  isListenerAttached = true;
+
+  try {
+    LocalNotifications.addListener('localNotificationActionPerformed', async (action) => {
+      if (action.actionId === ACTION_STOP_ADZAN) {
+        stopAdzanAudio();
+        try {
+          await LocalNotifications.cancel({
+            notifications: [{ id: action.notification.id }],
+          });
+        } catch (err) {
+          console.warn('Gagal membatalkan notifikasi:', err);
+        }
+      }
+    });
+  } catch (e) {
+    console.warn('Gagal mendaftarkan action listener:', e);
+  }
+}
+
+/**
+ * Inisialisasi Channel Notifikasi Android dengan audio Adzan & tombol tindakan
  */
 export async function initAdzanNotificationChannel(): Promise<void> {
   if (!isNativePlatform()) return;
 
   try {
+    setupAdzanActionListener();
+
+    // 1. Daftarkan Aksi Tombol di Banner Notifikasi (Hentikan Suara & Buka Aplikasi)
+    await LocalNotifications.registerActionTypes({
+      types: [
+        {
+          id: ADZAN_ACTION_TYPE_ID,
+          actions: [
+            {
+              id: ACTION_STOP_ADZAN,
+              title: 'Hentikan Suara',
+              destructive: true,
+            },
+            {
+              id: ACTION_OPEN_APP,
+              title: 'Buka Hifzhly',
+              destructive: false,
+            },
+          ],
+        },
+      ],
+    });
+
+    // 2. Buat Notification Channel v2 khusus dengan suara Adzan Makkah (adzan.mp3)
     await LocalNotifications.createChannel({
       id: ADZAN_CHANNEL_ID,
       name: 'Jadwal Sholat & Adzan',
-      description: 'Pengingat otomatis saat masuk waktu sholat 5 waktu',
+      description: 'Pengingat adzan otomatis saat masuk waktu sholat 5 waktu',
       importance: 5, // High
-      visibility: 1, // Public on lockscreen
-      sound: 'default',
+      visibility: 1, // Public di lockscreen
+      sound: 'adzan.mp3',
       vibration: true,
       lights: true,
       lightColor: '#059669',
     });
   } catch (err) {
-    console.warn('Gagal membuat notification channel:', err);
+    console.warn('Gagal membuat channel notifikasi adzan:', err);
   }
 }
 
@@ -92,7 +182,6 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export function isAdzanNotificationEnabled(): boolean {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    // Default aktif jika belum pernah diatur
     return saved === null ? true : saved === 'true';
   } catch {
     return true;
@@ -106,6 +195,7 @@ export async function setAdzanNotificationEnabled(enabled: boolean): Promise<boo
   try {
     localStorage.setItem(STORAGE_KEY, enabled ? 'true' : 'false');
     if (!enabled) {
+      stopAdzanAudio();
       await cancelAllPrayerNotifications();
     }
     return true;
@@ -118,6 +208,7 @@ export async function setAdzanNotificationEnabled(enabled: boolean): Promise<boo
  * Batalkan seluruh jadwal notifikasi sholat yang sedang mengantre
  */
 export async function cancelAllPrayerNotifications(): Promise<void> {
+  stopAdzanAudio();
   if (!isNativePlatform()) return;
 
   try {
@@ -129,7 +220,7 @@ export async function cancelAllPrayerNotifications(): Promise<void> {
 }
 
 /**
- * Jadwalkan pengingat notifikasi 5 waktu sholat harian
+ * Jadwalkan pengingat notifikasi 5 waktu sholat harian dengan suara Adzan & ikon status bar
  */
 export async function schedulePrayerNotifications(prayers: PrayerTimeItem[]): Promise<boolean> {
   if (!isNativePlatform() || !isAdzanNotificationEnabled()) {
@@ -166,15 +257,16 @@ export async function schedulePrayerNotifications(prayers: PrayerTimeItem[]): Pr
       notificationsToSchedule.push({
         id,
         title: `Waktu Sholat ${prayer.name} (${prayer.time})`,
-        body: `Hayya 'alash-Sholah. Waktu ${prayer.name} telah tiba. Mari sejenak tunaikan sholat dan lanjutkan hafalan Qur'an.`,
+        body: `Hayya 'alash-Sholah. Waktu ${prayer.name} telah tiba. Mari sejenak tunaikan sholat dan lanjutkan tilawah Qur'an.`,
         channelId: ADZAN_CHANNEL_ID,
         schedule: {
           at: scheduleDate,
           allowWhileIdle: true,
         },
-        sound: 'default',
-        smallIcon: 'ic_launcher',
-        actionTypeId: 'OPEN_PRAYER',
+        sound: 'adzan.mp3',
+        smallIcon: 'ic_stat_hifzhly',
+        iconColor: '#059669',
+        actionTypeId: ADZAN_ACTION_TYPE_ID,
       });
     }
 
@@ -192,7 +284,7 @@ export async function schedulePrayerNotifications(prayers: PrayerTimeItem[]): Pr
 }
 
 /**
- * Uji notifikasi Adzan langsung ke status bar smartphone dalam 2 detik
+ * Uji notifikasi Adzan langsung ke smartphone dalam 2 detik
  */
 export async function triggerTestAdzanNotification(): Promise<boolean> {
   const hasPerm = await checkNotificationPermission();
@@ -210,14 +302,16 @@ export async function triggerTestAdzanNotification(): Promise<boolean> {
           {
             id: 999,
             title: 'Waktu Sholat Telah Tiba',
-            body: 'Hayya \'alash-Sholah. Pengingat sholat dan tilawah Hifzhly berfungsi optimal di smartphone Anda.',
+            body: "Hayya 'alash-Sholah. Pengingat sholat dan tilawah Hifzhly berfungsi optimal di smartphone Anda.",
             channelId: ADZAN_CHANNEL_ID,
             schedule: {
               at: testDate,
               allowWhileIdle: true,
             },
-            sound: 'default',
-            smallIcon: 'ic_launcher',
+            sound: 'adzan.mp3',
+            smallIcon: 'ic_stat_hifzhly',
+            iconColor: '#059669',
+            actionTypeId: ADZAN_ACTION_TYPE_ID,
           },
         ],
       });
@@ -227,15 +321,15 @@ export async function triggerTestAdzanNotification(): Promise<boolean> {
       return false;
     }
   } else {
-    // Web Fallback Notification
+    // Web Fallback Notification + Pemutaran Audio Langsung
+    playAdzanAudio();
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Waktu Sholat Telah Tiba', {
-        body: 'Hayya \'alash-Sholah. Pengingat sholat dan tilawah Hifzhly berfungsi optimal di smartphone Anda.',
+        body: "Hayya 'alash-Sholah. Pengingat sholat dan tilawah Hifzhly berfungsi optimal di peramban Anda.",
         icon: '/logo saja.png',
       });
       return true;
     }
-    return false;
+    return true;
   }
 }
-

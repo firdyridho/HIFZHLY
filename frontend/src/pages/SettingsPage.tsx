@@ -33,6 +33,7 @@ import {
   setAdzanNotificationEnabled,
   requestNotificationPermission,
   triggerTestAdzanNotification,
+  stopAdzanAudio,
 } from '../lib/adzanNotificationService';
 
 export default function SettingsPage() {
@@ -678,6 +679,17 @@ export default function SettingsPage() {
               >
                 <Clock className={`w-3.5 h-3.5 ${isTestingAdzan ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
                 <span>{isTestingAdzan ? 'Mengirim Notifikasi...' : 'Uji Notifikasi Adzan (2 Detik)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  stopAdzanAudio();
+                  setTestAdzanStatus('Suara adzan dihentikan');
+                }}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <span>Hentikan Suara Adzan</span>
               </button>
 
               {testAdzanStatus && (

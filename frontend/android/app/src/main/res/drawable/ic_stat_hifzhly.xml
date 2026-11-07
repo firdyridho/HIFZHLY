@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Clean Minimalist Islamic Quran / Hifzhly Icon for Android Status Bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,4.5C10.15,3.58 8.08,3.08 5.89,3.08C3.8,3.08 1.83,3.53 0,4.35V20.85C1.83,20.03 3.8,19.58 5.89,19.58C8.08,19.58 10.15,20.08 12,21C13.85,20.08 15.92,19.58 18.11,19.58C20.2,19.58 22.17,20.03 24,20.85V4.35C22.17,3.53 20.2,3.08 18.11,3.08C15.92,3.08 13.85,3.58 12,4.5ZM10.5,18.3C9.09,17.78 7.54,17.5 5.89,17.5C4.24,17.5 2.69,17.78 1.5,18.2V6.2C2.86,5.78 4.33,5.5 5.89,5.5C7.54,5.5 9.09,5.78 10.5,6.3V18.3ZM22.5,18.2C21.31,17.78 19.76,17.5 18.11,17.5C16.46,17.5 14.91,17.78 13.5,18.3V6.3C14.91,5.78 16.46,5.5 18.11,5.5C19.67,5.5 21.14,5.78 22.5,6.2V18.2Z"/>
+</vector>
