@@ -1,3 +1,4 @@
+import { isNativePlatform } from './capacitorBridge';
 import { APP_VERSION, APK_DIRECT_URL } from '../version';
 
 export interface UpdateInfo {
@@ -50,6 +51,11 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     downloadUrl: APK_DIRECT_URL,
     isChecking: false,
   };
+
+  // Hanya periksa dan izinkan pembaruan jika berjalan di dalam container aplikasi native (Android / iOS)
+  if (!isNativePlatform()) {
+    return defaultRes;
+  }
 
   try {
     const res = await fetch('https://api.github.com/repos/firdyridho/HIFZHLY/releases/latest', {

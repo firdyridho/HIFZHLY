@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { Download, RefreshCw, X, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { checkForUpdate, executeAppUpdate, type UpdateInfo } from '../../lib/appUpdateService';
 import { APP_VERSION, APP_DEVELOPER } from '../../version';
+import { isNativePlatform } from '../../lib/capacitorBridge';
 
 export default function AppUpdateBanner() {
+  const isNative = isNativePlatform();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    // Cek pembaruan saat aplikasi dibuka
+    // Hanya periksa pembaruan jika aplikasi berjalan di platform native mobile (Android / iOS)
+    if (!isNative) return;
+
     let isMounted = true;
     checkForUpdate().then((info) => {
       if (isMounted && info.hasUpdate) {
@@ -19,9 +23,10 @@ export default function AppUpdateBanner() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isNative]);
 
-  if (!updateInfo || !updateInfo.hasUpdate || isDismissed) {
+  // Di browser web biasa, jangan pernah tampilkan pop-up / peringatan pembaruan APK
+  if (!isNative || !updateInfo || !updateInfo.hasUpdate || isDismissed) {
     return null;
   }
 
