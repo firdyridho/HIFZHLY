@@ -12,6 +12,7 @@ import {
   Mail,
   ShieldCheck,
   GraduationCap,
+  Clock,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 
@@ -40,6 +41,30 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  // Brute Force Lockout Protection States (5 Percobaan Gagal -> Cooldown 30 Detik)
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    return parseInt(sessionStorage.getItem('hifzhly_login_failed_attempts') || '0', 10);
+  });
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
+
+  // Monitor Cooldown Countdown Timer
+  useEffect(() => {
+    const checkLockout = () => {
+      const lockoutUntil = parseInt(sessionStorage.getItem('hifzhly_login_lockout_until') || '0', 10);
+      const now = Date.now();
+      if (lockoutUntil > now) {
+        const remaining = Math.ceil((lockoutUntil - now) / 1000);
+        setLockoutRemaining(remaining);
+      } else {
+        setLockoutRemaining(0);
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Register Form States
   const [regFullName, setRegFullName] = useState('');
@@ -84,6 +109,11 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
     e.preventDefault();
     setLoginError('');
 
+    if (lockoutRemaining > 0) {
+      setLoginError(`Terlalu banyak percobaan gagal. Demi keamanan, silakan tunggu ${lockoutRemaining} detik sebelum mencoba lagi.`);
+      return;
+    }
+
     const cleanIdentifier = loginIdentifier.trim();
     const cleanPass = loginPassword.trim();
 
@@ -127,6 +157,12 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
         loggedUser.role = 'admin';
       }
 
+      // Reset counter percobaan gagal saat login berhasil
+      sessionStorage.removeItem('hifzhly_login_failed_attempts');
+      sessionStorage.removeItem('hifzhly_login_lockout_until');
+      setFailedAttempts(0);
+      setLockoutRemaining(0);
+
       localStorage.setItem('hifzhly_auth_token', tokenStr);
       localStorage.setItem('token', tokenStr);
       localStorage.setItem('hifzhly_user_profile', JSON.stringify(loggedUser));
@@ -139,10 +175,22 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
         window.location.href = '/app';
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        setLoginError('Koneksi ke server waktu habis (timeout). Harap periksa jaringan internet Anda.');
+      const nextAttempts = failedAttempts + 1;
+      setFailedAttempts(nextAttempts);
+      sessionStorage.setItem('hifzhly_login_failed_attempts', nextAttempts.toString());
+
+      if (nextAttempts >= 5) {
+        const cooldownSeconds = 30;
+        const lockoutUntil = Date.now() + cooldownSeconds * 1000;
+        sessionStorage.setItem('hifzhly_login_lockout_until', lockoutUntil.toString());
+        setLockoutRemaining(cooldownSeconds);
+        setLoginError(`Terlalu banyak percobaan login gagal (${nextAttempts} kali). Demi keamanan akun Anda, silakan tunggu 30 detik.`);
       } else {
-        setLoginError(err.message || 'Terjadi kesalahan sistem saat menghubungi server.');
+        const remaining = 5 - nextAttempts;
+        const baseMsg = err.name === 'AbortError'
+          ? 'Koneksi ke server waktu habis (timeout). Harap periksa jaringan internet Anda.'
+          : (err.message || 'Username atau kata sandi tidak valid. Silakan periksa kembali.');
+        setLoginError(`${baseMsg} (Percobaan ${nextAttempts}/5. Tersisa ${remaining} kesempatan sebelum jeda 30 detik)`);
       }
     } finally {
       setLoginLoading(false);
@@ -472,9 +520,24 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
               </div>
 
               {loginError && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-                  <span className="leading-snug font-medium">{loginError}</span>
+                <div
+                  className={`p-3.5 rounded-xl text-xs flex items-start space-x-2.5 border ${
+                    lockoutRemaining > 0
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-red-50 border-red-200 text-red-700'
+                  }`}
+                >
+                  {lockoutRemaining > 0 ? (
+                    <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5 animate-pulse" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                  )}
+                  <div className="flex-1 space-y-0.5">
+                    <p className="leading-snug font-semibold">
+                      {lockoutRemaining > 0 ? 'Proteksi Keamanan Aktif' : 'Autentikasi Gagal'}
+                    </p>
+                    <p className="leading-snug">{loginError}</p>
+                  </div>
                 </div>
               )}
 
@@ -545,13 +608,18 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
                 <button
                   type="submit"
-                  disabled={loginLoading}
-                  className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer pt-2"
+                  disabled={loginLoading || lockoutRemaining > 0}
+                  className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-2"
                 >
                   {loginLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Memverifikasi Akun...</span>
+                    </>
+                  ) : lockoutRemaining > 0 ? (
+                    <>
+                      <Clock className="w-4 h-4" />
+                      <span>Terkunci Sementara ({lockoutRemaining}s)</span>
                     </>
                   ) : (
                     <>
@@ -840,9 +908,24 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
               </div>
 
               {loginError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-                  <span className="leading-snug">{loginError}</span>
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-start space-x-2 border ${
+                    lockoutRemaining > 0
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-red-50 border-red-200 text-red-700'
+                  }`}
+                >
+                  {lockoutRemaining > 0 ? (
+                    <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5 animate-pulse" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                  )}
+                  <div className="flex-1 space-y-0.5">
+                    <p className="leading-snug font-semibold text-[11px]">
+                      {lockoutRemaining > 0 ? 'Proteksi Keamanan Aktif' : 'Autentikasi Gagal'}
+                    </p>
+                    <p className="leading-snug text-[11px]">{loginError}</p>
+                  </div>
                 </div>
               )}
 
@@ -902,13 +985,18 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
                 <button
                   type="submit"
-                  disabled={loginLoading}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-70 cursor-pointer pt-1"
+                  disabled={loginLoading || lockoutRemaining > 0}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-1"
                 >
                   {loginLoading ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span>Memverifikasi...</span>
+                    </>
+                  ) : lockoutRemaining > 0 ? (
+                    <>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Terkunci Sementara ({lockoutRemaining}s)</span>
                     </>
                   ) : (
                     <>
