@@ -32,6 +32,7 @@ import {
   getStoredNotifications,
   syncNotificationsWithContext,
 } from '../lib/notificationService';
+import { schedulePrayerNotifications } from '../lib/adzanNotificationService';
 import NotificationCenterModal from '../components/notification/NotificationCenterModal';
 
 interface PrayerSchedule {
@@ -75,6 +76,18 @@ export default function DashboardPage() {
     });
     setNotifications(synced);
   };
+
+  // Jadwalkan notifikasi native Adzan di smartphone saat jadwal sholat dimuat
+  useEffect(() => {
+    if (prayerTimes && prayerTimes.length > 0) {
+      schedulePrayerNotifications(
+        prayerTimes.map((p) => ({
+          name: p.name === 'Shubuh' ? 'Subuh' : p.name,
+          time: p.time,
+        }))
+      ).catch(() => {});
+    }
+  }, [prayerTimes]);
 
   // Load Real Prayer Times (equran.id API v2 shalat with city preference) and Doa
   const loadPrayerSchedule = () => {

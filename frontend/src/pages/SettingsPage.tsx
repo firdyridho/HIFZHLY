@@ -22,10 +22,18 @@ import {
   Square,
   Navigation,
   Download,
+  Bell,
+  Clock,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
 import { checkForUpdate, executeAppUpdate, type UpdateInfo } from '../lib/appUpdateService';
+import {
+  isAdzanNotificationEnabled,
+  setAdzanNotificationEnabled,
+  requestNotificationPermission,
+  triggerTestAdzanNotification,
+} from '../lib/adzanNotificationService';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -72,6 +80,40 @@ export default function SettingsPage() {
       setUpdateCheckStatus('Gagal terhubung ke server pembaruan.');
     } finally {
       setIsCheckingUpdate(false);
+    }
+  };
+
+  // Notifikasi Adzan & Jadwal Sholat Mobile State
+  const [adzanEnabled, setAdzanEnabled] = useState(() => isAdzanNotificationEnabled());
+  const [testAdzanStatus, setTestAdzanStatus] = useState<string | null>(null);
+  const [isTestingAdzan, setIsTestingAdzan] = useState(false);
+
+  const handleToggleAdzan = async () => {
+    const next = !adzanEnabled;
+    if (next) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        setTestAdzanStatus('Izin notifikasi belum diizinkan di sistem HP');
+        return;
+      }
+    }
+    await setAdzanNotificationEnabled(next);
+    setAdzanEnabled(next);
+    setTestAdzanStatus(next ? 'Notifikasi Adzan & Jadwal Sholat aktif' : 'Notifikasi Adzan dinonaktifkan');
+  };
+
+  const handleTestAdzan = async () => {
+    setIsTestingAdzan(true);
+    setTestAdzanStatus('Mengirimkan notifikasi adzan (2 detik)... Cek bilah status bar HP');
+    const ok = await triggerTestAdzanNotification();
+    if (ok) {
+      setTimeout(() => {
+        setIsTestingAdzan(false);
+        setTestAdzanStatus('Notifikasi adzan berhasil terkirim ke HP!');
+      }, 2500);
+    } else {
+      setIsTestingAdzan(false);
+      setTestAdzanStatus('Izin notifikasi tidak aktif');
     }
   };
 
@@ -588,6 +630,59 @@ export default function SettingsPage() {
               {updateCheckStatus && (
                 <p className="text-[11px] text-center text-slate-600 font-medium animate-in fade-in">
                   {updateCheckStatus}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* SECTION: NOTIFIKASI ADZAN & JADWAL SHOLAT MOBILE */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                  <Bell className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Notifikasi Adzan</h3>
+                  <p className="text-[11px] text-slate-500">Pengingat 5 waktu sholat</p>
+                </div>
+              </div>
+
+              {/* Toggle Switch */}
+              <button
+                type="button"
+                onClick={handleToggleAdzan}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                  adzanEnabled ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+                title={adzanEnabled ? 'Matikan Pengingat Adzan' : 'Aktifkan Pengingat Adzan'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    adzanEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Smartphone Anda akan otomatis menampilkan notifikasi dan bersuara saat adzan Subuh, Dzuhur, Ashar, Maghrib, dan Isya tiba.
+            </p>
+
+            <div className="pt-1 space-y-2">
+              <button
+                type="button"
+                onClick={handleTestAdzan}
+                disabled={isTestingAdzan}
+                className="w-full py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+              >
+                <Clock className={`w-3.5 h-3.5 ${isTestingAdzan ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+                <span>{isTestingAdzan ? 'Mengirim Notifikasi...' : 'Uji Notifikasi Adzan (2 Detik)'}</span>
+              </button>
+
+              {testAdzanStatus && (
+                <p className="text-[11px] text-center text-emerald-700 font-medium animate-in fade-in">
+                  {testAdzanStatus}
                 </p>
               )}
             </div>

@@ -137,6 +137,111 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
   }
 }
 
+export interface ApkDownloadProgress {
+  percent: number;
+  loadedMB: string;
+  totalMB: string;
+  isComplete: boolean;
+  error?: string;
+}
+
+/**
+ * Eksekusi pengunduhan APK di latar belakang dengan pemantauan progress real-time
+ */
+export async function downloadApkWithProgress(
+  downloadUrl: string = APK_DIRECT_URL,
+  onProgress: (p: ApkDownloadProgress) => void
+): Promise<void> {
+  // 1. Picu Android DownloadManager di background sistem agar tersimpan di folder Download HP
+  try {
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = 'hifzhly-update.apk';
+    a.target = '_self';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+    }, 500);
+  } catch (err) {
+    console.warn('Native DownloadManager trigger notice:', err);
+  }
+
+  // 2. Baca streaming body untuk menampilkan progress bar persentase (0% -> 100%) langsung di aplikasi
+  try {
+    const res = await fetch(downloadUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal mengunduh berkas`);
+
+    const contentLength = res.headers.get('content-length');
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
+    const totalMB = total > 0 ? (total / (1024 * 1024)).toFixed(1) : '35.0';
+
+    if (!res.body) {
+      onProgress({
+        percent: 100,
+        loadedMB: totalMB,
+        totalMB,
+        isComplete: true,
+      });
+      return;
+    }
+
+    const reader = res.body.getReader();
+    let loaded = 0;
+    const chunks: Uint8Array[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      if (value) {
+        chunks.push(value);
+        loaded += value.length;
+        const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+        const percent = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : Math.min(95, Math.round(loaded / 400000));
+
+        onProgress({
+          percent,
+          loadedMB,
+          totalMB: total > 0 ? totalMB : `${loadedMB}+`,
+          isComplete: false,
+        });
+      }
+    }
+
+    const finalMB = (loaded / (1024 * 1024)).toFixed(1);
+    
+    // Buat Blob URL dan tawarkan pemasangan langsung
+    try {
+      const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+      const blobUrl = URL.createObjectURL(blob);
+      const installLink = document.createElement('a');
+      installLink.href = blobUrl;
+      installLink.download = 'hifzhly-update.apk';
+      document.body.appendChild(installLink);
+      installLink.click();
+      setTimeout(() => {
+        document.body.removeChild(installLink);
+      }, 1000);
+    } catch {}
+
+    onProgress({
+      percent: 100,
+      loadedMB: finalMB,
+      totalMB: finalMB,
+      isComplete: true,
+    });
+  } catch (err: any) {
+    onProgress({
+      percent: 100,
+      loadedMB: '0',
+      totalMB: '0',
+      isComplete: true,
+      error: err?.message || 'Gagal memantau unduhan di aplikasi',
+    });
+  }
+}
+
 /**
  * Eksekusi pengunduhan APK di latar belakang dan memicu paket instalasi native Android
  */
@@ -147,7 +252,7 @@ export function executeAppUpdate(downloadUrl: string = APK_DIRECT_URL): void {
   } catch {
     const a = document.createElement('a');
     a.href = downloadUrl;
-    a.download = 'hifzhly-latest.apk';
+    a.download = 'hifzhly-update.apk';
     a.target = '_blank';
     document.body.appendChild(a);
     a.click();
