@@ -238,3 +238,4 @@ export async function triggerTestAdzanNotification(): Promise<boolean> {
     return false;
   }
 }
+

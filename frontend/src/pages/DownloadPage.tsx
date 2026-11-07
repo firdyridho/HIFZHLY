@@ -27,6 +27,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { playSuccessChime, playClickTone } from '../lib/soundUtils';
+import { APK_DIRECT_URL } from '../version';
 
 interface PlatformDetails {
   id: 'android' | 'ios' | 'windows' | 'mac';
@@ -213,15 +214,14 @@ export default function DownloadPage() {
 
   const currentPlatform = PLATFORMS_DATA.find((p) => p.id === selectedPlatformId) || PLATFORMS_DATA[0];
 
-  const DIRECT_APK_DOWNLOAD_URL =
-    'https://github.com/firdyridho/HIFZHLY/releases/download/v1.0.0-apk/hifzhly-v1.0.apk';
+  const DIRECT_APK_DOWNLOAD_URL = APK_DIRECT_URL;
 
   const handleStartAndroidDownload = () => {
     playSuccessChime();
     setIsAndroidDownloadModalOpen(true);
     const link = document.createElement('a');
     link.href = DIRECT_APK_DOWNLOAD_URL;
-    link.download = 'hifzhly-v1.0.apk';
+    link.download = 'hifzhly-latest.apk';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -306,17 +306,17 @@ export default function DownloadPage() {
         <div className="absolute top-32 left-10 w-72 h-72 bg-teal-400/10 blur-3xl pointer-events-none rounded-full" />
         <div className="absolute top-32 right-10 w-72 h-72 bg-emerald-300/15 blur-3xl pointer-events-none rounded-full" />
 
-        {/* Floating Top Nav (Clean Light Styling, Zero Badges) */}
-        <div className="relative z-20 max-w-5xl mx-auto flex items-center justify-between py-2 px-4 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-xs mb-10 sm:mb-14">
+        {/* Floating Top Nav (Clean Light Styling, Zero Badges, Full Mobile Responsive) */}
+        <div className="relative z-20 max-w-5xl mx-auto flex items-center justify-between py-2 px-3 sm:px-4 rounded-2xl sm:rounded-full bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-xs mb-8 sm:mb-14">
           <Link
             to="/"
             onClick={() => playClickTone()}
-            className="flex items-center space-x-2.5 text-slate-800 hover:text-emerald-700 transition-colors"
+            className="flex items-center space-x-2 sm:space-x-2.5 text-slate-800 hover:text-emerald-700 transition-colors shrink-0"
           >
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 border border-slate-200">
-              <ArrowLeft className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 border border-slate-200 shrink-0">
+              <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
               <img
                 src="/logo saja.png"
                 alt="Hifzhly Logo"
@@ -328,14 +328,15 @@ export default function DownloadPage() {
             </div>
           </Link>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               type="button"
               onClick={() => {
                 playClickTone();
                 setIsQrModalOpen(true);
               }}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Buka Melalui QR di Ponsel"
             >
               <QrCode className="w-3.5 h-3.5 text-slate-500" />
               <span>Buka di HP</span>
@@ -344,40 +345,41 @@ export default function DownloadPage() {
             <Link
               to="/app"
               onClick={() => playClickTone()}
-              className="inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors"
+              className="inline-flex items-center space-x-1 sm:space-x-1.5 px-3 sm:px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
             >
-              <span>Buka Web App</span>
+              <span className="hidden xs:inline">Buka </span>
+              <span>Web App</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Hero Title & Direct Download Quick Actions */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4 sm:space-y-5 px-1 sm:px-0">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
             Aplikasi Mandiri • Android • iOS • Windows • macOS
           </p>
 
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-slate-900">
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.12] sm:leading-[1.08] text-slate-900">
             Hafalan Lebih Kuat.{' '}
             <span className="text-emerald-700 block mt-1">
               Unduh Aplikasi Hifzhly.
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto font-sans">
+          <p className="text-xs sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto font-sans px-2 sm:px-0">
             Gunakan aplikasi mandiri Hifzhly di smartphone dan komputer Anda. Dilengkapi pemrosesan suara AI lokal 0ms tanpa ketergantungan kuota internet.
           </p>
 
           {/* ======================================================== */}
           {/* DUAL MAIN ACTION BUTTONS: ANDROID APK & IOS PWA */}
           {/* ======================================================== */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 max-w-sm sm:max-w-lg mx-auto w-full px-2 sm:px-0">
             {/* Action 1: Download Android APK */}
             <button
               type="button"
               onClick={handleStartAndroidDownload}
-              className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-2 px-5 sm:px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Download APK Android</span>
@@ -390,14 +392,14 @@ export default function DownloadPage() {
                 playClickTone();
                 setIsIosGuideModalOpen(true);
               }}
-              className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm border border-slate-200 shadow-xs transition-all active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-2 px-5 sm:px-6 py-3 rounded-2xl bg-white hover:bg-slate-50 active:scale-95 text-slate-800 font-bold text-xs sm:text-sm border border-slate-200 shadow-xs transition-all cursor-pointer"
             >
               <Apple className="w-4 h-4 text-slate-700" />
               <span>Pasang di iPhone / iPad</span>
             </button>
           </div>
 
-          <p className="text-xs text-slate-500 font-sans">
+          <p className="text-[11px] sm:text-xs text-slate-500 font-sans">
             Tersedia untuk Android (berkas APK langsung) dan iPhone/iPad (PWA Home Screen).
           </p>
         </div>
@@ -405,9 +407,9 @@ export default function DownloadPage() {
         {/* ======================================================== */}
         {/* HERO DEVICE PREVIEW WITH ACCURATE HIFZHLY SCREEN */}
         {/* ======================================================== */}
-        <div className="relative z-20 max-w-sm mx-auto mt-12 sm:mt-16">
+        <div className="relative z-20 max-w-xs sm:max-w-sm mx-auto mt-10 sm:mt-16 px-2 sm:px-0">
           {/* Realistic iPhone Mockup Frame */}
-          <div className="relative mx-auto w-[290px] sm:w-[320px] aspect-[9/18.5] rounded-[48px] bg-slate-950 p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-900/10 overflow-hidden">
+          <div className="relative mx-auto w-[270px] xs:w-[290px] sm:w-[320px] max-w-full aspect-[9/18.5] rounded-[44px] sm:rounded-[48px] bg-slate-950 p-2.5 sm:p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-900/10 overflow-hidden">
             {/* Dynamic Island */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-between px-2.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -518,37 +520,37 @@ export default function DownloadPage() {
           </div>
 
           {/* Floating Frosted Glass Countdown Bar */}
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[92%] sm:w-[340px] p-2.5 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/90 shadow-xl z-30 text-slate-800">
-            <div className="grid grid-cols-4 gap-2 text-center font-mono">
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                <span className="text-base sm:text-lg font-black text-slate-900 block leading-none">
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-[340px] p-2 sm:p-2.5 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-xl z-30 text-slate-800">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center font-mono">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <span className="text-sm sm:text-lg font-black text-slate-900 block leading-none">
                   {timeLeft.days}
                 </span>
-                <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
                   Hari
                 </span>
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                <span className="text-base sm:text-lg font-black text-slate-900 block leading-none">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <span className="text-sm sm:text-lg font-black text-slate-900 block leading-none">
                   {timeLeft.hours}
                 </span>
-                <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
                   Jam
                 </span>
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                <span className="text-base sm:text-lg font-black text-slate-900 block leading-none">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <span className="text-sm sm:text-lg font-black text-slate-900 block leading-none">
                   {timeLeft.minutes}
                 </span>
-                <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
                   Menit
                 </span>
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                <span className="text-base sm:text-lg font-black text-emerald-600 block leading-none">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                <span className="text-sm sm:text-lg font-black text-emerald-600 block leading-none">
                   {timeLeft.seconds}
                 </span>
-                <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
                   Detik
                 </span>
               </div>
@@ -560,7 +562,7 @@ export default function DownloadPage() {
       {/* ======================================================== */}
       {/* 2. INTERACTIVE 3-STAGE FEATURE SHOWCASE (NO EMPTY VOID!) */}
       {/* ======================================================== */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-24 space-y-10">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-14 sm:py-24 space-y-8 sm:space-y-10">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-700 font-mono">
             KAPABILITAS UTAMA APLIKASI MANDIRI
@@ -574,11 +576,11 @@ export default function DownloadPage() {
         </div>
 
         {/* Stage Selector Tabs */}
-        <div className="flex items-center justify-center p-1 rounded-2xl bg-slate-200/80 max-w-xl mx-auto">
+        <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-slate-200/80 max-w-xl mx-auto w-full">
           {[
-            { id: 1 as const, label: '01 / Deteksi Suara 0ms', icon: Zap },
-            { id: 2 as const, label: '02 / Mode Ghaib AI', icon: Eye },
-            { id: 3 as const, label: '03 / Spaced Repetition', icon: Clock },
+            { id: 1 as const, label: '01 / Deteksi Suara 0ms', shortLabel: '01 Suara 0ms', icon: Zap },
+            { id: 2 as const, label: '02 / Mode Ghaib AI', shortLabel: '02 Mode Ghaib', icon: Eye },
+            { id: 3 as const, label: '03 / Spaced Repetition', shortLabel: '03 SM-2 Murojaah', icon: Clock },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeFeatureStage === tab.id;
@@ -590,15 +592,15 @@ export default function DownloadPage() {
                   playClickTone();
                   setActiveFeatureStage(tab.id);
                 }}
-                className={`flex-1 flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center space-x-1 sm:space-x-1.5 py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-white text-slate-900 shadow-sm'
+                    ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">Tahap {tab.id}</span>
+                <Icon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span className="hidden sm:inline truncate">{tab.label}</span>
+                <span className="sm:hidden truncate">{tab.shortLabel}</span>
               </button>
             );
           })}
@@ -960,7 +962,7 @@ export default function DownloadPage() {
                     Mengunduh APK Hifzhly...
                   </h3>
                   <span className="text-xs text-emerald-800 font-mono font-bold">
-                    hifzhly-v1.0.apk • 18.5 MB
+                    hifzhly-latest.apk • Versi Resmi
                   </span>
                 </div>
               </div>
@@ -972,7 +974,7 @@ export default function DownloadPage() {
                 </div>
                 <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-600">
                   <li>Tunggu unduhan selesai pada bilah notifikasi HP Anda.</li>
-                  <li>Buka file <strong className="text-slate-900">hifzhly-v1.0.apk</strong> setelah selesai.</li>
+                  <li>Buka file <strong className="text-slate-900">hifzhly-latest.apk</strong> setelah selesai.</li>
                   <li>Jika muncul konfirmasi keamanan, pilih <strong className="text-slate-900">"Tetap Pasang" (Install anyway)</strong>.</li>
                   <li>Aplikasi Hifzhly siap dibuka untuk murojaah offline!</li>
                 </ol>
@@ -981,7 +983,7 @@ export default function DownloadPage() {
               <div className="pt-1 space-y-2">
                 <a
                   href={DIRECT_APK_DOWNLOAD_URL}
-                  download="hifzhly-v1.0.apk"
+                  download="hifzhly-latest.apk"
                   onClick={() => playClickTone()}
                   className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                 >
