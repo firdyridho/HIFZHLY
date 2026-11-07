@@ -975,7 +975,8 @@ export default function DownloadPage() {
                 <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-600">
                   <li>Tunggu unduhan selesai pada bilah notifikasi HP Anda.</li>
                   <li>Buka file <strong className="text-slate-900">hifzhly-latest.apk</strong> setelah selesai.</li>
-                  <li>Jika muncul konfirmasi keamanan, pilih <strong className="text-slate-900">"Tetap Pasang" (Install anyway)</strong>.</li>
+                  <li>Jika di HP sudah ada versi lama dan muncul peringatan gagal pasang, copot/uninstall versi lama terlebih dahulu.</li>
+                  <li>Jika muncul konfirmasi Play Protect, pilih <strong className="text-slate-900">"Tetap Pasang" (Install anyway)</strong>.</li>
                   <li>Aplikasi Hifzhly siap dibuka untuk murojaah offline!</li>
                 </ol>
               </div>

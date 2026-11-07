@@ -58,6 +58,19 @@ jobs:
         working-directory: frontend/android
         run: chmod +x gradlew
 
+      - name: Ensure Persistent Android Keystore
+        working-directory: frontend/android
+        run: |
+          if [ ! -f hifzhly.keystore ]; then
+            echo "Generating persistent keystore for continuous app updates..."
+            keytool -genkey -v -keystore hifzhly.keystore -alias hifzhly -keyalg RSA -keysize 2048 -validity 10000 -storepass hifzhly2026 -keypass hifzhly2026 -dname "CN=Hifzhly, OU=Engineering, O=FIFA, L=Jakarta, ST=DKI, C=ID"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add hifzhly.keystore
+            git commit -m "chore(android): persist fixed signing keystore" || true
+            git push origin ${{ github.ref_name }} || true
+          fi
+
       - name: Build Android Debug APK with Dynamic Version
         working-directory: frontend/android
         run: ./gradlew assembleDebug -PprojVersionCode=${{ github.run_number }} -PprojVersionName=1.0.${{ github.run_number }} --stacktrace

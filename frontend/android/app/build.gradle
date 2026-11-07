@@ -16,8 +16,30 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    buildTypes {
+    signingConfigs {
+        debug {
+            if (file('../hifzhly.keystore').exists()) {
+                storeFile file('../hifzhly.keystore')
+                storePassword 'hifzhly2026'
+                keyAlias 'hifzhly'
+                keyPassword 'hifzhly2026'
+            }
+        }
         release {
+            if (file('../hifzhly.keystore').exists()) {
+                storeFile file('../hifzhly.keystore')
+                storePassword 'hifzhly2026'
+                keyAlias 'hifzhly'
+                keyPassword 'hifzhly2026'
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
