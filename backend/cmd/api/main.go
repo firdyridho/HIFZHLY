@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -55,6 +56,15 @@ func main() {
 	// 3. Handlers & Middlewares
 	authHandler := handler.NewAuthHandler(authService)
 	authMiddleware := appMiddleware.NewAuthMiddleware(authService)
+	rateLimiter := appMiddleware.NewRateLimiter(redisClient)
+	defer rateLimiter.Close()
+
+	// Rate Limiting Policies
+	// - Auth Rate Limit: Maksimal 10 request per 1 menit per IP untuk mencegah serangan brute force
+	authRateLimit := rateLimiter.Limit(10, 1*time.Minute)
+	// - AI Engine Rate Limit: Maksimal 30 request per 1 menit per IP
+	aiRateLimit := rateLimiter.Limit(30, 1*time.Minute)
+
 	quranHandler := handler.NewQuranHandler(quranService)
 	murojaahHandler := handler.NewMurojaahHandler(murojaahService)
 	tajwidHandler := handler.NewTajwidHandler(tajwidService)
@@ -79,7 +89,7 @@ func main() {
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
+		ExposedHeaders:   []string{"Link", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
@@ -98,18 +108,18 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", healthHandler)
 
-		// Public Auth Endpoints
-		r.Post("/auth/register", authHandler.Register)
-		r.Post("/auth/login", authHandler.Login)
+		// Public Auth Endpoints (Diproteksi Rate Limiter Brute Force: Max 10 req/menit)
+		r.With(authRateLimit).Post("/auth/register", authHandler.Register)
+		r.With(authRateLimit).Post("/auth/login", authHandler.Login)
 
 		// Protected Auth Endpoints
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
 			r.Get("/auth/me", authHandler.GetMe)
 			r.Put("/auth/profile", authHandler.UpdateProfile)
-			r.Put("/auth/password", authHandler.ChangePassword)
+			r.With(authRateLimit).Put("/auth/password", authHandler.ChangePassword)
 			r.Post("/auth/2fa/setup", authHandler.Setup2FA)
-			r.Post("/auth/2fa/verify", authHandler.Verify2FA)
+			r.With(authRateLimit).Post("/auth/2fa/verify", authHandler.Verify2FA)
 		})
 
 		// Quran Proxy & Enrichment Endpoints
@@ -135,10 +145,10 @@ func main() {
 		})
 
 		// Murojaah AI Voice Evaluator (Word Diff & Scoring via Multipart or JSON)
-		r.Post("/murojaah/evaluate", murojaahHandler.Evaluate)
+		r.With(aiRateLimit).Post("/murojaah/evaluate", murojaahHandler.Evaluate)
 
 		// Real-time Voice AI Engine (VPS AI-Worker / Levenshtein)
-		r.Post("/voice/evaluate", voiceHandler.EvaluateVoice)
+		r.With(aiRateLimit).Post("/voice/evaluate", voiceHandler.EvaluateVoice)
 		r.Get("/voice/health", voiceHandler.HealthCheck)
 
 		// Spaced Repetition (SRS Due Today from PostgreSQL)
