@@ -24,7 +24,9 @@ import {
   Download,
   Bell,
   Clock,
+  AlarmClock,
 } from 'lucide-react';
+import AlarmManagerModal from '../components/common/AlarmManagerModal';
 import type { UserProfile } from '../types';
 import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
 import { checkForUpdate, executeAppUpdate, getInstalledAppInfo, type UpdateInfo } from '../lib/appUpdateService';
@@ -97,6 +99,7 @@ export default function SettingsPage() {
   const [adzanEnabled, setAdzanEnabled] = useState(() => isAdzanNotificationEnabled());
   const [testAdzanStatus, setTestAdzanStatus] = useState<string | null>(null);
   const [isTestingAdzan, setIsTestingAdzan] = useState(false);
+  const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
 
   const handleToggleAdzan = async () => {
     const next = !adzanEnabled;
@@ -216,9 +219,91 @@ export default function SettingsPage() {
     }
     setIsDetectingGps(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
         setCoords({ lat: latitude, lon: longitude });
+
+        try {
+          // Reverse Geocoding via BigDataCloud Open Reverse Geocode
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=id`
+          );
+          if (res.ok) {
+            const geo = await res.json();
+            const detectedCity = (geo.city || geo.locality || '').toUpperCase();
+
+            // Ekstrak nama provinsi dari administrative hierarchy
+            let detectedProv = '';
+            if (geo.localityInfo && Array.isArray(geo.localityInfo.administrative)) {
+              const provAdmin = geo.localityInfo.administrative.find(
+                (a: any) =>
+                  a.adminLevel === 4 ||
+                  (a.description && a.description.toLowerCase().includes('provinsi'))
+              );
+              if (provAdmin?.name) {
+                detectedProv = provAdmin.name.toUpperCase();
+              }
+            }
+            if (!detectedProv && geo.principalSubdivision) {
+              detectedProv = geo.principalSubdivision.toUpperCase();
+            }
+
+            // Cocokkan nama provinsi dengan daftar resmi equran.id
+            const matchedProv = provinsiList.find(
+              (p) =>
+                detectedProv.includes(p) ||
+                p.includes(detectedProv) ||
+                detectedProv.includes(p.replace(/PROVINSI |KEPULAUAN /g, ''))
+            );
+
+            if (matchedProv) {
+              setSelectedProvinsi(matchedProv);
+
+              // Ambil daftar kabupaten/kota untuk provinsi tersebut
+              const kabRes = await fetch('https://equran.id/api/v2/shalat/kabkota', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provinsi: matchedProv }),
+              });
+
+              if (kabRes.ok) {
+                const kabData = await kabRes.json();
+                const list: string[] = Array.isArray(kabData?.data)
+                  ? kabData.data
+                  : Array.isArray(kabData)
+                  ? kabData
+                  : [];
+
+                if (list.length > 0) {
+                  setKabkotaList(list);
+                  const matchedCity =
+                    list.find((c) => {
+                      const cleanC = c.replace(/KOTA |KAB\. /g, '').trim();
+                      return (
+                        c.includes(detectedCity) ||
+                        detectedCity.includes(cleanC) ||
+                        cleanC.includes(detectedCity)
+                      );
+                    }) || list[0];
+
+                  setSelectedKabkota(matchedCity);
+                  localStorage.setItem('hifzhly_prayer_provinsi', matchedProv);
+                  localStorage.setItem('hifzhly_prayer_kabkota', matchedCity);
+                  window.dispatchEvent(new Event('hifzhly_location_updated'));
+                  setLocationSavedMsg(
+                    `Lokasi berhasil dicocokkan otomatis: ${matchedCity}, ${matchedProv}`
+                  );
+                  setIsDetectingGps(false);
+                  setTimeout(() => setLocationSavedMsg(''), 4500);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Reverse geocoding error:', e);
+        }
+
         setIsDetectingGps(false);
         setLocationSavedMsg(`GPS terdeteksi (${latitude.toFixed(4)}, ${longitude.toFixed(4)}). Silakan simpan lokasi.`);
         setTimeout(() => setLocationSavedMsg(''), 4000);
@@ -226,7 +311,8 @@ export default function SettingsPage() {
       () => {
         setIsDetectingGps(false);
         alert('Gagal mendeteksi lokasi GPS. Pastikan izin akses lokasi diizinkan di browser Anda.');
-      }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
@@ -707,6 +793,34 @@ export default function SettingsPage() {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* SECTION: ALARM MANDIRI (MULTI-ALARM) */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                  <AlarmClock className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Alarm Mandiri</h3>
+                  <p className="text-[11px] text-slate-500">Murojaah, hafalan, tahajjud &amp; ibadah</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Atur banyak alarm dengan waktu, deskripsi pengingat kustom di notifikasi, serta pilihan nada dering bawaan atau audio Anda sendiri.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsAlarmModalOpen(true)}
+              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm shadow-emerald-600/20"
+            >
+              <AlarmClock className="w-3.5 h-3.5" />
+              <span>Kelola Alarm Mandiri</span>
+            </button>
           </div>
         </div>
 
@@ -1385,6 +1499,11 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+      {/* Multi-Alarm Manager Modal */}
+      <AlarmManagerModal
+        isOpen={isAlarmModalOpen}
+        onClose={() => setIsAlarmModalOpen(false)}
+      />
     </div>
   );
 }

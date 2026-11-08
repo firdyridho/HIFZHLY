@@ -4,7 +4,7 @@
     <string name="title_activity_main">Hifzhly</string>
     <string name="package_name">com.hifzhly.app</string>
     <string name="custom_url_scheme">com.hifzhly.app</string>
-    <string name="developer_name">Firdy Ridho Fillah (FIFA)</string>
+    <string name="developer_name">Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya (Tim FIFA)</string>
     <string name="app_version">1.0.1</string>
     <string name="app_description">Pendamping Hafalan dan Murojaah Al-Quran Cerdas Berbasis AI</string>
 </resources>

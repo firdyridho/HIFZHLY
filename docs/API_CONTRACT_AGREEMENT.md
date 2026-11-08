@@ -4,7 +4,7 @@
 | :--- | :--- |
 | **Dokumen** | Perjanjian Kontrak Antarmuka Komunikasi Data (REST API & Audio Pipeline) |
 | **Pihak Terikat** | **Firdy Ridho Fillah** (Backend & AI) & **Faeyza Ardellein Yaradhitya** (Frontend & UI/UX) |
-| **Tim / Institusi** | Tim FIFA - Universitas Sultan Ageng Tirtayasa |
+| **Tim / Institusi** | Tim FIFA (Firdy Ridho Fillah & Faeyza Ardellein Yaradhitya) |
 | **Versi Kontrak** | 1.0 (Mengikat & Berlaku untuk Hackathon 24 Jam) |
 | **Tanggal Kesepakatan**| 2026-10-31 |
 | **Dokumen Terkait** | [`PRD.md`](./PRD.md) / [`ERD.md`](./ERD.md) / [`API.md`](./API.md) / [`TASKS.md`](./TASKS.md) |

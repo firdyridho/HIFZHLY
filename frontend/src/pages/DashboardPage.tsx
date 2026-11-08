@@ -23,7 +23,9 @@ import {
   ChevronRight,
   X,
   Trophy,
+  AlarmClock,
 } from 'lucide-react';
+import AlarmManagerModal from '../components/common/AlarmManagerModal';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 import { getStoredMutabaahLogs, formatDateKey } from '../lib/mutabaahService';
 import { getStoredTajwidModules, fetchSynchronizedTajwidModules } from '../lib/tajwidStore';
@@ -63,6 +65,7 @@ export default function DashboardPage() {
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
   const [todayReviewed, setTodayReviewed] = useState(10);
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => getStoredNotifications());
+  const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
 
   const loadNotifications = () => {
     const p = prayerTimes[0] || DEFAULT_PRAYER_TIMES[0];
@@ -305,6 +308,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => setIsAlarmModalOpen(true)}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
+              title="Kelola Alarm Mandiri"
+            >
+              <AlarmClock className="w-4 h-4" />
+            </button>
             <Link
               to="/app/settings"
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
@@ -764,6 +775,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Multi-Alarm Manager Modal */}
+      <AlarmManagerModal
+        isOpen={isAlarmModalOpen}
+        onClose={() => setIsAlarmModalOpen(false)}
+      />
     </div>
   );
 }

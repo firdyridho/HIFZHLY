@@ -213,7 +213,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="text-center sm:text-right">
-            © 2026 Tim FIFA - Universitas Sultan Ageng Tirtayasa. Hackathon 24 Jam.
+            © 2026 Tim FIFA (Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya).
           </p>
         </div>
       </footer>

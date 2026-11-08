@@ -42,6 +42,10 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
+  // Two-Factor Authentication (2FA TOTP) States
+  const [is2FAStep, setIs2FAStep] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+
   // Brute Force Lockout Protection States (5 Percobaan Gagal -> Cooldown 30 Detik)
   const [failedAttempts, setFailedAttempts] = useState<number>(() => {
     return parseInt(sessionStorage.getItem('hifzhly_login_failed_attempts') || '0', 10);
@@ -98,13 +102,15 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
   const switchMode = (targetRegister: boolean) => {
     setIsRegister(targetRegister);
+    setIs2FAStep(false);
+    setTwoFactorCode('');
     setLoginError('');
     setRegError('');
     const newPath = targetRegister ? '/register' : '/login';
     window.history.pushState(null, '', newPath);
   };
 
-  // Execute Login
+  // Execute Login & 2FA Verification
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -116,10 +122,18 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
     const cleanIdentifier = loginIdentifier.trim();
     const cleanPass = loginPassword.trim();
+    const clean2FACode = twoFactorCode.trim();
 
-    if (!cleanIdentifier || !cleanPass) {
-      setLoginError('Username/email dan kata sandi wajib diisi.');
-      return;
+    if (is2FAStep) {
+      if (!clean2FACode || clean2FACode.length !== 6) {
+        setLoginError('Harap masukkan 6 digit kode keamanan 2FA dari aplikasi authenticator Anda.');
+        return;
+      }
+    } else {
+      if (!cleanIdentifier || !cleanPass) {
+        setLoginError('Username/email dan kata sandi wajib diisi.');
+        return;
+      }
     }
 
     setLoginLoading(true);
@@ -134,6 +148,7 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
         body: JSON.stringify({
           usernameOrEmail: cleanIdentifier,
           password: cleanPass,
+          twoFactorCode: is2FAStep ? clean2FACode : undefined,
         }),
         signal: controller.signal,
       });
@@ -144,6 +159,15 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
       if (!res.ok) {
         throw new Error(data.error || 'Username atau kata sandi tidak valid. Silakan periksa kembali.');
+      }
+
+      // Jika akun mengaktifkan 2FA dan server meminta kode verifikasi TOTP
+      if (data.require2fa) {
+        setIs2FAStep(true);
+        setTwoFactorCode('');
+        setLoginError('');
+        setLoginLoading(false);
+        return;
       }
 
       const loggedUser: UserProfile = data.user;
@@ -541,94 +565,159 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                    Username atau Email
-                  </label>
-                  <div className="relative">
+              {is2FAStep ? (
+                /* Two-Factor Authentication (2FA) Step */
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+                    <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Verifikasi Dua Langkah (2FA)</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Akun <strong>{loginIdentifier}</strong> dilindungi oleh 2FA. Buka Google Authenticator atau aplikasi sejenis di ponsel Anda, lalu masukkan 6 digit kode keamanan.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider text-center">
+                      Kode Verifikasi 6-Digit
+                    </label>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      autoFocus
                       required
-                      value={loginIdentifier}
-                      onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="Contoh: ahmad_hifzh atau admin"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      maxLength={6}
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="w-full py-3 px-4 rounded-xl border-2 border-emerald-500 bg-white text-center font-mono text-2xl tracking-[0.4em] font-extrabold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 shadow-sm"
                     />
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <p className="text-[11px] text-slate-400 text-center">Kode berganti setiap 30 detik di smartphone Anda</p>
                   </div>
-                </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                    Kata Sandi
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showLoginPassword ? 'text' : 'password'}
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Masukkan kata sandi akunmu"
-                      className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
-                    />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="submit"
+                      disabled={loginLoading || twoFactorCode.length !== 6}
+                      className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {loginLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Memverifikasi Kode...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Verifikasi &amp; Masuk</span>
+                        </>
+                      )}
+                    </button>
+
                     <button
                       type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                      onClick={() => {
+                        setIs2FAStep(false);
+                        setTwoFactorCode('');
+                        setLoginError('');
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
-                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      Batal / Gunakan Akun Lain
                     </button>
                   </div>
-                </div>
-
-                {/* Clean 1-Click Demo Testing Buttons (Zero Badges) */}
-                <div className="pt-1">
-                  <p className="text-[11px] text-slate-400 mb-1.5 font-medium">Akses Pengujian Cepat:</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={fillDemoAdmin}
-                      className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Admin Demo</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={fillDemoSantri}
-                      className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
-                    >
-                      <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Santri Demo</span>
-                    </button>
+                </form>
+              ) : (
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Username atau Email
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        placeholder="Contoh: ahmad_hifzh atau admin"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    </div>
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={loginLoading || lockoutRemaining > 0}
-                  className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-2"
-                >
-                  {loginLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Memverifikasi Akun...</span>
-                    </>
-                  ) : lockoutRemaining > 0 ? (
-                    <>
-                      <Clock className="w-4 h-4" />
-                      <span>Terkunci Sementara ({lockoutRemaining}s)</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Masuk ke Hifzhly</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Kata Sandi
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? 'text' : 'password'}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="Masukkan kata sandi akunmu"
+                        className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
+                      />
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 focus:outline-hidden cursor-pointer"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Clean 1-Click Demo Testing Buttons (Zero Badges) */}
+                  <div className="pt-1">
+                    <p className="text-[11px] text-slate-400 mb-1.5 font-medium">Akses Pengujian Cepat:</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={fillDemoAdmin}
+                        className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Admin Demo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={fillDemoSantri}
+                        className="py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Santri Demo</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loginLoading || lockoutRemaining > 0}
+                    className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-2"
+                  >
+                    {loginLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Memverifikasi Akun...</span>
+                      </>
+                    ) : lockoutRemaining > 0 ? (
+                      <>
+                        <Clock className="w-4 h-4" />
+                        <span>Terkunci Sementara ({lockoutRemaining}s)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Masuk ke Hifzhly</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Bottom Footer Note */}
@@ -929,83 +1018,147 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-700">Username atau Email</label>
-                  <input
-                    type="text"
-                    required
-                    value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder="Masukkan username atau email"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
+              {is2FAStep ? (
+                /* Mobile 2FA Form */
+                <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center space-x-1.5 text-emerald-800 font-bold text-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Verifikasi Dua Langkah (2FA)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Masukkan 6 digit kode keamanan dari aplikasi authenticator di ponsel Anda.
+                    </p>
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-700">Kata Sandi</label>
-                  <div className="relative">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700 text-center uppercase tracking-wider">
+                      Kode Verifikasi 6-Digit
+                    </label>
                     <input
-                      type={showLoginPassword ? 'text' : 'password'}
+                      type="text"
+                      inputMode="numeric"
+                      autoFocus
                       required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Masukkan kata sandi"
-                      className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      maxLength={6}
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="w-full py-2.5 px-3 rounded-xl border-2 border-emerald-500 bg-white text-center font-mono text-xl tracking-[0.35em] font-extrabold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                     />
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={loginLoading || twoFactorCode.length !== 6}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {loginLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Memverifikasi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Verifikasi &amp; Masuk</span>
+                        </>
+                      )}
+                    </button>
+
                     <button
                       type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400"
+                      onClick={() => {
+                        setIs2FAStep(false);
+                        setTwoFactorCode('');
+                        setLoginError('');
+                      }}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
-                      {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      Batal / Gunakan Akun Lain
                     </button>
                   </div>
-                </div>
+                </form>
+              ) : (
+                <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Username atau Email</label>
+                    <input
+                      type="text"
+                      required
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder="Masukkan username atau email"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
 
-                {/* Subtle Demo Buttons */}
-                <div className="pt-1 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={fillDemoAdmin}
-                    className="py-1.5 px-2 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 hover:bg-slate-50"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Admin Demo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={fillDemoSantri}
-                    className="py-1.5 px-2 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 hover:bg-slate-50"
-                  >
-                    <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Santri Demo</span>
-                  </button>
-                </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Kata Sandi</label>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? 'text' : 'password'}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="Masukkan kata sandi"
+                        className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3 top-2.5 text-slate-400"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={loginLoading || lockoutRemaining > 0}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-1"
-                >
-                  {loginLoading ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Memverifikasi...</span>
-                    </>
-                  ) : lockoutRemaining > 0 ? (
-                    <>
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Terkunci Sementara ({lockoutRemaining}s)</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Masuk ke Hifzhly</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
-              </form>
+                  {/* Subtle Demo Buttons */}
+                  <div className="pt-1 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={fillDemoAdmin}
+                      className="py-1.5 px-2 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 hover:bg-slate-50"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Admin Demo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={fillDemoSantri}
+                      className="py-1.5 px-2 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-700 flex items-center justify-center space-x-1 hover:bg-slate-50"
+                    >
+                      <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Santri Demo</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loginLoading || lockoutRemaining > 0}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer pt-1"
+                  >
+                    {loginLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Memverifikasi...</span>
+                      </>
+                    ) : lockoutRemaining > 0 ? (
+                      <>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Terkunci Sementara ({lockoutRemaining}s)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Masuk ke Hifzhly</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </div>

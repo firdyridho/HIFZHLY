@@ -6,7 +6,7 @@
 | **Versi Dokumen** | 1.0 (Arsitektur Full-Stack & AI Terintegrasi) |
 | **Status** | Aktif / Hackathon FIFA 24 Jam |
 | **Subtema** | Subtema 1: Inclusive Education and Future Skills |
-| **Tim Pengembang** | FIFA - Universitas Sultan Ageng Tirtayasa |
+| **Tim Pengembang** | Tim FIFA (Firdy Ridho Fillah & Faeyza Ardellein Yaradhitya) |
 | **Ketua Tim (Backend & AI)** | Firdy Ridho Fillah |
 | **Anggota (Frontend & UI/UX)**| Faeyza Ardellein Yaradhitya |
 | **Tanggal Pembaruan** | 2026-10-31 |

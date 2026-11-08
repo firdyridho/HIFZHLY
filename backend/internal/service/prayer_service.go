@@ -24,7 +24,7 @@ func NewPrayerTimesService(redisClient *redis.Client) PrayerTimesService {
 
 func (s *prayerTimesService) GetPrayerTimes(ctx context.Context, city string) (*model.PrayerTimesResponse, error) {
 	if city == "" {
-		city = "Serang, Banten (Untirta)"
+		city = "Serang, Banten"
 	}
 
 	loc, _ := time.LoadLocation("Asia/Jakarta")
@@ -33,7 +33,7 @@ func (s *prayerTimesService) GetPrayerTimes(ctx context.Context, city string) (*
 	}
 	now := time.Now().In(loc)
 
-	// Koordinat Untirta Serang Banten: Lat: -6.12, Long: 106.15
+	// Koordinat Serang Banten: Lat: -6.12, Long: 106.15
 	lat := -6.12
 	lng := 106.15
 	timezone := 7.0

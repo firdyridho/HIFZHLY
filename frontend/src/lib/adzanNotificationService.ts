@@ -14,6 +14,7 @@ export interface PrayerTimeItem {
 
 const STORAGE_KEY = 'hifzhly_adzan_notif_enabled';
 export const ADZAN_CHANNEL_ID = 'hifzhly-adzan-channel-v2';
+export const ADZAN_SUBUH_CHANNEL_ID = 'hifzhly-adzan-subuh-channel-v1';
 export const ADZAN_ACTION_TYPE_ID = 'ADZAN_BANNER_ACTIONS';
 export const ACTION_STOP_ADZAN = 'STOP_ADZAN';
 export const ACTION_OPEN_APP = 'OPEN_APP';
@@ -43,12 +44,13 @@ export function stopAdzanAudio(): void {
 }
 
 /**
- * Putar audio adzan Makkah secara langsung (Web fallback atau preview)
+ * Putar audio adzan (Makkah reguler atau Subuh dengan Ash-shalatu khairum minan-naum) secara langsung (Web fallback atau preview)
  */
-export function playAdzanAudio(): void {
+export function playAdzanAudio(isSubuh: boolean = false): void {
   try {
     stopAdzanAudio();
-    const audio = new Audio('/audio/adzan.mp3');
+    const soundFile = isSubuh ? '/audio/adzan_subuh.mp3' : '/audio/adzan.mp3';
+    const audio = new Audio(soundFile);
     activeAdzanAudio = audio;
     audio.play().catch(() => {});
   } catch (err) {
@@ -118,14 +120,27 @@ export async function initAdzanNotificationChannel(): Promise<void> {
       ],
     });
 
-    // 2. Buat Notification Channel v2 khusus dengan suara Adzan Makkah (adzan.mp3)
+    // 2. Buat Notification Channel v2 untuk sholat reguler dengan suara Adzan Makkah (adzan.mp3)
     await LocalNotifications.createChannel({
       id: ADZAN_CHANNEL_ID,
-      name: 'Jadwal Sholat & Adzan',
-      description: 'Pengingat adzan otomatis saat masuk waktu sholat 5 waktu',
+      name: 'Jadwal Sholat 5 Waktu',
+      description: 'Pengingat adzan otomatis saat masuk waktu sholat Dzuhur, Ashar, Maghrib, Isya',
       importance: 5, // High
       visibility: 1, // Public di lockscreen
       sound: 'adzan.mp3',
+      vibration: true,
+      lights: true,
+      lightColor: '#059669',
+    });
+
+    // 3. Buat Notification Channel khusus Sholat Subuh dengan lafaz Ash-shalatu khairum minan-naum (adzan_subuh.mp3)
+    await LocalNotifications.createChannel({
+      id: ADZAN_SUBUH_CHANNEL_ID,
+      name: 'Jadwal Sholat Subuh (Adzan Subuh)',
+      description: 'Pengingat adzan Subuh khusus dengan lafaz Ash-shalatu khairum minan-naum',
+      importance: 5, // High
+      visibility: 1, // Public di lockscreen
+      sound: 'adzan_subuh.mp3',
       vibration: true,
       lights: true,
       lightColor: '#059669',
@@ -254,16 +269,23 @@ export async function schedulePrayerNotifications(prayers: PrayerTimeItem[]): Pr
         scheduleDate.setDate(scheduleDate.getDate() + 1);
       }
 
+      const isSubuh = prayer.name.toLowerCase().includes('subuh');
+      const channelId = isSubuh ? ADZAN_SUBUH_CHANNEL_ID : ADZAN_CHANNEL_ID;
+      const soundFile = isSubuh ? 'adzan_subuh.mp3' : 'adzan.mp3';
+      const notifBody = isSubuh
+        ? `Ash-shalatu khairum minan-naum. Waktu ${prayer.name} telah tiba (${prayer.time}). Mari dirikan sholat Subuh dan awali hari dengan tilawah Al-Qur'an.`
+        : `Hayya 'alash-Sholah. Waktu ${prayer.name} telah tiba (${prayer.time}). Mari sejenak tunaikan sholat dan lanjutkan tilawah Al-Qur'an.`;
+
       notificationsToSchedule.push({
         id,
         title: `Waktu Sholat ${prayer.name} (${prayer.time})`,
-        body: `Hayya 'alash-Sholah. Waktu ${prayer.name} telah tiba. Mari sejenak tunaikan sholat dan lanjutkan tilawah Qur'an.`,
-        channelId: ADZAN_CHANNEL_ID,
+        body: notifBody,
+        channelId,
         schedule: {
           at: scheduleDate,
           allowWhileIdle: true,
         },
-        sound: 'adzan.mp3',
+        sound: soundFile,
         smallIcon: 'ic_stat_hifzhly',
         iconColor: '#059669',
         actionTypeId: ADZAN_ACTION_TYPE_ID,

@@ -922,7 +922,7 @@ export default function DownloadPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 font-mono mt-auto">
-        <p>© 2026 Hifzhly • Tim FIFA Universitas Sultan Ageng Tirtayasa</p>
+        <p>© 2026 Hifzhly • Tim FIFA (Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya)</p>
       </footer>
 
       {/* ======================================================== */}

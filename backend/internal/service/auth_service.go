@@ -167,6 +167,22 @@ func (s *authServiceImpl) Login(ctx context.Context, req model.LoginRequest) (*m
 		return nil, fmt.Errorf("akun ini tidak memiliki akses sebagai %s", req.ExpectedRole)
 	}
 
+	// Cek apakah akun mengaktifkan Two-Factor Authentication (2FA)
+	if user.TwoFactorEnabled {
+		clean2FACode := strings.TrimSpace(req.TwoFactorCode)
+		if clean2FACode == "" {
+			// Beritahu frontend bahwa password benar, namun wajib memasukkan 6-digit TOTP
+			return &model.AuthResponse{
+				Message:    "Verifikasi Two-Factor Authentication (2FA) diperlukan",
+				Require2FA: true,
+			}, nil
+		}
+
+		if len(clean2FACode) != 6 || !validateTOTP(user.TwoFactorSecret, clean2FACode) {
+			return nil, fmt.Errorf("kode 2FA 6-digit tidak valid atau telah kedaluwarsa")
+		}
+	}
+
 	token, err := s.generateJWT(user.ID, user.Username, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("gagal menerbitkan token: %w", err)

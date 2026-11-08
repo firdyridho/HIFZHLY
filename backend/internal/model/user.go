@@ -58,11 +58,13 @@ type LoginRequest struct {
 	UsernameOrEmail string `json:"usernameOrEmail"`
 	Password        string `json:"password"`
 	ExpectedRole    string `json:"expectedRole,omitempty"` // Opsional: "user" atau "admin"
+	TwoFactorCode   string `json:"twoFactorCode,omitempty"`
 }
 
 // AuthResponse DTO respon sukses login/register
 type AuthResponse struct {
-	Message string `json:"message"`
-	Token   string `json:"token"`
-	User    User   `json:"user"`
+	Message    string `json:"message"`
+	Token      string `json:"token,omitempty"`
+	User       User   `json:"user,omitempty"`
+	Require2FA bool   `json:"require2fa,omitempty"`
 }

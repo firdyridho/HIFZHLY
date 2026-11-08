@@ -15,7 +15,7 @@
 | Lingkungan | Protokol Base URL | Lokasi Hosting |
 | :--- | :--- | :--- |
 | **Lokal (Dev)** | `http://localhost:8080/api/v1` | Mesin Lokal Developer |
-| **Staging / VPS** | `https://hifzhly-api.fifa-untirta.my.id/api/v1` | Server Linux VPS Docker Compose |
+| **Staging / VPS** | `https://hifzhly-api.fifa.my.id/api/v1` | Server Linux VPS Docker Compose |
 | **Produksi Demo** | `https://api.hifzhly.id/api/v1` | Domain Produksi Evaluasi Juri |
 
 ---

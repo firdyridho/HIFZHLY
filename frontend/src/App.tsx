@@ -5,11 +5,16 @@ import AppRoutes from './routes';
 import { initNativeAppShell } from './lib/capacitorBridge';
 import AppUpdateBanner from './components/common/AppUpdateBanner';
 import CleanSplashScreen from './components/common/CleanSplashScreen';
+import ActiveAlarmBanner from './components/common/ActiveAlarmBanner';
+import { startAlarmMonitor } from './lib/alarmService';
 
 export default function App() {
   useEffect(() => {
     // Initialize Capacitor Native App Shell (Status Bar, Splash Screen)
     initNativeAppShell();
+
+    // Start background alarm monitor for active sessions
+    startAlarmMonitor();
 
     // Initialize Lenis for smooth inertial scrolling
     const lenis = new Lenis({
@@ -54,6 +59,7 @@ export default function App() {
     <BrowserRouter>
       <CleanSplashScreen />
       <AppRoutes />
+      <ActiveAlarmBanner />
       <AppUpdateBanner />
     </BrowserRouter>
   );

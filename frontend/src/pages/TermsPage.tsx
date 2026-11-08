@@ -30,7 +30,7 @@ export default function TermsPage() {
             Ketentuan Layanan & Kebijakan Privasi Suara
           </h1>
           <p className="text-slate-500 text-xs">
-            Terakhir diperbarui: 31 Oktober 2026 • Tim FIFA Universitas Sultan Ageng Tirtayasa
+            Terakhir diperbarui: 31 Oktober 2026 • Tim FIFA
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function TermsPage() {
               <span>4. Hak Cipta & Narahubung</span>
             </h2>
             <p>
-              Platform Hifzhly dikembangkan oleh <strong>Tim FIFA (Universitas Sultan Ageng Tirtayasa)</strong> yang dipimpin oleh <strong>Firdy Ridho Fillah</strong> dan <strong>Faeyza Ardellein Yaradhitya</strong> dalam rangka kompetisi Hackathon Subtema <em>Inclusive Education and Future Skills</em>.
+              Platform Hifzhly dikembangkan oleh <strong>Tim FIFA</strong> (<strong>Firdy Ridho Fillah</strong> dan <strong>Faeyza Ardellein Yaradhitya</strong>) dalam rangka menghadirkan teknologi pendamping penghafal Al-Qur'an yang inklusif, cerdas, dan amanah.
             </p>
           </section>
         </div>
@@ -107,7 +107,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 mt-auto">
         <div className="max-w-4xl mx-auto px-4 text-center text-xs text-slate-500">
-          <p>© 2026 Tim FIFA - Universitas Sultan Ageng Tirtayasa. Hak Cipta Dilindungi.</p>
+          <p>© 2026 Tim FIFA (Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya). Hak Cipta Dilindungi.</p>
         </div>
       </footer>
     </div>
