@@ -135,7 +135,7 @@ export default function AppUpdateBanner() {
             </div>
 
             <p className="text-[11px] text-slate-500 leading-relaxed pt-1 border-t border-emerald-200/60">
-              Unduhan berjalan di latar belakang. Anda juga dapat memantaunya langsung di bilah notifikasi status bar HP.
+              Unduhan berjalan 100% di dalam aplikasi tanpa membuka peramban luar. Paket instalasi pembaruan akan otomatis terbuka di layar saat selesai.
             </p>
           </div>
         )}

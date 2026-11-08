@@ -4,7 +4,8 @@
  * - Pengingat fleksibel untuk Murojaah, Hafalan Baru, Sholat Tahajjud, Sahur, dll.
  * - Deskripsi kustom yang ditampilkan pada banner notifikasi smartphone
  * - Pilihan nada dering bawaan (Adzan Subuh, Adzan Makkah, Bel Santri)
- * - Dukungan upload audio kustom (MP3/WAV) yang disimpan di IndexedDB lokal
+ * - Dukungan upload audio kustom (MP3/WAV) yang disimpan secara aman di IndexedDB (bebas kuota 5MB)
+ * - Resilien terhadap gangguan sistem: suara TIDAK akan berhenti saat menaikkan volume atau membuka bilah status bar
  * - Sinkronisasi jadwal ke Capacitor LocalNotifications (Android/iOS)
  */
 
@@ -20,7 +21,6 @@ export interface AlarmItem {
   soundType: 'built-in' | 'custom';
   soundBuiltInId: 'adzan_subuh' | 'adzan' | 'bel_santri' | 'chime';
   soundCustomName?: string;
-  soundCustomDataUrl?: string; // base64 / blob URL fallback
   repeatDays: number[]; // 0 = Ahad, 1 = Senin, ..., 6 = Sabtu. Kosong = Sekali saja
   enabled: boolean;
   createdAt: number;
@@ -33,14 +33,15 @@ const STORE_NAME = 'custom_audio';
 
 let activeRingingAudio: HTMLAudioElement | null = null;
 let currentRingingAlarm: AlarmItem | null = null;
+let isAlarmDismissed = true;
 
 // =========================================================================
-// 1. INDEXED DB HELPER FOR CUSTOM AUDIO FILES
+// 1. INDEXED DB HELPER FOR CUSTOM AUDIO (UNLIMITED QUOTA)
 // =========================================================================
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    if (!('indexedDB' in window)) {
+    if (typeof window === 'undefined' || !('indexedDB' in window)) {
       reject(new Error('IndexedDB tidak didukung pada peramban ini'));
       return;
     }
@@ -96,14 +97,13 @@ export async function deleteCustomAudio(id: string): Promise<void> {
 }
 
 // =========================================================================
-// 2. ALARM CRUD MANAGEMENT
+// 2. ALARM CRUD MANAGEMENT (LOCALSTORAGE SANITIZED)
 // =========================================================================
 
 export function getAlarms(): AlarmItem[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
-      // Default initial alarm
       const defaultAlarms: AlarmItem[] = [
         {
           id: 'alarm-default-1',
@@ -128,7 +128,7 @@ export function getAlarms(): AlarmItem[] {
           createdAt: Date.now(),
         },
       ];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAlarms));
+      saveAlarms(defaultAlarms);
       return defaultAlarms;
     }
     return JSON.parse(saved);
@@ -139,11 +139,16 @@ export function getAlarms(): AlarmItem[] {
 
 export function saveAlarms(alarms: AlarmItem[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(alarms));
-    syncNativeAlarms(alarms).catch(() => {});
-    window.dispatchEvent(new CustomEvent('hifzhly_alarms_updated', { detail: alarms }));
+    // Sanitasi: Pastikan tidak ada data URL raksasa yang masuk ke localStorage
+    const sanitized = alarms.map((a: any) => {
+      const { soundCustomDataUrl, ...clean } = a;
+      return clean;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+    syncNativeAlarms(sanitized).catch(() => {});
+    window.dispatchEvent(new CustomEvent('hifzhly_alarms_updated', { detail: sanitized }));
   } catch (err) {
-    console.warn('Gagal menyimpan alarm:', err);
+    console.warn('Gagal menyimpan alarm ke localStorage:', err);
   }
 }
 
@@ -253,12 +258,14 @@ export async function syncNativeAlarms(alarmsList?: AlarmItem[]): Promise<void> 
 }
 
 // =========================================================================
-// 4. AUDIO PLAYBACK & TRIGGER CONTROLLER
+// 4. RESILIENT AUDIO PLAYBACK CONTROLLER
+// Suara TIDAK AKAN mati saat menaikkan volume atau membuka notifikasi bar
 // =========================================================================
 
 export async function playAlarmSound(alarm: AlarmItem): Promise<void> {
   stopAlarmSound();
   currentRingingAlarm = alarm;
+  isAlarmDismissed = false;
 
   try {
     let src = '/audio/adzan.mp3';
@@ -267,8 +274,6 @@ export async function playAlarmSound(alarm: AlarmItem): Promise<void> {
       const customData = await getCustomAudio(alarm.id);
       if (customData?.dataUrl) {
         src = customData.dataUrl;
-      } else if (alarm.soundCustomDataUrl) {
-        src = alarm.soundCustomDataUrl;
       }
     } else {
       if (alarm.soundBuiltInId === 'adzan_subuh') {
@@ -282,10 +287,27 @@ export async function playAlarmSound(alarm: AlarmItem): Promise<void> {
 
     const audio = new Audio(src);
     audio.loop = true;
+    audio.volume = 1.0;
     activeRingingAudio = audio;
-    audio.play().catch(() => {});
 
-    // Kirim event global ke UI agar modal dering alarm terbuka
+    // Resiliensi 1: Jika sistem Android menjeda audio karena panel volume atau bilah status bar ditarik,
+    // segera lanjutkan pemutaran selama pengguna belum menekan "Hentikan Suara".
+    audio.addEventListener('pause', () => {
+      if (!isAlarmDismissed && activeRingingAudio === audio) {
+        setTimeout(() => {
+          if (!isAlarmDismissed && activeRingingAudio === audio) {
+            audio.play().catch(() => {});
+          }
+        }, 200);
+      }
+    });
+
+    // Mulai putar
+    audio.play().catch((e) => {
+      console.warn('Audio play error (gesture needed):', e);
+    });
+
+    // Kirim event global ke antarmuka pengguna
     window.dispatchEvent(
       new CustomEvent('hifzhly_alarm_ringing', {
         detail: { alarm },
@@ -297,6 +319,7 @@ export async function playAlarmSound(alarm: AlarmItem): Promise<void> {
 }
 
 export function stopAlarmSound(): void {
+  isAlarmDismissed = true;
   if (activeRingingAudio) {
     try {
       activeRingingAudio.pause();
@@ -310,6 +333,22 @@ export function stopAlarmSound(): void {
 
 export function getCurrentlyRingingAlarm(): AlarmItem | null {
   return currentRingingAlarm;
+}
+
+// Resiliensi 2: Pantau kembalinya fokus jendela (misal saat pengguna selesai melihat status bar)
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (!isAlarmDismissed && activeRingingAudio && activeRingingAudio.paused) {
+      activeRingingAudio.play().catch(() => {});
+    }
+  });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', () => {
+    if (!isAlarmDismissed && activeRingingAudio && activeRingingAudio.paused) {
+      activeRingingAudio.play().catch(() => {});
+    }
+  });
 }
 
 // =========================================================================
@@ -350,4 +389,3 @@ export function startAlarmMonitor(): void {
     }
   }, 1000);
 }
-

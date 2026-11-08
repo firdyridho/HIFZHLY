@@ -70,3 +70,4 @@ func TestRateLimiter_InMemoryLimit(t *testing.T) {
 		t.Fatalf("Expected 200 for another IP, got %d", rrOther.Code)
 	}
 }
+

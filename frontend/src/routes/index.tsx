@@ -17,6 +17,8 @@ import SettingsPage from '../pages/SettingsPage';
 import QuizPage from '../pages/QuizPage';
 import DoaPage from '../pages/DoaPage';
 import DownloadPage from '../pages/DownloadPage';
+import AlarmPage from '../pages/AlarmPage';
+import NotificationsPage from '../pages/NotificationsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { isNativePlatform } from '../lib/capacitorBridge';
 
@@ -81,9 +83,13 @@ export default function AppRoutes() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="quiz" element={<QuizPage />} />
         <Route path="doa" element={<DoaPage />} />
+        <Route path="alarm" element={<AlarmPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
 
       {/* 4. Legacy Redirects */}
+      <Route path="/alarm" element={<Navigate to="/app/alarm" replace />} />
+      <Route path="/notifications" element={<Navigate to="/app/notifications" replace />} />
       <Route path="/target" element={<Navigate to="/app/target" replace />} />
       <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
       <Route path="/quiz" element={<Navigate to="/app/quiz" replace />} />

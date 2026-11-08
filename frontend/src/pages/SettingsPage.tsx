@@ -26,7 +26,6 @@ import {
   Clock,
   AlarmClock,
 } from 'lucide-react';
-import AlarmManagerModal from '../components/common/AlarmManagerModal';
 import type { UserProfile } from '../types';
 import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
 import { checkForUpdate, executeAppUpdate, getInstalledAppInfo, type UpdateInfo } from '../lib/appUpdateService';
@@ -99,7 +98,6 @@ export default function SettingsPage() {
   const [adzanEnabled, setAdzanEnabled] = useState(() => isAdzanNotificationEnabled());
   const [testAdzanStatus, setTestAdzanStatus] = useState<string | null>(null);
   const [isTestingAdzan, setIsTestingAdzan] = useState(false);
-  const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
 
   const handleToggleAdzan = async () => {
     const next = !adzanEnabled;
@@ -813,14 +811,13 @@ export default function SettingsPage() {
               Atur banyak alarm dengan waktu, deskripsi pengingat kustom di notifikasi, serta pilihan nada dering bawaan atau audio Anda sendiri.
             </p>
 
-            <button
-              type="button"
-              onClick={() => setIsAlarmModalOpen(true)}
-              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm shadow-emerald-600/20"
+            <Link
+              to="/app/alarm"
+              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm shadow-emerald-600/20 text-center"
             >
               <AlarmClock className="w-3.5 h-3.5" />
-              <span>Kelola Alarm Mandiri</span>
-            </button>
+              <span>Buka Halaman Alarm Mandiri</span>
+            </Link>
           </div>
         </div>
 
@@ -1499,11 +1496,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-      {/* Multi-Alarm Manager Modal */}
-      <AlarmManagerModal
-        isOpen={isAlarmModalOpen}
-        onClose={() => setIsAlarmModalOpen(false)}
-      />
     </div>
   );
 }

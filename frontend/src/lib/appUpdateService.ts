@@ -174,55 +174,119 @@ export interface ApkDownloadProgress {
 }
 
 /**
- * Eksekusi pengunduhan APK kecepatan tinggi via native Android DownloadManager
+ * Eksekusi pengunduhan APK secara 100% di dalam aplikasi (In-App Downloader)
+ * Tanpa keluar ke browser luar, dengan progress bar live dan pembukaan otomatis paket installer
  */
 export async function downloadApkWithProgress(
   downloadUrl: string = APK_DIRECT_URL,
   onProgress: (p: ApkDownloadProgress) => void
 ): Promise<void> {
-  // 1. Picu Android DownloadManager berkecepatan tinggi via sistem operasi
-  executeAppUpdate(downloadUrl);
+  const win = window as any;
 
-  // 2. Berikan transisi progress responsif langsung di antarmuka
-  onProgress({
-    percent: 15,
-    loadedMB: '2.5',
-    totalMB: '18.5',
-    isComplete: false,
-  });
+  // 1. Prioritas Native Android Bridge (100% In-App Thread Downloader)
+  if (win.AndroidAppUpdater && typeof win.AndroidAppUpdater.startInAppDownload === 'function') {
+    return new Promise((resolve) => {
+      const handleProgressEvent = (e: any) => {
+        const detail = e.detail;
+        if (!detail) return;
 
-  await new Promise((resolve) => setTimeout(resolve, 600));
+        onProgress({
+          percent: detail.percent,
+          loadedMB: detail.loadedMB,
+          totalMB: detail.totalMB,
+          isComplete: detail.isComplete,
+          error: detail.error || undefined,
+        });
 
-  onProgress({
-    percent: 50,
-    loadedMB: '9.2',
-    totalMB: '18.5',
-    isComplete: false,
-  });
+        if (detail.isComplete || detail.error) {
+          window.removeEventListener('hifzhly_in_app_update_progress', handleProgressEvent);
+          resolve();
+        }
+      };
 
-  await new Promise((resolve) => setTimeout(resolve, 800));
+      window.addEventListener('hifzhly_in_app_update_progress', handleProgressEvent);
+      win.AndroidAppUpdater.startInAppDownload(downloadUrl);
+    });
+  }
 
-  onProgress({
-    percent: 85,
-    loadedMB: '15.7',
-    totalMB: '18.5',
-    isComplete: false,
-  });
+  // 2. Web Streaming Fallback (Fetch ReadableStream dengan progress persentase nyata)
+  try {
+    const res = await fetch(downloadUrl);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
-  await new Promise((resolve) => setTimeout(resolve, 600));
+    const contentLength = res.headers.get('content-length');
+    const totalBytes = contentLength ? parseInt(contentLength, 10) : 19 * 1024 * 1024;
+    const totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
 
-  onProgress({
-    percent: 100,
-    loadedMB: '18.5',
-    totalMB: '18.5',
-    isComplete: true,
-  });
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error('Streaming response tidak didukung');
+    }
+
+    const chunks: Uint8Array[] = [];
+    let receivedBytes = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      if (value) {
+        chunks.push(value);
+        receivedBytes += value.length;
+        const percent = Math.min(99, Math.round((receivedBytes / totalBytes) * 100));
+        const loadedMB = (receivedBytes / (1024 * 1024)).toFixed(1);
+
+        onProgress({
+          percent,
+          loadedMB,
+          totalMB,
+          isComplete: false,
+        });
+      }
+    }
+
+    const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+    const blobUrl = URL.createObjectURL(blob);
+    const finalMB = (receivedBytes / (1024 * 1024)).toFixed(1);
+
+    onProgress({
+      percent: 100,
+      loadedMB: finalMB,
+      totalMB: finalMB,
+      isComplete: true,
+    });
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'hifzhly-latest.apk';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  } catch (err: any) {
+    onProgress({
+      percent: 100,
+      loadedMB: '19.0',
+      totalMB: '19.0',
+      isComplete: true,
+      error: err.message,
+    });
+    executeAppUpdate(downloadUrl);
+  }
 }
 
 /**
  * Eksekusi pengunduhan APK di latar belakang dan memicu paket instalasi native Android
  */
 export function executeAppUpdate(downloadUrl: string = APK_DIRECT_URL): void {
+  const win = window as any;
+  if (win.AndroidAppUpdater && typeof win.AndroidAppUpdater.startInAppDownload === 'function') {
+    win.AndroidAppUpdater.startInAppDownload(downloadUrl);
+    return;
+  }
+
   try {
     const a = document.createElement('a');
     a.href = downloadUrl;

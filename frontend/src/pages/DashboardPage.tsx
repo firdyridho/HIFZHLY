@@ -25,7 +25,6 @@ import {
   Trophy,
   AlarmClock,
 } from 'lucide-react';
-import AlarmManagerModal from '../components/common/AlarmManagerModal';
 import type { UserProfile, TajwidModule, SrsDueItem } from '../types';
 import { getStoredMutabaahLogs, formatDateKey } from '../lib/mutabaahService';
 import { getStoredTajwidModules, fetchSynchronizedTajwidModules } from '../lib/tajwidStore';
@@ -35,7 +34,6 @@ import {
   syncNotificationsWithContext,
 } from '../lib/notificationService';
 import { schedulePrayerNotifications } from '../lib/adzanNotificationService';
-import NotificationCenterModal from '../components/notification/NotificationCenterModal';
 
 interface PrayerSchedule {
   name: string;
@@ -56,7 +54,6 @@ const DEFAULT_PRAYER_TIMES: PrayerSchedule[] = [
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showDzikirModal, setShowDzikirModal] = useState(false);
   const [srsItems, setSrsItems] = useState<SrsDueItem[]>([]);
   const [activeTajwidModule, setActiveTajwidModule] = useState<TajwidModule | null>(null);
@@ -65,7 +62,6 @@ export default function DashboardPage() {
   const [doaList, setDoaList] = useState<{ id: string; title: string; arabic: string; latin: string; translation: string; fadhilah?: string }[]>([]);
   const [todayReviewed, setTodayReviewed] = useState(10);
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => getStoredNotifications());
-  const [isAlarmModalOpen, setIsAlarmModalOpen] = useState(false);
 
   const loadNotifications = () => {
     const p = prayerTimes[0] || DEFAULT_PRAYER_TIMES[0];
@@ -308,14 +304,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setIsAlarmModalOpen(true)}
+            <Link
+              to="/app/alarm"
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
-              title="Kelola Alarm Mandiri"
+              title="Pengaturan Alarm Mandiri"
             >
               <AlarmClock className="w-4 h-4" />
-            </button>
+            </Link>
             <Link
               to="/app/settings"
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
@@ -323,9 +318,8 @@ export default function DashboardPage() {
             >
               <Settings className="w-4 h-4" />
             </Link>
-            <button
-              type="button"
-              onClick={() => setShowNotificationModal(true)}
+            <Link
+              to="/app/notifications"
               className="relative p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-xs cursor-pointer"
               title="Pemberitahuan & Pengingat"
             >
@@ -335,7 +329,7 @@ export default function DashboardPage() {
                   {notifications.filter((n) => !n.read).length}
                 </span>
               )}
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -669,15 +663,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* MODAL 1: Notification Center (Interaktif & Berfungsi Penuh) */}
-      <NotificationCenterModal
-        isOpen={showNotificationModal}
-        onClose={() => setShowNotificationModal(false)}
-        notifications={notifications}
-        onRefresh={loadNotifications}
-      />
-
-      {/* MODAL 2: Doa Sebelum & Sesudah Murojaah */}
+      {/* MODAL: Doa Sebelum & Sesudah Murojaah */}
       {showDzikirModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[85vh] overflow-y-auto">
@@ -775,11 +761,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {/* Multi-Alarm Manager Modal */}
-      <AlarmManagerModal
-        isOpen={isAlarmModalOpen}
-        onClose={() => setIsAlarmModalOpen(false)}
-      />
     </div>
   );
 }
