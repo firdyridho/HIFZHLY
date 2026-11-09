@@ -64,38 +64,39 @@ export default function LandingPage() {
       {/* Tubelight Navbar Header for Landing Page */}
       <TubelightNavbar items={navItems} rightActions={rightActions} />
 
-      {/* Hero Section & Live Simulation Sandbox with React Bits Harmonic Audio Waves & Micro-Dot Grid */}
+      {/* Hero Section & Live Simulation Sandbox with React Bits Symmetrical Blueprint Grid & Interactive Celestial Particles */}
       <section id="simulasi" className="relative scroll-mt-24">
-        <HeroBackground className="pt-12 sm:pt-16 pb-20 sm:pb-24">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              {/* Left Column: Clean, Elegant, Restrained Scholarly Hero Content (No Slop Badges) */}
+        <HeroBackground className="pt-14 sm:pt-20 lg:pt-24 pb-20 sm:pb-28">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              {/* Left Column: Clean, Balanced, Restrained Scholarly Content */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="lg:col-span-6 space-y-6 text-left"
+                className="lg:col-span-7 flex flex-col justify-center space-y-6 sm:space-y-7 text-left"
               >
-                {/* Restrained Scholarly Category Kicker (Zero Badges) */}
-                <p className="text-xs font-bold tracking-widest text-emerald-700 uppercase font-sans">
-                  AI Voice &amp; Spaced Repetition • Tim FIFA
-                </p>
+                {/* Restrained Category Kicker with subtle live dot (Zero Badges) */}
+                <div className="flex items-center space-x-2.5 text-xs font-bold tracking-widest text-emerald-800 uppercase font-sans">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+                  <span>AI Voice &amp; Spaced Repetition • Tim FIFA</span>
+                </div>
 
-                {/* Clean, Bold, Impactful Headline (True to Hifzhly Sans-Serif Identity) */}
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
+                {/* Symmetrical High-Impact Headline (Crisp Sans-Serif) */}
+                <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black text-slate-900 tracking-tight leading-[1.12]">
                   Hafalan Lebih Kuat.{' '}
                   <span className="text-emerald-700 block mt-2">
                     Presisi Kata demi Kata.
                   </span>
                 </h1>
 
-                {/* Clear, Dignified Subtitle */}
-                <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-lg font-normal">
-                  Asisten AI cerdas yang menyimak bacaanmu secara real-time, menyorot huruf yang keliru, dan menjadwalkan review berdasarkan kurva lupa ilmiah.
+                {/* Clear, Spacious Subtitle */}
+                <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl font-normal">
+                  Asisten AI cerdas yang menyimak tilawah secara real-time, mendeteksi keliru huruf dan harakat, serta menjadwalkan murojaah adaptif berbasis kurva lupa ilmiah.
                 </p>
 
                 {/* Action Buttons: React Bits Ultra-Elegant CTA (Strictly Zero Icons) */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
+                <div className="pt-1 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                   <ElegantCta
                     to="/app"
                     variant="emerald"
@@ -113,38 +114,38 @@ export default function LandingPage() {
                   </ElegantCta>
                 </div>
 
-                {/* Minimalist Trust Indicators Row */}
-                <div className="pt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 font-medium">
-                  <span className="flex items-center space-x-1.5">
+                {/* Minimalist Trust Indicators Row with Subtle Divider */}
+                <div className="pt-4 border-t border-slate-200/70 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 font-medium">
+                  <span className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Standar Kemenag RI</span>
                   </span>
                   <span className="text-slate-300 hidden sm:inline">•</span>
-                  <span className="flex items-center space-x-1.5">
+                  <span className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Tarteel QUL Mutasyabihat</span>
                   </span>
                   <span className="text-slate-300 hidden sm:inline">•</span>
-                  <span className="flex items-center space-x-1.5">
+                  <span className="flex items-center space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Privasi Suara Memory-Only</span>
                   </span>
                 </div>
               </motion.div>
 
-              {/* Right Column: Interactive Recitation Sandbox with Subtle Elevation Glow */}
+              {/* Right Column: Perfectly Balanced Interactive Recitation Sandbox */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className="lg:col-span-6 flex justify-center relative"
+                className="lg:col-span-5 flex justify-center lg:justify-end relative w-full"
               >
-                {/* Soft Ambient Glow behind sandbox */}
+                {/* Soft Symmetrical Ambient Glow behind sandbox */}
                 <div
                   aria-hidden="true"
-                  className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl pointer-events-none"
+                  className="absolute -inset-2 bg-gradient-to-r from-emerald-500/12 via-teal-500/10 to-emerald-500/12 rounded-[32px] blur-2xl pointer-events-none"
                 />
-                <div className="relative w-full">
+                <div className="relative w-full flex justify-center lg:justify-end">
                   <HeroSandbox />
                 </div>
               </motion.div>

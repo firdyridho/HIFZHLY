@@ -84,7 +84,7 @@ export default function HeroSandbox() {
       InteractiveColor="rgba(16, 185, 129, 0.28)"
       borderRadius="28px"
       rotationFactor={0.18}
-      containerClassName="w-full max-w-xl mx-auto shadow-xl shadow-slate-200/50"
+      containerClassName="w-full max-w-lg lg:max-w-xl shadow-2xl shadow-slate-200/60"
       className="p-5 sm:p-7 relative overflow-hidden"
     >
       {/* Top Banner Status Bar */}
