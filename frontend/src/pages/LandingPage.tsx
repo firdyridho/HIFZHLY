@@ -19,8 +19,7 @@ import FaqSection from '../components/landing/FaqSection';
 import ClosingCtaBanner from '../components/landing/ClosingCtaBanner';
 import ElegantCta from '../components/reactbits/ElegantCta';
 import StarBorder from '../components/reactbits/StarBorder';
-import AuroraBackground from '../components/reactbits/AuroraBackground';
-import Squares from '../components/reactbits/Squares';
+import HeroBackground from '../components/reactbits/HeroBackground';
 
 export default function LandingPage() {
   // Navigation items strictly linking to in-page landing sections
@@ -65,114 +64,93 @@ export default function LandingPage() {
       {/* Tubelight Navbar Header for Landing Page */}
       <TubelightNavbar items={navItems} rightActions={rightActions} />
 
-      {/* Hero Section & Live Simulation Sandbox with React Bits Aurora & Interactive Squares */}
-      <section id="simulasi" className="relative overflow-hidden pt-10 sm:pt-16 pb-20 sm:pb-24 scroll-mt-24">
-        {/* React Bits Ambient Background: Ethereal Aurora & Interactive Squares Canvas */}
-        <AuroraBackground className="absolute inset-0 z-0 w-full h-full">
-          <Squares
-            direction="diagonal"
-            speed={0.25}
-            borderColor="rgba(16, 185, 129, 0.08)"
-            hoverFillColor="rgba(16, 185, 129, 0.12)"
-            squareSize={44}
-          />
-        </AuroraBackground>
-
-        {/* Content Container */}
-        <div className="relative z-10 max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column: Refined, Minimalist Scholarly Hero Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:col-span-6 space-y-6 text-left"
-            >
-              {/* Minimalist Live Pill Badge */}
+      {/* Hero Section & Live Simulation Sandbox with React Bits Harmonic Audio Waves & Micro-Dot Grid */}
+      <section id="simulasi" className="relative scroll-mt-24">
+        <HeroBackground className="pt-12 sm:pt-16 pb-20 sm:pb-24">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              {/* Left Column: Clean, Elegant, Restrained Scholarly Hero Content (No Slop Badges) */}
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="inline-flex items-center space-x-2.5 px-3.5 py-1.5 rounded-full bg-white/85 border border-emerald-200/70 shadow-xs backdrop-blur-md"
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="lg:col-span-6 space-y-6 text-left"
               >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
-                </span>
-                <span className="text-xs font-bold text-emerald-900 tracking-wide font-sans">
+                {/* Restrained Scholarly Category Kicker (Zero Badges) */}
+                <p className="text-xs font-bold tracking-widest text-emerald-700 uppercase font-sans">
                   AI Voice &amp; Spaced Repetition • Tim FIFA
-                </span>
+                </p>
+
+                {/* Clean, Bold, Impactful Headline (True to Hifzhly Sans-Serif Identity) */}
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
+                  Hafalan Lebih Kuat.{' '}
+                  <span className="text-emerald-700 block mt-2">
+                    Presisi Kata demi Kata.
+                  </span>
+                </h1>
+
+                {/* Clear, Dignified Subtitle */}
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-lg font-normal">
+                  Asisten AI cerdas yang menyimak bacaanmu secara real-time, menyorot huruf yang keliru, dan menjadwalkan review berdasarkan kurva lupa ilmiah.
+                </p>
+
+                {/* Action Buttons: React Bits Ultra-Elegant CTA (Strictly Zero Icons) */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
+                  <ElegantCta
+                    to="/app"
+                    variant="emerald"
+                    size="md"
+                  >
+                    Mulai Murojaah Mandiri
+                  </ElegantCta>
+
+                  <ElegantCta
+                    to="/app/tajwid"
+                    variant="secondary"
+                    size="md"
+                  >
+                    Tajwid Academy
+                  </ElegantCta>
+                </div>
+
+                {/* Minimalist Trust Indicators Row */}
+                <div className="pt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 font-medium">
+                  <span className="flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Standar Kemenag RI</span>
+                  </span>
+                  <span className="text-slate-300 hidden sm:inline">•</span>
+                  <span className="flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Tarteel QUL Mutasyabihat</span>
+                  </span>
+                  <span className="text-slate-300 hidden sm:inline">•</span>
+                  <span className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Privasi Suara Memory-Only</span>
+                  </span>
+                </div>
               </motion.div>
 
-              {/* Minimalist Editorial Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-black text-slate-900 tracking-tight leading-[1.12]">
-                Hafalan Lebih Kokoh,{' '}
-                <span className="font-translit font-normal italic text-emerald-800 block sm:inline">
-                  Presisi Kata demi Kata.
-                </span>
-              </h1>
-
-              {/* Refined Minimalist Subtitle */}
-              <p className="text-sm sm:text-base text-slate-600/95 leading-relaxed max-w-lg font-normal">
-                Asisten AI cerdas yang menyimak tilawah secara real-time, mendeteksi keliru huruf dan harakat, serta menjadwalkan murojaah adaptif berbasis kurva lupa ilmiah.
-              </p>
-
-              {/* Action Buttons: React Bits Ultra-Elegant CTA (Strictly Zero Icons) */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
-                <ElegantCta
-                  to="/app"
-                  variant="emerald"
-                  size="md"
-                >
-                  Mulai Murojaah Mandiri
-                </ElegantCta>
-
-                <ElegantCta
-                  to="/app/tajwid"
-                  variant="secondary"
-                  size="md"
-                >
-                  Tajwid Academy
-                </ElegantCta>
-              </div>
-
-              {/* Minimalist Trust Indicators Row */}
-              <div className="pt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 font-medium">
-                <span className="flex items-center space-x-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Standar Kemenag RI</span>
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center space-x-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Tarteel QUL Mutasyabihat</span>
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center space-x-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Privasi Suara Memory-Only</span>
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Right Column: Interactive Recitation Sandbox with Subtle Elevation Glow */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:col-span-6 flex justify-center relative"
-            >
-              {/* Soft Ambient Glow behind sandbox */}
-              <div
-                aria-hidden="true"
-                className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl pointer-events-none"
-              />
-              <div className="relative w-full">
-                <HeroSandbox />
-              </div>
-            </motion.div>
+              {/* Right Column: Interactive Recitation Sandbox with Subtle Elevation Glow */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                className="lg:col-span-6 flex justify-center relative"
+              >
+                {/* Soft Ambient Glow behind sandbox */}
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl pointer-events-none"
+                />
+                <div className="relative w-full">
+                  <HeroSandbox />
+                </div>
+              </motion.div>
+            </div>
           </div>
-        </div>
+        </HeroBackground>
       </section>
 
       {/* Scholarly Scientific Metrics Section */}
