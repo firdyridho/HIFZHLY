@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mic, Award, BarChart3, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle, BookOpen, Check } from 'lucide-react';
+import { Mic, Award, BarChart3, ShieldCheck, CheckCircle2, AlertTriangle, BookOpen, Check } from 'lucide-react';
 import { InteractiveCard } from '@/components/lightswind/interactive-card';
 
 export default function BentoFeatures() {
@@ -101,10 +101,9 @@ export default function BentoFeatures() {
               </div>
               <Link
                 to="/app"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 group/link"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200/60 transition-all active:scale-95"
               >
                 <span>Uji Murojaah</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
               </Link>
             </div>
           </InteractiveCard>
@@ -161,10 +160,9 @@ export default function BentoFeatures() {
               <span className="text-xs text-slate-500">Mencegah Tertukar Hafalan</span>
               <Link
                 to="/app/mushaf"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-800 hover:text-amber-900 group/link"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-200/60 transition-all active:scale-95"
               >
                 <span>Buka Mushaf</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
               </Link>
             </div>
           </InteractiveCard>
@@ -242,10 +240,9 @@ export default function BentoFeatures() {
               <span className="text-xs text-slate-500">Analitik Adaptif</span>
               <Link
                 to="/app/mutabaah"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 group/link"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs border border-sky-200/60 transition-all active:scale-95"
               >
                 <span>Lihat Mutabaah</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
               </Link>
             </div>
           </InteractiveCard>
@@ -349,10 +346,9 @@ export default function BentoFeatures() {
               <span className="text-xs text-slate-500">Silabus Tajwid Lengkap</span>
               <Link
                 to="/app/tajwid"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-teal-700 hover:text-teal-800 group/link"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs border border-teal-200/60 transition-all active:scale-95"
               >
                 <span>Buka Tajwid Academy</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
               </Link>
             </div>
           </InteractiveCard>

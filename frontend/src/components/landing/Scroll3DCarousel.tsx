@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import {
-  ArrowRight,
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
@@ -391,10 +390,9 @@ export default function Scroll3DCarousel() {
 
                     <Link
                       to={card.ctaLink}
-                      className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 group/link"
+                      className="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-bold text-xs border border-emerald-200/60 shadow-xs transition-all active:scale-95"
                     >
                       <span>{card.ctaText}</span>
-                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
                     </Link>
                   </div>
                 </InteractiveCard>

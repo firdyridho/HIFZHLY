@@ -6,12 +6,9 @@ import {
   Workflow,
   Route,
   HelpCircle,
-  Award,
-  ArrowRight,
   CheckCircle2,
   ShieldCheck,
   BookOpen,
-  Download,
 } from 'lucide-react';
 import TubelightNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
@@ -20,6 +17,8 @@ import MushafScrollytelling from '../components/landing/MushafScrollytelling';
 import Scroll3DCarousel from '../components/landing/Scroll3DCarousel';
 import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
+import ElegantCta from '../components/reactbits/ElegantCta';
+import StarBorder from '../components/reactbits/StarBorder';
 
 export default function LandingPage() {
   // Navigation items strictly linking to in-page landing sections
@@ -35,10 +34,9 @@ export default function LandingPage() {
     <>
       <Link
         to="/download"
-        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-center flex items-center space-x-1.5"
+        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-center"
       >
-        <Download className="w-3.5 h-3.5 text-emerald-600" />
-        <span>Download App</span>
+        Download App
       </Link>
       <Link
         to="/login"
@@ -46,12 +44,17 @@ export default function LandingPage() {
       >
         Masuk
       </Link>
-      <Link
+      <StarBorder
+        as={Link}
         to="/register"
-        className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl shadow-xs shadow-emerald-600/20 transition-all active:scale-95 text-center"
+        color="#34d399"
+        speed="5s"
+        className="text-xs font-semibold"
       >
-        Daftar Santri
-      </Link>
+        <span className="px-3.5 py-1.5 rounded-[14px] bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-colors">
+          Daftar Santri
+        </span>
+      </StarBorder>
     </>
   );
 
@@ -88,24 +91,23 @@ export default function LandingPage() {
                 Asisten AI cerdas yang menyimak bacaanmu secara real-time, menyorot huruf yang keliru, dan menjadwalkan review berdasarkan kurva lupa ilmiah.
               </p>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                <Link
+              {/* Action Buttons: React Bits Ultra-Elegant CTA (Strictly Zero Icons) */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
+                <ElegantCta
                   to="/app"
-                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+                  variant="emerald"
+                  size="md"
                 >
-                  <Mic className="w-4 h-4" />
-                  <span>Mulai Murojaah Mandiri</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                  Mulai Murojaah Mandiri
+                </ElegantCta>
 
-                <Link
+                <ElegantCta
                   to="/app/tajwid"
-                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm border border-slate-200 shadow-xs transition-all"
+                  variant="secondary"
+                  size="md"
                 >
-                  <Award className="w-4 h-4 text-emerald-600" />
-                  <span>Tajwid Academy</span>
-                </Link>
+                  Tajwid Academy
+                </ElegantCta>
               </div>
 
               {/* Trust Indicators */}
@@ -182,14 +184,14 @@ export default function LandingPage() {
             Bergabunglah bersama santri dan penghafal mandiri dalam merawat kalamullah dengan bimbingan teknologi modern dan ilmiah.
           </p>
 
-          <div className="pt-3">
-            <Link
+          <div className="pt-3 flex justify-center">
+            <ElegantCta
               to="/register"
-              className="inline-flex items-center space-x-2 px-8 py-3.5 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-sm shadow-md transition-all active:scale-95"
+              variant="gold"
+              size="lg"
             >
-              <span>Daftar Akun Santri Gratis</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+              Daftar Akun Santri Gratis
+            </ElegantCta>
           </div>
         </motion.div>
       </section>

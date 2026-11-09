@@ -63,3 +63,61 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* React Bits: Star Border & Shimmer Animations */
+@keyframes star-movement-bottom {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-100%, 0%);
+    opacity: 0;
+  }
+}
+
+@keyframes star-movement-top {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(100%, 0%);
+    opacity: 0;
+  }
+}
+
+.animate-star-bottom {
+  animation: star-movement-bottom linear infinite;
+}
+
+.animate-star-top {
+  animation: star-movement-top linear infinite;
+}
+
+@keyframes shiny-text {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shiny-text {
+  animation: shiny-text 4s linear infinite;
+}
+
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-15deg);
+  }
+}
+
+.animate-shimmer-slide {
+  animation: shimmer-slide 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+

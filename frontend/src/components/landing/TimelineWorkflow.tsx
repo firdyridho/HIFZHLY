@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Mic, Sparkles, TrendingUp, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Calendar, Mic, Sparkles, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { InteractiveCard } from '@/components/lightswind/interactive-card';
@@ -234,10 +234,9 @@ export default function TimelineWorkflow() {
               </span>
               <Link
                 to="/app"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                className="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:text-emerald-900 font-bold text-xs border border-emerald-200/60 shadow-xs transition-all active:scale-95"
               >
                 <span>Coba Alur Ini</span>
-                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </InteractiveCard>
