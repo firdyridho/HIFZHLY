@@ -332,11 +332,10 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
         <div className="grid grid-cols-2 w-full h-full">
           {/* Left 50% Slot: Register Form (Exposed when isRegister is true) */}
           <div
-            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${
-              isRegister
+            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${isRegister
                 ? 'opacity-100 pointer-events-auto scale-100'
                 : 'opacity-0 pointer-events-none scale-95'
-            }`}
+              }`}
           >
             {/* Top Back Nav */}
             <div className="flex items-center justify-between text-xs text-slate-500">
@@ -514,11 +513,10 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
           {/* Right 50% Slot: Login Form (Exposed when isRegister is false) */}
           <div
-            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${
-              !isRegister
+            className={`w-full h-full flex flex-col justify-between px-14 xl:px-20 py-10 overflow-y-auto transition-all duration-300 ${!isRegister
                 ? 'opacity-100 pointer-events-auto scale-100'
                 : 'opacity-0 pointer-events-none scale-95'
-            }`}
+              }`}
           >
             {/* Top Back Nav */}
             <div className="flex items-center justify-between text-xs text-slate-500">
@@ -545,11 +543,10 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
               {loginError && (
                 <div
-                  className={`p-3.5 rounded-xl text-xs flex items-start space-x-2.5 border ${
-                    lockoutRemaining > 0
+                  className={`p-3.5 rounded-xl text-xs flex items-start space-x-2.5 border ${lockoutRemaining > 0
                       ? 'bg-amber-50 border-amber-200 text-amber-900'
                       : 'bg-red-50 border-red-200 text-red-700'
-                  }`}
+                    }`}
                 >
                   {lockoutRemaining > 0 ? (
                     <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5 animate-pulse" />
@@ -731,9 +728,8 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
             FULL-HEIGHT SLIDING OVERLAY PANEL (50vw Width, 100vh Height)
            ======================================================== */}
         <div
-          className={`absolute top-0 bottom-0 left-0 w-1/2 h-full bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-14 xl:p-20 flex flex-col justify-between transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shadow-2xl ${
-            isRegister ? 'translate-x-full' : 'translate-x-0'
-          }`}
+          className={`absolute top-0 bottom-0 left-0 w-1/2 h-full bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-14 xl:p-20 flex flex-col justify-between transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shadow-2xl ${isRegister ? 'translate-x-full' : 'translate-x-0'
+            }`}
         >
           {/* Subtle Watermark Islamic Typography */}
           <div
@@ -838,22 +834,20 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
             <button
               type="button"
               onClick={() => switchMode(false)}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                !isRegister
+              className={`py-2 rounded-lg transition-all cursor-pointer ${!isRegister
                   ? 'bg-white text-emerald-900 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               Masuk
             </button>
             <button
               type="button"
               onClick={() => switchMode(true)}
-              className={`py-2 rounded-lg transition-all cursor-pointer ${
-                isRegister
+              className={`py-2 rounded-lg transition-all cursor-pointer ${isRegister
                   ? 'bg-white text-emerald-900 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
               Daftar Baru
             </button>
@@ -998,11 +992,10 @@ export default function LoginPage({ initialMode }: AuthPageProps) {
 
               {loginError && (
                 <div
-                  className={`p-3 rounded-xl text-xs flex items-start space-x-2 border ${
-                    lockoutRemaining > 0
+                  className={`p-3 rounded-xl text-xs flex items-start space-x-2 border ${lockoutRemaining > 0
                       ? 'bg-amber-50 border-amber-200 text-amber-900'
                       : 'bg-red-50 border-red-200 text-red-700'
-                  }`}
+                    }`}
                 >
                   {lockoutRemaining > 0 ? (
                     <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5 animate-pulse" />
