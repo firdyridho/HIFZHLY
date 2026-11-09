@@ -8,7 +8,6 @@ import {
   HelpCircle,
   CheckCircle2,
   ShieldCheck,
-  BookOpen,
 } from 'lucide-react';
 import TubelightNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
@@ -17,6 +16,7 @@ import MushafScrollytelling from '../components/landing/MushafScrollytelling';
 import Scroll3DCarousel from '../components/landing/Scroll3DCarousel';
 import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
+import ClosingCtaBanner from '../components/landing/ClosingCtaBanner';
 import ElegantCta from '../components/reactbits/ElegantCta';
 import StarBorder from '../components/reactbits/StarBorder';
 
@@ -163,38 +163,8 @@ export default function LandingPage() {
         <FaqSection />
       </div>
 
-      {/* Closing Call to Action Banner */}
-      <section className="max-w-5xl mx-auto px-4 w-full pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="p-8 sm:p-14 rounded-3xl bg-emerald-900 text-white shadow-xl shadow-emerald-950/20 text-center space-y-5 border border-emerald-800/80"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-emerald-800/80 border border-emerald-700 flex items-center justify-center text-emerald-300 mx-auto">
-            <BookOpen className="w-6 h-6" />
-          </div>
-
-          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-            Siap Menjaga Hafalan Al-Qur'anmu Hari Ini?
-          </h2>
-
-          <p className="text-emerald-100 text-sm max-w-xl mx-auto leading-relaxed">
-            Bergabunglah bersama santri dan penghafal mandiri dalam merawat kalamullah dengan bimbingan teknologi modern dan ilmiah.
-          </p>
-
-          <div className="pt-3 flex justify-center">
-            <ElegantCta
-              to="/register"
-              variant="gold"
-              size="lg"
-            >
-              Daftar Akun Santri Gratis
-            </ElegantCta>
-          </div>
-        </motion.div>
-      </section>
+      {/* Closing Call to Action Banner (Moneta-style split layout with physical cards & zero icons) */}
+      <ClosingCtaBanner />
 
       {/* Academic & Islamic Footer */}
       <footer className="border-t border-slate-200/80 bg-white py-10 mt-auto">
