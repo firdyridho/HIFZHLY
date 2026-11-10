@@ -22,14 +22,25 @@ import {
   getStoredMutabaahLogs,
   DayMutabaahData,
 } from '../lib/mutabaahService';
-import { SURAH_ARABIC_NAMES } from '../lib/quranMeta';
+import { SURAH_ARABIC_NAMES, ALL_QURAN_SURAHS, getSurahMeta } from '../lib/quranMeta';
+
+const INITIAL_SURAHS: SurahSummary[] = ALL_QURAN_SURAHS.map((s) => ({
+  id: s.number,
+  number: s.number,
+  nameArabic: s.nameArabic,
+  nameLatin: s.name,
+  nameIndonesian: s.name,
+  translation: s.name,
+  revelationType: 'Makkiyyah',
+  numberOfAyahs: s.ayahs,
+}));
 
 export default function TargetPage() {
   const navigate = useNavigate();
 
-  // 114 Surahs catalog
-  const [surahs, setSurahs] = useState<SurahSummary[]>([]);
-  const [loadingSurahs, setLoadingSurahs] = useState(true);
+  // 114 Surahs catalog (initialized locally so always available offline/online)
+  const [surahs, setSurahs] = useState<SurahSummary[]>(INITIAL_SURAHS);
+  const [loadingSurahs, setLoadingSurahs] = useState(false);
 
   // Form State
   const [commitment, setCommitment] = useState<UserCommitment>(getUserCommitments());
@@ -245,7 +256,21 @@ export default function TargetPage() {
                   name="progressionOrder"
                   value="juz_30"
                   checked={commitment.progressionOrder === 'juz_30' || !commitment.progressionOrder}
-                  onChange={() => setCommitment({ ...commitment, progressionOrder: 'juz_30', targetJuzNumber: 30 })}
+                  onChange={() =>
+                    setCommitment({
+                      ...commitment,
+                      progressionOrder: 'juz_30',
+                      targetJuzNumber: 30,
+                      ...(commitment.targetSurahNumber < 78
+                        ? {
+                            targetSurahNumber: 78,
+                            targetSurahName: "An-Naba'",
+                            targetStartAyah: 1,
+                            targetEndAyah: 40,
+                          }
+                        : {}),
+                    })
+                  }
                   className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div>
@@ -268,7 +293,21 @@ export default function TargetPage() {
                   name="progressionOrder"
                   value="juz_1_asc"
                   checked={commitment.progressionOrder === 'juz_1_asc'}
-                  onChange={() => setCommitment({ ...commitment, progressionOrder: 'juz_1_asc', targetJuzNumber: 1 })}
+                  onChange={() =>
+                    setCommitment({
+                      ...commitment,
+                      progressionOrder: 'juz_1_asc',
+                      targetJuzNumber: 1,
+                      ...(commitment.targetSurahNumber > 2
+                        ? {
+                            targetSurahNumber: 1,
+                            targetSurahName: 'Al-Fatihah',
+                            targetStartAyah: 1,
+                            targetEndAyah: 7,
+                          }
+                        : {}),
+                    })
+                  }
                   className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div>
@@ -460,12 +499,14 @@ export default function TargetPage() {
                   onChange={(e) => {
                     const sNum = parseInt(e.target.value, 10);
                     const meta = surahs.find((s) => s.number === sNum);
+                    const localMeta = getSurahMeta(sNum);
                     setCommitment({
                       ...commitment,
                       targetSurahNumber: sNum,
-                      targetSurahName: meta ? meta.nameLatin : `Surah ${sNum}`,
+                      targetSurahName: meta ? meta.nameLatin : localMeta?.name || `Surah ${sNum}`,
+                      targetJuzNumber: localMeta?.juzStart || commitment.targetJuzNumber || 30,
                       targetStartAyah: 1,
-                      targetEndAyah: meta ? meta.numberOfAyahs : 20,
+                      targetEndAyah: meta ? meta.numberOfAyahs : localMeta?.ayahs || 20,
                     });
                   }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"

@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -89,6 +91,41 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Generate Dynamic Release Notes
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch --tags --quiet || true
+          PREV_TAG=$(git tag --sort=-v:refname | head -n 1 || true)
+          echo "Previous release tag: $PREV_TAG"
+
+          cat << 'EOF' > RELEASE_NOTES.md
+          Pembaruan resmi aplikasi Android Hifzhly.
+
+          Informasi Rilis:
+          - Versi: 1.0.${{ github.run_number }} (Build #${{ github.run_number }})
+          - Tim Pengembang: Firdy Ridho Fillah & Faeyza Ardellein Yaradhitya (Tim FIFA)
+
+          Catatan Pembaruan Terbaru:
+          EOF
+
+          if [ -n "$PREV_TAG" ] && git rev-parse "$PREV_TAG" >/dev/null 2>&1; then
+            CHANGES=$(git log "${PREV_TAG}..HEAD" --no-merges --pretty=format:"- %s" -n 12 | grep -v "persist fixed signing keystore" || true)
+          else
+            CHANGES=""
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            CHANGES=$(git log --no-merges --pretty=format:"- %s" -n 6 | grep -v "persist fixed signing keystore" || true)
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            echo "- Peningkatan performa aplikasi dan stabilitas fitur hafalan." >> RELEASE_NOTES.md
+          else
+            printf "%s\n" "$CHANGES" >> RELEASE_NOTES.md
+          fi
+
+          cat RELEASE_NOTES.md
+
       - name: Publish Public Release for 1-Click Direct Download & Auto-Update
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
@@ -96,12 +133,7 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: Hifzhly Android App v1.0.${{ github.run_number }}
           make_latest: true
-          body: |
-            Unduh langsung berkas instalasi resmi Hifzhly untuk smartphone Android.
-            - Versi: 1.0.${{ github.run_number }}
-            - Build Number: ${{ github.run_number }}
-            - Lead Developer: Firdy Ridho Fillah (FIFA)
-            - Pembaruan: In-app auto-update background download, permissions lengkap, & splash screen clean.
+          body_path: RELEASE_NOTES.md
           files: |
             frontend/android/app/build/outputs/apk/debug/hifzhly-v1.0.${{ github.run_number }}.apk
             frontend/android/app/build/outputs/apk/debug/hifzhly-latest.apk

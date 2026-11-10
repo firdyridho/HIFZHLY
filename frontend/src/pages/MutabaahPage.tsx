@@ -41,46 +41,36 @@ import {
   getUserCommitments,
   saveUserCommitments,
 } from '../lib/mutabaahService';
+import {
+  ALL_QURAN_SURAHS,
+  getSurahMeta,
+  getSurahsInJuz,
+  type SurahMetaInfo,
+} from '../lib/quranMeta';
 
-const JUZ_AMMA_SURAHS = [
-  { number: 78, name: "An-Naba'", ayahs: 40, status: 'strong' as const, pct: 92 },
-  { number: 79, name: "An-Nazi'at", ayahs: 46, status: 'reviewing' as const, pct: 78 },
-  { number: 80, name: "'Abasa", ayahs: 42, status: 'learning' as const, pct: 64 },
-  { number: 81, name: 'At-Takwir', ayahs: 29, status: 'strong' as const, pct: 95 },
-  { number: 82, name: 'Al-Infitar', ayahs: 19, status: 'strong' as const, pct: 88 },
-  { number: 83, name: 'Al-Muthaffifin', ayahs: 36, status: 'reviewing' as const, pct: 74 },
-  { number: 84, name: 'Al-Insyiqaq', ayahs: 25, status: 'strong' as const, pct: 90 },
-  { number: 85, name: 'Al-Buruj', ayahs: 22, status: 'reviewing' as const, pct: 76 },
-  { number: 86, name: 'Ath-Thariq', ayahs: 17, status: 'strong' as const, pct: 98 },
-  { number: 87, name: "Al-A'la", ayahs: 19, status: 'strong' as const, pct: 100 },
-  { number: 88, name: 'Al-Ghasyiyah', ayahs: 26, status: 'strong' as const, pct: 94 },
-  { number: 89, name: 'Al-Fajr', ayahs: 30, status: 'reviewing' as const, pct: 80 },
-  { number: 90, name: 'Al-Balad', ayahs: 20, status: 'learning' as const, pct: 60 },
-  { number: 91, name: 'Asy-Syams', ayahs: 15, status: 'strong' as const, pct: 96 },
-  { number: 92, name: 'Al-Lail', ayahs: 21, status: 'strong' as const, pct: 90 },
-  { number: 93, name: 'Adh-Dhuha', ayahs: 11, status: 'strong' as const, pct: 100 },
-  { number: 94, name: 'Asy-Syarh', ayahs: 8, status: 'strong' as const, pct: 100 },
-  { number: 95, name: 'At-Tin', ayahs: 8, status: 'strong' as const, pct: 100 },
-  { number: 96, name: "Al-'Alaq", ayahs: 19, status: 'reviewing' as const, pct: 75 },
-  { number: 97, name: 'Al-Qadr', ayahs: 5, status: 'strong' as const, pct: 100 },
-  { number: 98, name: 'Al-Bayyinah', ayahs: 8, status: 'learning' as const, pct: 55 },
-  { number: 99, name: 'Az-Zalzalah', ayahs: 8, status: 'strong' as const, pct: 100 },
-  { number: 100, name: "Al-'Adiyat", ayahs: 11, status: 'strong' as const, pct: 92 },
-  { number: 101, name: "Al-Qari'ah", ayahs: 11, status: 'strong' as const, pct: 100 },
-  { number: 102, name: 'At-Takatsur', ayahs: 8, status: 'strong' as const, pct: 95 },
-  { number: 103, name: "Al-'Ashr", ayahs: 3, status: 'strong' as const, pct: 100 },
-  { number: 104, name: 'Al-Humazah', ayahs: 9, status: 'strong' as const, pct: 98 },
-  { number: 105, name: 'Al-Fil', ayahs: 5, status: 'strong' as const, pct: 100 },
-  { number: 106, name: 'Quraisy', ayahs: 4, status: 'strong' as const, pct: 100 },
-  { number: 107, name: "Al-Ma'un", ayahs: 7, status: 'strong' as const, pct: 100 },
-  { number: 108, name: 'Al-Kautsar', ayahs: 3, status: 'strong' as const, pct: 100 },
-  { number: 109, name: 'Al-Kafirun', ayahs: 6, status: 'strong' as const, pct: 95 },
-  { number: 110, name: 'An-Nashr', ayahs: 3, status: 'strong' as const, pct: 100 },
-  { number: 111, name: 'Al-Lahab', ayahs: 5, status: 'strong' as const, pct: 100 },
-  { number: 112, name: 'Al-Ikhlas', ayahs: 4, status: 'strong' as const, pct: 100 },
-  { number: 113, name: 'Al-Falaq', ayahs: 5, status: 'strong' as const, pct: 100 },
-  { number: 114, name: 'An-Nas', ayahs: 6, status: 'strong' as const, pct: 100 },
-];
+function resolveInitialTarget(c: UserCommitment): { juz: number; surah: number } {
+  if (c.progressionOrder === 'juz_1_asc') {
+    const s = c.targetSurahNumber && c.targetSurahNumber <= 2 ? c.targetSurahNumber : 1;
+    return { juz: c.targetJuzNumber && c.targetJuzNumber <= 2 ? c.targetJuzNumber : 1, surah: s };
+  }
+  if (c.targetSurahNumber) {
+    const meta = getSurahMeta(c.targetSurahNumber);
+    if (meta) {
+      return {
+        juz: c.targetJuzNumber || meta.juzStart,
+        surah: c.targetSurahNumber,
+      };
+    }
+  }
+  if (c.targetJuzNumber && c.targetJuzNumber >= 1 && c.targetJuzNumber <= 30) {
+    const inJuz = getSurahsInJuz(c.targetJuzNumber);
+    return {
+      juz: c.targetJuzNumber,
+      surah: inJuz[0]?.number || 1,
+    };
+  }
+  return { juz: 30, surah: 78 };
+}
 
 export default function MutabaahPage() {
   const today = useMemo(() => new Date(), []);
@@ -98,7 +88,9 @@ export default function MutabaahPage() {
   const [journalFilter, setJournalFilter] = useState<'all' | 'tilawah' | 'murojaah' | 'hafalan_baru'>('all');
 
   // Commitments State
-  const [commitments, setCommitments] = useState<UserCommitment>(getUserCommitments());
+  const initialCommitments = useMemo(() => getUserCommitments(), []);
+  const initialFocus = useMemo(() => resolveInitialTarget(initialCommitments), [initialCommitments]);
+  const [commitments, setCommitments] = useState<UserCommitment>(initialCommitments);
 
   // Summary Metrics
   const [summary, setSummary] = useState<MutabaahSummary>({
@@ -107,7 +99,7 @@ export default function MutabaahPage() {
     todayReviewedAyahs: 10,
     dailyTarget: 10,
     targetMetToday: true,
-    totalAyahsMemorized: 78,
+    totalAyahsMemorized: 0,
     weeklyActivity: [],
   });
 
@@ -128,8 +120,9 @@ export default function MutabaahPage() {
     score: number;
   } | null>(null);
 
-  // Surah Heatmap State (Juz 'Amma)
-  const [selectedSurah, setSelectedSurah] = useState<number>(78);
+  // Surah Heatmap State (Dynamic Juz 1-30 & All 114 Surahs matching active hafalan target)
+  const [selectedJuzFilter, setSelectedJuzFilter] = useState<number | 'all'>(initialFocus.juz);
+  const [selectedSurah, setSelectedSurah] = useState<number>(initialFocus.surah);
   const [activeSurahHeatmap, setActiveSurahHeatmap] = useState<SurahHeatmap | null>(null);
 
   // 1. Refresh stored logs & sync with backend summary
@@ -157,6 +150,18 @@ export default function MutabaahPage() {
     const todayReviewed = todayLog ? todayLog.ayahsReviewed : 0;
     const isTargetMet = todayReviewed >= dailyTarget;
 
+    // Hitung jumlah ayat unik yang pernah disetorkan/dimurojaah (di luar tilawah umum)
+    const uniqueMemorizedAyahs = new Set<string>();
+    Object.values(stored).forEach((dayData) => {
+      dayData.reports?.forEach((rep) => {
+        if (rep.type !== 'tilawah' && rep.surahNumber && rep.ayahStart && rep.ayahEnd) {
+          for (let a = rep.ayahStart; a <= rep.ayahEnd; a++) {
+            uniqueMemorizedAyahs.add(`${rep.surahNumber}:${a}`);
+          }
+        }
+      });
+    });
+
     // Hitung streak riil
     let calcStreak = 0;
     const checkDate = new Date(today);
@@ -179,13 +184,19 @@ export default function MutabaahPage() {
       targetMetToday: isTargetMet,
       currentStreak: finalStreak,
       maxStreak: Math.max(finalStreak, curCommitments.maxStreak || 14),
+      totalAyahsMemorized: Math.max(uniqueMemorizedAyahs.size, prev.totalAyahsMemorized),
     }));
   };
 
   useEffect(() => {
     refreshData();
 
-    const handleUpdate = () => refreshData();
+    const handleUpdate = () => {
+      refreshData();
+      const updatedTarget = resolveInitialTarget(getUserCommitments());
+      setSelectedJuzFilter(updatedTarget.juz);
+      setSelectedSurah(updatedTarget.surah);
+    };
     window.addEventListener('hifzhly_mutabaah_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -194,7 +205,7 @@ export default function MutabaahPage() {
     };
   }, [todayKey]);
 
-  // Sync with backend API GET /api/v1/mutabaah/summary if available
+  // Sync with backend API GET /api/v1/mutabaah/summary & /targets if available
   useEffect(() => {
     const token = localStorage.getItem('hifzhly_auth_token');
     fetch('/api/v1/mutabaah/summary', {
@@ -211,10 +222,87 @@ export default function MutabaahPage() {
         }
       })
       .catch(() => { });
+
+    fetch('/api/v1/mutabaah/targets', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: UserCommitment | null) => {
+        if (data && data.targetSurahNumber) {
+          setCommitments((prev) => ({ ...prev, ...data }));
+          const syncedFocus = resolveInitialTarget(data);
+          setSelectedJuzFilter(syncedFocus.juz);
+          setSelectedSurah(syncedFocus.surah);
+        }
+      })
+      .catch(() => { });
   }, []);
 
-  // 2. Fetch or compute Surah Heatmap
+  // 2. Fetch or compute Surah Heatmap (Semua 114 Surah + Gabungan Riwayat Lokal & Backend FSRS)
   useEffect(() => {
+    const surahMeta = getSurahMeta(selectedSurah) || {
+      number: selectedSurah,
+      name: `Surah ${selectedSurah}`,
+      nameArabic: '',
+      ayahs: 20,
+      startPage: 1,
+      endPage: 1,
+      juzStart: 1,
+      juzEnd: 1,
+    };
+
+    const buildLocalMergedHeatmap = (backendData?: SurahHeatmap | null): SurahHeatmap => {
+      // Mulai dengan state dari backend jika tersedia, atau semua 'untested'
+      const baseAyahs = Array.from({ length: surahMeta.ayahs }, (_, i) => {
+        const ayahNum = i + 1;
+        const fromBackend = backendData?.ayahs?.find((a) => a.ayahNumber === ayahNum);
+        return fromBackend
+          ? { ...fromBackend }
+          : {
+              ayahNumber: ayahNum,
+              status: 'untested' as 'untested' | 'learning' | 'reviewing' | 'strong',
+              lastScore: 0,
+              intervalDays: 0,
+            };
+      });
+
+      // Overlay data riil lokal jika backend belum mencatat sesi lokal tersebut
+      historyList.forEach((rep) => {
+        if (
+          rep.surahNumber === selectedSurah &&
+          rep.type !== 'tilawah' &&
+          rep.ayahStart &&
+          rep.ayahEnd
+        ) {
+          const score = rep.score || 90;
+          const localStatus: 'learning' | 'reviewing' | 'strong' =
+            score >= 85 ? 'strong' : score >= 70 ? 'reviewing' : 'learning';
+
+          for (let a = rep.ayahStart; a <= rep.ayahEnd; a++) {
+            const idx = a - 1;
+            if (idx >= 0 && idx < baseAyahs.length && baseAyahs[idx].status === 'untested') {
+              baseAyahs[idx] = {
+                ayahNumber: a,
+                status: localStatus,
+                lastScore: score,
+                intervalDays: score >= 85 ? 7 : score >= 70 ? 3 : 1,
+              };
+            }
+          }
+        }
+      });
+
+      return {
+        surahNumber: surahMeta.number,
+        surahName: backendData?.surahName || surahMeta.name,
+        totalAyahs: surahMeta.ayahs,
+        ayahs: baseAyahs,
+      };
+    };
+
+    // Set langsung data lokal agar tampilan instan tanpa kedip
+    setActiveSurahHeatmap(buildLocalMergedHeatmap(null));
+
     const token = localStorage.getItem('hifzhly_auth_token');
     fetch(`/api/v1/mutabaah/heatmap/${selectedSurah}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -222,33 +310,13 @@ export default function MutabaahPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data: SurahHeatmap | null) => {
         if (data) {
-          setActiveSurahHeatmap(data);
-        } else {
-          throw new Error('No backend data');
+          setActiveSurahHeatmap(buildLocalMergedHeatmap(data));
         }
       })
       .catch(() => {
-        // Fallback riil: bila belum ada data sesi untuk surat ini di backend, tampilkan status belum diuji
-        const surahObj = JUZ_AMMA_SURAHS.find((s) => s.number === selectedSurah) || {
-          number: selectedSurah,
-          name: `Surah ${selectedSurah}`,
-          ayahs: 20,
-        };
-        const ayahsList = Array.from({ length: surahObj.ayahs }, (_, i) => ({
-          ayahNumber: i + 1,
-          status: 'untested' as const,
-          lastScore: 0,
-          intervalDays: 0,
-        }));
-
-        setActiveSurahHeatmap({
-          surahNumber: surahObj.number,
-          surahName: surahObj.name,
-          totalAyahs: surahObj.ayahs,
-          ayahs: ayahsList,
-        });
+        // Data lokal sudah diterapkan
       });
-  }, [selectedSurah]);
+  }, [selectedSurah, historyList]);
 
   // Handle Save Quick Target
   const handleSaveTarget = () => {
@@ -589,7 +657,7 @@ export default function MutabaahPage() {
               {summary.totalAyahsMemorized} Ayat
             </span>
             <span className="text-[10px] text-slate-500">
-              Juz 'Amma (Juz 30)
+              Fokus: QS. {commitments.targetSurahName || 'Al-Fatihah'} (Ayat {commitments.targetStartAyah || 1}–{commitments.targetEndAyah || 7})
             </span>
           </div>
         </div>
@@ -1122,20 +1190,15 @@ export default function MutabaahPage() {
             );
           })()}
 
-          {/* Heatmap Surah (Data Riil Spaced Repetition) */}
+          {/* Heatmap Surah (Data Riil Spaced Repetition - Mendukung Seluruh 30 Juz & 114 Surah) */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-slate-900 text-lg">
-                    Peta Visual Retensi Surah (Heatmap Spaced Repetition)
-                  </h3>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Data Riil FSRS
-                  </span>
-                </div>
+                <h3 className="font-extrabold text-slate-900 text-lg">
+                  Peta Visual Retensi Surah (Heatmap Spaced Repetition)
+                </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Visualisasi riil daya ingat hafalan per ayat dari riwayat murojaah &amp; hafalan suara Anda
+                  Visualisasi daya ingat per ayat yang menyesuaikan dengan Juz, Surah, dan rentang ayat hafalan aktif Anda.
                 </p>
               </div>
 
@@ -1159,36 +1222,128 @@ export default function MutabaahPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-              {JUZ_AMMA_SURAHS.map((surah) => {
-                const isSelected = selectedSurah === surah.number;
-                return (
-                  <button
-                    key={surah.number}
-                    type="button"
-                    onClick={() => setSelectedSurah(surah.number)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs font-bold'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                      <span>QS. {surah.number}</span>
-                    </div>
-                    <div className="text-xs font-bold text-slate-900 truncate mt-0.5">{surah.name}</div>
-                    <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
-                  </button>
-                );
-              })}
+            {/* Bar Kontrol Juz & Sinkronisasi Posisi Hafalan */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <label htmlFor="juz-heatmap-filter" className="text-xs font-bold text-slate-700">
+                  Tampilkan Wilayah Hafalan:
+                </label>
+                <select
+                  id="juz-heatmap-filter"
+                  value={selectedJuzFilter}
+                  onChange={(e) => {
+                    const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                    setSelectedJuzFilter(val);
+                    if (val !== 'all') {
+                      const inJuz = getSurahsInJuz(val);
+                      const targetInJuz = inJuz.find((s) => s.number === commitments.targetSurahNumber);
+                      if (targetInJuz) {
+                        setSelectedSurah(targetInJuz.number);
+                      } else if (inJuz.length > 0) {
+                        setSelectedSurah(inJuz[0].number);
+                      }
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  {Array.from({ length: 30 }, (_, idx) => idx + 1).map((juzNum) => {
+                    const surahsInThisJuz = getSurahsInJuz(juzNum);
+                    const firstName = surahsInThisJuz[0]?.name || '';
+                    const lastName = surahsInThisJuz[surahsInThisJuz.length - 1]?.name || '';
+                    const rangeLabel =
+                      firstName && lastName && firstName !== lastName
+                        ? `${firstName} – ${lastName}`
+                        : firstName;
+                    return (
+                      <option key={juzNum} value={juzNum}>
+                        Juz {juzNum} ({rangeLabel})
+                      </option>
+                    );
+                  })}
+                  <option value="all">Semua 114 Surah (30 Juz Lengkap)</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const resolved = resolveInitialTarget(commitments);
+                    setSelectedJuzFilter(resolved.juz);
+                    setSelectedSurah(resolved.surah);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition cursor-pointer"
+                >
+                  Fokus Target Saya (QS. {commitments.targetSurahName || 'An-Naba'})
+                </button>
+              </div>
+
+              <Link
+                to="/app/target"
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline self-start sm:self-auto"
+              >
+                <Target className="w-3.5 h-3.5" />
+                <span>Ubah Posisi Mulai/Sampai</span>
+              </Link>
             </div>
+
+            {(() => {
+              const displayedSurahs: SurahMetaInfo[] =
+                selectedJuzFilter === 'all'
+                  ? ALL_QURAN_SURAHS
+                  : getSurahsInJuz(selectedJuzFilter);
+
+              return (
+                <div
+                  className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 ${
+                    selectedJuzFilter === 'all' ? 'max-h-72 overflow-y-auto pr-1' : ''
+                  }`}
+                >
+                  {displayedSurahs.map((surah) => {
+                    const isSelected = selectedSurah === surah.number;
+                    const isActiveTarget = commitments.targetSurahNumber === surah.number;
+                    return (
+                      <button
+                        key={surah.number}
+                        type="button"
+                        onClick={() => setSelectedSurah(surah.number)}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs font-bold'
+                            : isActiveTarget
+                            ? 'border-emerald-300 bg-emerald-50/30 hover:border-emerald-400'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                          <span>QS. {surah.number}</span>
+                          {isActiveTarget && (
+                            <span className="text-[9px] font-sans font-bold text-emerald-700">
+                              Target
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 truncate mt-0.5">
+                          {surah.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {activeSurahHeatmap && (() => {
               const strongCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'strong').length;
               const reviewingCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'reviewing').length;
-              const learningCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'learning').length;
+              const learningCount = activeSurahHeatmap.ayahs.filter(
+                (a) => a.status === 'learning' || (a.status as string) === 'weak'
+              ).length;
               const total = activeSurahHeatmap.totalAyahs || 1;
               const realRetentionPct = Math.round(((strongCount + reviewingCount * 0.5) / total) * 100);
+              const isViewingTargetSurah =
+                activeSurahHeatmap.surahNumber === commitments.targetSurahNumber;
+              const tStart = commitments.targetStartAyah || 1;
+              const tEnd = commitments.targetEndAyah || activeSurahHeatmap.totalAyahs;
 
               return (
                 <div className="pt-4 border-t border-slate-100 space-y-4">
@@ -1201,15 +1356,42 @@ export default function MutabaahPage() {
                         Total {activeSurahHeatmap.totalAyahs} Ayat • {strongCount} Mutqin • {reviewingCount} Diulang • {learningCount} Lemah
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80 self-start sm:self-auto">
+                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80 self-start sm:self-auto">
                       Daya Tahan Memori: {realRetentionPct}%
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  {isViewingTargetSurah && (
+                    <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
+                      <div className="flex items-center space-x-2">
+                        <Compass className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>
+                          Rentang hafalan aktif saat ini: <strong>Mulai Ayat {tStart}</strong> sampai <strong>Ayat {tEnd}</strong> (Tenggat: {commitments.targetDeadline}).
+                        </span>
+                      </div>
+                      <Link
+                        to="/app/murojaah"
+                        className="font-bold text-emerald-800 hover:underline shrink-0"
+                      >
+                        Lanjut Setoran →
+                      </Link>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto p-1">
                     {activeSurahHeatmap.ayahs.map((ayah) => {
-                      let colorClass = 'bg-slate-100 text-slate-600 border border-slate-200 hover:border-slate-400';
-                      let statusTitle = `Ayat ${ayah.ayahNumber}: Belum Pernah Dimurojaah`;
+                      const inActiveTargetRange =
+                        isViewingTargetSurah &&
+                        ayah.ayahNumber >= tStart &&
+                        ayah.ayahNumber <= tEnd;
+
+                      let colorClass = inActiveTargetRange
+                        ? 'bg-emerald-50/60 text-emerald-900 border border-emerald-300 hover:border-emerald-500'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200 hover:border-slate-400';
+
+                      let statusTitle = inActiveTargetRange
+                        ? `Ayat ${ayah.ayahNumber} (Target Aktif ${tStart}–${tEnd}): Belum Pernah Dimurojaah`
+                        : `Ayat ${ayah.ayahNumber}: Belum Pernah Dimurojaah`;
 
                       if (ayah.status === 'strong') {
                         colorClass = 'bg-emerald-500 text-white shadow-2xs';
@@ -1217,7 +1399,7 @@ export default function MutabaahPage() {
                       } else if (ayah.status === 'reviewing') {
                         colorClass = 'bg-amber-400 text-amber-950 shadow-2xs';
                         statusTitle = `Ayat ${ayah.ayahNumber} • Perlu Diulang (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
-                      } else if (ayah.status === 'learning') {
+                      } else if (ayah.status === 'learning' || (ayah.status as string) === 'weak') {
                         colorClass = 'bg-rose-400 text-white shadow-2xs';
                         statusTitle = `Ayat ${ayah.ayahNumber} • Belum Lancar (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
                       }
