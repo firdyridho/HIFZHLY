@@ -476,286 +476,316 @@ export default function MutabaahPage() {
     });
   }, [historyList, journalFilter]);
 
+  const targetProgressPct = Math.min(
+    100,
+    Math.round(((summary.todayReviewedAyahs || 0) / Math.max(1, summary.dailyTarget)) * 100)
+  );
+
   return (
-    <div className="space-y-6 pb-28 font-sans">
+    <div className="max-w-6xl mx-auto w-full space-y-5 sm:space-y-6 pb-28 font-sans overflow-x-hidden">
 
       {/* 1. Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-200/80">
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Sistem Mutabaah Yaumiyyah Terpadu
+            Sistem Mutabaah Yaumiyyah
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Pusat data tunggal pencatatan tilawah, murojaah, komitmen hafalan, dan evaluasi ustadz pembimbing.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-relaxed">
+            Catatan terpadu tilawah, murojaah, target hafalan, dan evaluasi ustadz pembimbing.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 self-start sm:self-auto">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0">
           <Link
             to="/app/mushaf"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-xs"
+            className="inline-flex items-center justify-center space-x-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-2xs whitespace-nowrap"
           >
-            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+            <BookOpen className="w-4 h-4 text-emerald-700 shrink-0" />
             <span>Tilawah Qur'an</span>
           </Link>
           <Link
             to="/app/murojaah"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center justify-center space-x-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
-            <Mic className="w-3.5 h-3.5" />
+            <Mic className="w-4 h-4 shrink-0" />
             <span>Murojaah AI</span>
           </Link>
         </div>
       </div>
 
-      {/* 2. Metric Cards (4 Kolom) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Streak Murojaah */}
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
-            <Flame className="w-6 h-6 fill-amber-500/20" />
+      {/* 2. Metric Cards (Uniform Height & Crisp Mobile Hierarchy) */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Streak Aktif */}
+          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Streak Aktif
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0">
+                <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-500/20" />
+              </div>
+            </div>
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums block tracking-tight">
+                {summary.currentStreak} Hari
+              </span>
+              <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                Rekor terbaik: {summary.maxStreak} Hari
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Streak Aktif
-            </span>
-            <span className="text-2xl font-black text-slate-900 font-mono tabular-nums block">
-              {summary.currentStreak} Hari
-            </span>
-            <span className="text-[10px] text-slate-500">
-              Rekor terbaik: {summary.maxStreak} Hari
-            </span>
+
+          {/* Card 2: Daily Target Progress */}
+          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Target Hari Ini
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEditingTarget(!isEditingTarget)}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 hover:bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 transition-colors cursor-pointer"
+                title="Atur Target Ayat/Hari"
+              >
+                <Settings2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="text-xl sm:text-2xl font-black text-emerald-800 font-mono tabular-nums tracking-tight">
+                  {summary.todayReviewedAyahs}/{summary.dailyTarget}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTarget(!isEditingTarget)}
+                  className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer shrink-0"
+                >
+                  {isEditingTarget ? 'Tutup' : 'Ubah'}
+                </button>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                  style={{ width: `${targetProgressPct}%` }}
+                />
+              </div>
+              <div className="text-[10px] truncate">
+                {summary.todayReviewedAyahs >= summary.dailyTarget ? (
+                  <span className="font-semibold text-emerald-700 flex items-center space-x-1">
+                    <CheckCircle2 className="w-3 h-3 shrink-0" />
+                    <span>Target Tercapai</span>
+                  </span>
+                ) : (
+                  <span className="font-medium text-slate-500">
+                    Sisa {Math.max(0, summary.dailyTarget - summary.todayReviewedAyahs)} ayat lagi
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Total Memorized */}
+          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Total Ayat Mutqin
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-700 shrink-0">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+            </div>
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums block tracking-tight">
+                {summary.totalAyahsMemorized} Ayat
+              </span>
+              <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                Fokus: {commitments.targetSurahName || 'Al-Fatihah'} ({commitments.targetStartAyah || 1}–{commitments.targetEndAyah || 7})
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Retention Quality */}
+          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Rata-rata Skor
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-700 shrink-0">
+                <Award className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+            </div>
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-sky-800 font-mono tabular-nums block tracking-tight">
+                {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '95.0%'}
+              </span>
+              <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                Evaluasi Bulan Ini
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Daily Target Progress */}
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between relative">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
-                <Target className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Target Hari Ini
-                </span>
-                <span className="text-2xl font-black text-emerald-800 font-mono tabular-nums block">
-                  {summary.todayReviewedAyahs} / {summary.dailyTarget}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsEditingTarget(!isEditingTarget)}
-              className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
-              title="Atur Target Ayat/Hari"
-            >
-              <Settings2 className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-[10px]">
-            {summary.todayReviewedAyahs >= summary.dailyTarget ? (
-              <span className="font-semibold text-emerald-700 flex items-center space-x-1">
-                <CheckCircle2 className="w-3 h-3 inline" />
-                <span>Target Tercapai</span>
+        {/* Independent Quick Target Editor Bar (Never distorts 4-card grid alignment) */}
+        {isEditingTarget && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <span className="text-xs font-bold text-emerald-950">
+                Ubah Target Ayat Harian:
               </span>
-            ) : (
-              <span className="font-medium text-slate-500">
-                Sisa {Math.max(0, summary.dailyTarget - summary.todayReviewedAyahs)} ayat lagi
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsEditingTarget(!isEditingTarget)}
-              className="font-semibold text-emerald-700 hover:underline cursor-pointer"
-            >
-              {isEditingTarget ? 'Tutup' : 'Ubah Target'}
-            </button>
-          </div>
-
-          {/* Quick Target Settings Panel */}
-          {isEditingTarget && (
-            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                <span>Pilih Target Harian:</span>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingTarget(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 gap-1">
+              <div className="flex items-center gap-1.5">
                 {[5, 10, 15, 20].map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => setCustomTarget(preset)}
-                    className={`py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${customTarget === preset
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      customTarget === preset
                         ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
                   >
                     {preset}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="flex items-center space-x-1.5 pt-1">
-                <div className="flex items-center border border-slate-200 bg-white rounded-xl overflow-hidden shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setCustomTarget(Math.max(1, customTarget - 1))}
-                    className="px-2 py-1 hover:bg-slate-100 text-slate-600 cursor-pointer"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={customTarget}
-                    onChange={(e) => setCustomTarget(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-10 text-center text-xs font-bold font-mono focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCustomTarget(customTarget + 1)}
-                    className="px-2 py-1 hover:bg-slate-100 text-slate-600 cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-emerald-200 bg-white rounded-xl overflow-hidden shrink-0">
                 <button
                   type="button"
-                  onClick={handleSaveTarget}
-                  className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center space-x-1"
+                  onClick={() => setCustomTarget(Math.max(1, customTarget - 1))}
+                  className="px-2.5 py-1.5 hover:bg-slate-100 text-slate-700 cursor-pointer"
                 >
-                  <Save className="w-3 h-3" />
-                  <span>Simpan</span>
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={customTarget}
+                  onChange={(e) => setCustomTarget(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-12 text-center text-xs font-bold font-mono focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCustomTarget(customTarget + 1)}
+                  className="px-2.5 py-1.5 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={handleSaveTarget}
+                className="flex-1 sm:flex-initial py-1.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingTarget(false)}
+                className="p-1.5 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-white/60 cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Total Memorized */}
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
-            <BookOpen className="w-6 h-6" />
           </div>
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Total Ayat Mutqin
-            </span>
-            <span className="text-2xl font-black text-slate-900 font-mono tabular-nums block">
-              {summary.totalAyahsMemorized} Ayat
-            </span>
-            <span className="text-[10px] text-slate-500">
-              Fokus: QS. {commitments.targetSurahName || 'Al-Fatihah'} (Ayat {commitments.targetStartAyah || 1}–{commitments.targetEndAyah || 7})
-            </span>
-          </div>
-        </div>
-
-        {/* Retention Quality */}
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
-            <Award className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Rata-rata Skor Bulan Ini
-            </span>
-            <span className="text-2xl font-black text-sky-800 font-mono tabular-nums block">
-              {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '95.0%'}
-            </span>
-            <span className="text-[10px] text-slate-500">
-              Evaluasi Speech Levenshtein
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* 3. MAIN SECTION TABS NAVIGATION */}
-      <div className="flex border-b border-slate-200 gap-1 sm:gap-4 overflow-x-auto">
+      {/* 3. MAIN SECTION TABS NAVIGATION (Segmented Control, 100% Responsive Without Cutoff) */}
+      <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 grid grid-cols-3 sm:inline-flex gap-1">
         <button
           type="button"
           onClick={() => setActiveMainTab('calendar')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'calendar'
-              ? 'border-emerald-600 text-emerald-800'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+          className={`py-2.5 px-2 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            activeMainTab === 'calendar'
+              ? 'bg-white text-emerald-900 shadow-2xs border border-slate-200/50'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          <CalendarIcon className="w-4 h-4" />
-          <span>Kalender Heatmap</span>
+          <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">
+            <span className="sm:hidden">Kalender</span>
+            <span className="hidden sm:inline">Kalender &amp; Peta</span>
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveMainTab('journal')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'journal'
-              ? 'border-emerald-600 text-emerald-800'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+          className={`py-2.5 px-2 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            activeMainTab === 'journal'
+              ? 'bg-white text-emerald-900 shadow-2xs border border-slate-200/50'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          <FileText className="w-4 h-4" />
-          <span>Jurnal &amp; Catatan Musyrif</span>
+          <FileText className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">
+            <span className="sm:hidden">Jurnal</span>
+            <span className="hidden sm:inline">Jurnal &amp; Catatan Musyrif</span>
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveMainTab('commitments')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center space-x-2 transition-all cursor-pointer shrink-0 ${activeMainTab === 'commitments'
-              ? 'border-emerald-600 text-emerald-800'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+          className={`py-2.5 px-2 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            activeMainTab === 'commitments'
+              ? 'bg-white text-emerald-900 shadow-2xs border border-slate-200/50'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
         >
-          <Target className="w-4 h-4" />
-          <span>Target &amp; Komitmen Mandiri</span>
+          <Target className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">
+            <span className="sm:hidden">Target</span>
+            <span className="hidden sm:inline">Target &amp; Komitmen</span>
+          </span>
         </button>
       </div>
 
       {/* TAB 1: KALENDER HEATMAP (GitHub Style) */}
       {activeMainTab === 'calendar' && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+        <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-4 sm:space-y-5">
             {/* Top Controls: Month Selector & Navigation */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+              <div className="min-w-0">
                 <div className="flex items-center space-x-2">
-                  <CalendarIcon className="w-5 h-5 text-emerald-700" />
-                  <h2 className="text-lg font-bold text-slate-900">
+                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700 shrink-0" />
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900">
                     Kalender Mutabaah Murojaah
                   </h2>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Warna hijau semakin pekat menandakan jumlah ayat yang dimurojaah semakin banyak. Klik tanggal untuk melihat rincian laporan.
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Warna hijau makin pekat menandakan setoran ayat makin banyak. Sentuh tanggal untuk rincian laporan.
                 </p>
               </div>
 
-              <div className="flex items-center space-x-2 self-start sm:self-auto">
+              <div className="flex items-center gap-1.5 w-full lg:w-auto shrink-0">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer shrink-0"
                   title="Bulan Sebelumnya"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 min-w-[140px] text-center">
+                <div className="flex-1 lg:flex-initial px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 lg:min-w-[144px] text-center truncate">
                   {INDONESIAN_MONTHS[currentMonth - 1]} {currentYear}
                 </div>
 
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer shrink-0"
                   title="Bulan Berikutnya"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -764,47 +794,55 @@ export default function MutabaahPage() {
                 <button
                   type="button"
                   onClick={handleJumpToToday}
-                  className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer shrink-0"
                 >
-                  Bulan Ini
+                  Hari Ini
                 </button>
               </div>
             </div>
 
             {/* Month Summary Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/60 text-xs">
-              <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Total Bulan Ini</span>
-                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 bg-slate-50/80 p-3 sm:p-4 rounded-2xl border border-slate-200/60 text-xs">
+              <div className="min-w-0">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider truncate">
+                  Total Bulan Ini
+                </span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base tabular-nums">
                   {monthStats.totalAyahs} Ayat
                 </span>
               </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Hari Aktif</span>
-                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+              <div className="min-w-0">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider truncate">
+                  Hari Aktif
+                </span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base tabular-nums">
                   {monthStats.activeDays} Hari
                 </span>
               </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Target Tercapai</span>
-                <span className="font-bold text-emerald-800 font-mono text-sm sm:text-base">
+              <div className="min-w-0">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider truncate">
+                  Target Tercapai
+                </span>
+                <span className="font-bold text-emerald-800 font-mono text-sm sm:text-base tabular-nums">
                   {monthStats.targetMetDays} Hari
                 </span>
               </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Rata-rata Akurasi</span>
-                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+              <div className="min-w-0">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider truncate">
+                  Rata-rata Skor
+                </span>
+                <span className="font-bold text-slate-900 font-mono text-sm sm:text-base tabular-nums">
                   {monthStats.avgScore > 0 ? `${monthStats.avgScore}%` : '-'}
                 </span>
               </div>
             </div>
 
             {/* Day-of-Week Column Headers */}
-            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center">
               {INDONESIAN_DAYS_SHORT.map((dayName, idx) => (
                 <div
                   key={idx}
-                  className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-400 py-1"
+                  className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 py-1"
                 >
                   {dayName}
                 </div>
@@ -812,7 +850,7 @@ export default function MutabaahPage() {
             </div>
 
             {/* Calendar Grid of Day Tiles */}
-            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {calendarCells.map((cell, idx) => {
                 const ayahsCount = cell.data ? cell.data.ayahsReviewed : 0;
                 const level = cell.isCurrentMonth ? getGithubIntensityLevel(ayahsCount) : 0;
@@ -827,13 +865,13 @@ export default function MutabaahPage() {
                     key={idx}
                     type="button"
                     onClick={() => handleCellClick(cell.dateKey)}
-                    className={`relative aspect-square sm:aspect-auto sm:h-20 rounded-2xl border p-1.5 sm:p-2.5 flex flex-col justify-between transition-all cursor-pointer text-left ${tileColorClass} ${isSelected ? 'ring-2 ring-emerald-700 shadow-md scale-102 z-10' : ''
+                    className={`relative aspect-square sm:aspect-auto sm:h-20 rounded-xl sm:rounded-2xl border p-1 sm:p-2.5 flex flex-col justify-between transition-all cursor-pointer text-left ${tileColorClass} ${isSelected ? 'ring-2 ring-emerald-700 shadow-md z-10' : ''
                       }`}
                     title={`${cell.dateKey}: ${ayahsCount} ayat dimurojaah`}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span
-                        className={`text-xs sm:text-sm font-bold font-mono ${cell.isCurrentMonth
+                        className={`text-[11px] sm:text-sm font-bold font-mono leading-none ${cell.isCurrentMonth
                             ? level >= 3
                               ? 'text-white'
                               : 'text-slate-800'
@@ -845,7 +883,7 @@ export default function MutabaahPage() {
 
                       {cell.isToday && (
                         <span
-                          className={`w-2 h-2 rounded-full ${level >= 3 ? 'bg-amber-300' : 'bg-emerald-600'
+                          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${level >= 3 ? 'bg-amber-300' : 'bg-emerald-600'
                             }`}
                           title="Hari Ini"
                         />
@@ -874,7 +912,9 @@ export default function MutabaahPage() {
                     )}
 
                     {cell.isCurrentMonth && ayahsCount > 0 && (
-                      <div className="sm:hidden self-end w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                      <div className="sm:hidden self-end text-[9px] font-mono font-bold leading-none opacity-85">
+                        {ayahsCount}
+                      </div>
                     )}
                   </button>
                 );
@@ -882,13 +922,13 @@ export default function MutabaahPage() {
             </div>
 
             {/* GitHub Heatmap Intensity Legend */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 text-xs">
               <span className="text-slate-500 text-[11px]">
-                * Klik salah satu kotak tanggal untuk membaca riwayat laporan setoran santri.
+                Sentuh kotak tanggal untuk membaca rincian laporan setoran.
               </span>
 
-              <div className="flex items-center space-x-2">
-                <span className="text-[11px] text-slate-400 font-semibold">Sedikit (0 Ayat)</span>
+              <div className="flex items-center space-x-2 self-start sm:self-auto">
+                <span className="text-[11px] text-slate-400 font-semibold">0 Ayat</span>
                 <div className="flex items-center space-x-1">
                   <span className="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200" title="0 Ayat" />
                   <span className="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-200" title="1-4 Ayat" />
@@ -896,12 +936,12 @@ export default function MutabaahPage() {
                   <span className="w-3.5 h-3.5 rounded bg-emerald-500 border border-emerald-600" title="10-19 Ayat" />
                   <span className="w-3.5 h-3.5 rounded bg-emerald-700 border border-emerald-800" title=">= 20 Ayat" />
                 </div>
-                <span className="text-[11px] text-slate-600 font-bold">Banyak (20+ Ayat)</span>
+                <span className="text-[11px] text-slate-600 font-bold">20+ Ayat</span>
               </div>
             </div>
           </div>
 
-                    {/* 3. DIAGRAM LINE STATISTIK PROGRES BULANAN (User Request) */}
+          {/* 3. DIAGRAM LINE STATISTIK PROGRES BULANAN (100% Responsive SVG without forced horizontal scrollbar) */}
           {(() => {
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
             const dailyStats = Array.from({ length: daysInMonth }, (_, i) => {
@@ -924,12 +964,12 @@ export default function MutabaahPage() {
             const maxVal = Math.max(...dailyStats.map((d) => d.ayahs), 0);
             const chartMax = Math.max(Math.ceil((maxVal + 5) / 10) * 10, summary.dailyTarget + 10, 25);
 
-            const svgW = 760;
-            const svgH = 220;
-            const padL = 40;
-            const padR = 25;
-            const padT = 30;
-            const padB = 40;
+            const svgW = 680;
+            const svgH = 215;
+            const padL = 36;
+            const padR = 16;
+            const padT = 26;
+            const padB = 34;
             const plotW = svgW - padL - padR;
             const plotH = svgH - padT - padB;
 
@@ -947,211 +987,215 @@ export default function MutabaahPage() {
               ` ${getX(daysInMonth - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
 
             return (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-4 sm:space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-5 h-5 text-emerald-700" />
-                      <h3 className="font-extrabold text-slate-900 text-lg">
-                        Diagram Garis Tren Progres Harian
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700 shrink-0" />
+                      <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
+                        Tren Progres Harian
                       </h3>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Statistik perkembangan total ayat ibadah Al-Qur'an per hari ({INDONESIAN_MONTHS[currentMonth - 1]} {currentYear})
+                      Perkembangan jumlah ayat per hari ({INDONESIAN_MONTHS[currentMonth - 1]} {currentYear})
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-4 text-xs font-medium self-start sm:self-auto">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-medium self-start sm:self-auto">
                     <div className="flex items-center space-x-1.5 text-emerald-800 font-bold">
                       <span className="w-3.5 h-1 bg-emerald-600 rounded-full inline-block" />
                       <span>Realisasi Ayat</span>
                     </div>
                     <div className="flex items-center space-x-1.5 text-amber-700 font-semibold">
                       <span className="w-3.5 h-0.5 border-t-2 border-dashed border-amber-500 inline-block" />
-                      <span>Target ({summary.dailyTarget} Ayat/Hari)</span>
+                      <span>Target ({summary.dailyTarget}/Hari)</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Metric Summary Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/70 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/70 text-xs">
                   <div>
-                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Total Bulan Ini</span>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block truncate">Total Bulan Ini</span>
                     <span className="font-black text-emerald-950 font-mono text-sm sm:text-base">
                       {monthStats.totalAyahs} Ayat
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Rata-Rata / Hari</span>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block truncate">Rata-Rata / Hari</span>
                     <span className="font-black text-slate-800 font-mono text-sm sm:text-base">
                       {(monthStats.totalAyahs / daysInMonth).toFixed(1)} Ayat
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Hari Aktif</span>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block truncate">Hari Aktif</span>
                     <span className="font-black text-slate-800 font-mono text-sm sm:text-base">
                       {monthStats.activeDays} / {daysInMonth} Hari
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] font-bold uppercase block">Target Tercapai</span>
+                    <span className="text-slate-500 text-[10px] font-bold uppercase block truncate">Target Tercapai</span>
                     <span className="font-black text-emerald-700 font-mono text-sm sm:text-base">
                       {monthStats.targetMetDays} Hari
                     </span>
                   </div>
                 </div>
 
-                {/* SVG Line Chart */}
-                <div className="relative overflow-x-auto pt-2">
-                  <div className="min-w-[620px] sm:min-w-full">
-                    <svg
-                      viewBox={`0 0 ${svgW} ${svgH}`}
-                      className="w-full h-56 sm:h-64 overflow-visible"
-                    >
-                      <defs>
-                        <linearGradient id="mutabaahLineGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#059669" stopOpacity="0.28" />
-                          <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
+                {/* Responsive SVG Line Chart (Scales natively across all screens without scrollbars) */}
+                <div className="relative pt-1">
+                  <svg
+                    viewBox={`0 0 ${svgW} ${svgH}`}
+                    className="w-full h-auto block overflow-visible select-none"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <defs>
+                      <linearGradient id="mutabaahLineGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#059669" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
 
-                      {/* Horizontal Grid lines & Y-Axis Labels */}
-                      {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
-                        const yPos = padT + plotH - pct * plotH;
-                        const labelVal = Math.round(pct * chartMax);
-                        return (
-                          <g key={idx}>
-                            <line
-                              x1={padL}
-                              y1={yPos}
-                              x2={svgW - padR}
-                              y2={yPos}
-                              stroke="#e2e8f0"
-                              strokeWidth="1"
-                              strokeDasharray={pct === 0 ? "none" : "2 2"}
-                            />
-                            <text
-                              x={padL - 8}
-                              y={yPos + 3}
-                              textAnchor="end"
-                              className="text-[10px] fill-slate-400 font-mono font-bold"
-                            >
-                              {labelVal}
-                            </text>
-                          </g>
-                        );
-                      })}
-
-                      {/* Daily Target Threshold Dashed Line */}
-                      <g>
-                        <line
-                          x1={padL}
-                          y1={targetY}
-                          x2={svgW - padR}
-                          y2={targetY}
-                          stroke="#f59e0b"
-                          strokeWidth="1.5"
-                          strokeDasharray="4 4"
-                        />
-                        <text
-                          x={svgW - padR}
-                          y={targetY - 5}
-                          textAnchor="end"
-                          className="text-[10px] fill-amber-700 font-bold"
-                        >
-                          Target: {summary.dailyTarget} Ayat
-                        </text>
-                      </g>
-
-                      {/* Gradient Fill under the line */}
-                      <polygon points={areaString} fill="url(#mutabaahLineGrad)" />
-
-                      {/* Main Trend Line */}
-                      <polyline
-                        points={pointsString}
-                        fill="none"
-                        stroke="#059669"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      {/* Data Points */}
-                      {dailyStats.map((d, idx) => {
-                        const cx = getX(idx);
-                        const cy = getY(d.ayahs);
-                        const isHovered = hoveredChartPoint?.day === d.day;
-                        const isToday = d.dateKey === todayKey;
-
-                        return (
-                          <g key={idx} className="cursor-pointer">
-                            {/* Hover hit area */}
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r="12"
-                              fill="transparent"
-                              onMouseEnter={() => setHoveredChartPoint(d)}
-                              onClick={() => handleCellClick(d.dateKey)}
-                            />
-
-                            {/* Visible Circle dot */}
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r={isHovered ? 6 : d.hasActivity ? 4 : 2.5}
-                              fill={d.hasActivity ? (d.targetMet ? "#059669" : "#0d9488") : "#94a3b8"}
-                              stroke="#ffffff"
-                              strokeWidth={d.hasActivity ? 2 : 1}
-                              className="transition-all duration-150"
-                              onMouseEnter={() => setHoveredChartPoint(d)}
-                              onClick={() => handleCellClick(d.dateKey)}
-                            />
-
-                            {isToday && (
-                              <circle
-                                cx={cx}
-                                cy={cy}
-                                r="8"
-                                fill="none"
-                                stroke="#10b981"
-                                strokeWidth="1.5"
-                                strokeDasharray="2 2"
-                                className="animate-pulse"
-                              />
-                            )}
-                          </g>
-                        );
-                      })}
-
-                      {/* X-Axis Day Numbers */}
-                      {dailyStats.map((d, idx) => {
-                        // Display every 3 days and the last day
-                        const shouldShow = d.day === 1 || d.day % 3 === 0 || d.day === daysInMonth;
-                        if (!shouldShow) return null;
-                        const cx = getX(idx);
-                        return (
+                    {/* Horizontal Grid lines & Y-Axis Labels */}
+                    {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
+                      const yPos = padT + plotH - pct * plotH;
+                      const labelVal = Math.round(pct * chartMax);
+                      return (
+                        <g key={idx}>
+                          <line
+                            x1={padL}
+                            y1={yPos}
+                            x2={svgW - padR}
+                            y2={yPos}
+                            stroke="#e2e8f0"
+                            strokeWidth="1"
+                            strokeDasharray={pct === 0 ? "none" : "2 2"}
+                          />
                           <text
-                            key={idx}
-                            x={cx}
-                            y={padT + plotH + 18}
-                            textAnchor="middle"
-                            className="text-[10px] fill-slate-500 font-mono font-bold"
+                            x={padL - 8}
+                            y={yPos + 4}
+                            textAnchor="end"
+                            className="text-[11px] fill-slate-400 font-mono font-bold"
                           >
-                            {d.day}
+                            {labelVal}
                           </text>
-                        );
-                      })}
-                    </svg>
-                  </div>
+                        </g>
+                      );
+                    })}
+
+                    {/* Daily Target Threshold Dashed Line */}
+                    <g>
+                      <line
+                        x1={padL}
+                        y1={targetY}
+                        x2={svgW - padR}
+                        y2={targetY}
+                        stroke="#f59e0b"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 4"
+                      />
+                      <text
+                        x={svgW - padR}
+                        y={targetY - 6}
+                        textAnchor="end"
+                        className="text-[11px] fill-amber-700 font-bold"
+                      >
+                        Target: {summary.dailyTarget} Ayat
+                      </text>
+                    </g>
+
+                    {/* Gradient Fill under the line */}
+                    <polygon points={areaString} fill="url(#mutabaahLineGrad)" />
+
+                    {/* Main Trend Line */}
+                    <polyline
+                      points={pointsString}
+                      fill="none"
+                      stroke="#059669"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Data Points */}
+                    {dailyStats.map((d, idx) => {
+                      const cx = getX(idx);
+                      const cy = getY(d.ayahs);
+                      const isHovered = hoveredChartPoint?.day === d.day;
+                      const isToday = d.dateKey === todayKey;
+
+                      return (
+                        <g key={idx} className="cursor-pointer">
+                          {/* Large invisible hit target for easy touch tapping */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="14"
+                            fill="transparent"
+                            onMouseEnter={() => setHoveredChartPoint(d)}
+                            onClick={() => {
+                              setHoveredChartPoint(d);
+                              if (d.hasActivity) handleCellClick(d.dateKey);
+                            }}
+                          />
+
+                          {/* Visible Circle dot */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={isHovered ? 6 : d.hasActivity ? 4.2 : 2.5}
+                            fill={d.hasActivity ? (d.targetMet ? "#059669" : "#0d9488") : "#94a3b8"}
+                            stroke="#ffffff"
+                            strokeWidth={d.hasActivity ? 2 : 1}
+                            className="transition-all duration-150"
+                            onMouseEnter={() => setHoveredChartPoint(d)}
+                            onClick={() => {
+                              setHoveredChartPoint(d);
+                              if (d.hasActivity) handleCellClick(d.dateKey);
+                            }}
+                          />
+
+                          {isToday && (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r="8"
+                              fill="none"
+                              stroke="#10b981"
+                              strokeWidth="1.5"
+                              strokeDasharray="2 2"
+                              className="animate-pulse"
+                            />
+                          )}
+                        </g>
+                      );
+                    })}
+
+                    {/* X-Axis Day Numbers (Cleanly spaced every 5 days + last day) */}
+                    {dailyStats.map((d, idx) => {
+                      const shouldShow = d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth;
+                      if (!shouldShow) return null;
+                      const cx = getX(idx);
+                      return (
+                        <text
+                          key={idx}
+                          x={cx}
+                          y={padT + plotH + 20}
+                          textAnchor="middle"
+                          className="text-[11px] fill-slate-500 font-mono font-bold"
+                        >
+                          {d.day}
+                        </text>
+                      );
+                    })}
+                  </svg>
                 </div>
 
                 {/* Tooltip Overlay Banner */}
                 {hoveredChartPoint ? (
-                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs animate-in fade-in duration-150">
-                    <div className="flex items-center space-x-2">
+                  <div className="p-3 sm:px-4 bg-emerald-50/90 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-slate-800">
-                        Tanggal {hoveredChartPoint.day} {INDONESIAN_MONTHS[currentMonth - 1]}:
+                        {hoveredChartPoint.day} {INDONESIAN_MONTHS[currentMonth - 1]}:
                       </span>
                       <span className="font-black font-mono text-emerald-800">
                         {hoveredChartPoint.ayahs} Ayat
@@ -1169,21 +1213,21 @@ export default function MutabaahPage() {
                           ? "Target Tercapai"
                           : hoveredChartPoint.ayahs > 0
                           ? "Di Bawah Target"
-                          : "Tidak Ada Aktivitas"}
+                          : "Belum Ada Setoran"}
                       </span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleCellClick(hoveredChartPoint.dateKey)}
-                      className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
+                      className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer self-start sm:self-auto"
                     >
                       Buka Rincian &rarr;
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-400 text-center italic">
-                    Arahkan kursor atau sentuh titik tanggal pada grafik untuk melihat rincian capaian ayat.
+                  <p className="text-[11px] text-slate-400 text-center">
+                    Sentuh atau arahkan kursor ke titik grafik untuk melihat rincian tanggal.
                   </p>
                 )}
               </div>
@@ -1191,42 +1235,42 @@ export default function MutabaahPage() {
           })()}
 
           {/* Heatmap Surah (Data Riil Spaced Repetition - Mendukung Seluruh 30 Juz & 114 Surah) */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-lg">
-                  Peta Visual Retensi Surah (Heatmap Spaced Repetition)
+          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-5 sm:space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
+                  Peta Visual Retensi Surah
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Visualisasi daya ingat per ayat yang menyesuaikan dengan Juz, Surah, dan rentang ayat hafalan aktif Anda.
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Daya ingat per ayat yang menyesuaikan dengan Juz, Surah, dan rentang hafalan aktif Anda.
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3 text-xs font-medium flex-wrap gap-y-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:text-xs font-medium">
                 <span className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded bg-emerald-500" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-emerald-500 shrink-0" />
                   <span>Mutqin</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded bg-amber-400" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-amber-400 shrink-0" />
                   <span>Diulang</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded bg-rose-400" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-rose-400 shrink-0" />
                   <span>Belum Lancar</span>
                 </span>
                 <span className="flex items-center space-x-1.5">
-                  <span className="w-3 h-3 rounded bg-slate-100 border border-slate-300" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-slate-100 border border-slate-300 shrink-0" />
                   <span>Belum Dimurojaah</span>
                 </span>
               </div>
             </div>
 
             {/* Bar Kontrol Juz & Sinkronisasi Posisi Hafalan */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <label htmlFor="juz-heatmap-filter" className="text-xs font-bold text-slate-700">
-                  Tampilkan Wilayah Hafalan:
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/80 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                <label htmlFor="juz-heatmap-filter" className="text-xs font-bold text-slate-700 shrink-0">
+                  Wilayah Hafalan:
                 </label>
                 <select
                   id="juz-heatmap-filter"
@@ -1244,7 +1288,7 @@ export default function MutabaahPage() {
                       }
                     }
                   }}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  className="w-full sm:w-auto max-w-full px-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer truncate"
                 >
                   {Array.from({ length: 30 }, (_, idx) => idx + 1).map((juzNum) => {
                     const surahsInThisJuz = getSurahsInJuz(juzNum);
@@ -1270,17 +1314,17 @@ export default function MutabaahPage() {
                     setSelectedJuzFilter(resolved.juz);
                     setSelectedSurah(resolved.surah);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition cursor-pointer truncate text-center"
                 >
-                  Fokus Target Saya (QS. {commitments.targetSurahName || 'An-Naba'})
+                  Fokus Target (QS. {commitments.targetSurahName || "An-Naba'"})
                 </button>
               </div>
 
               <Link
                 to="/app/target"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline self-start sm:self-auto"
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline self-start md:self-auto shrink-0"
               >
-                <Target className="w-3.5 h-3.5" />
+                <Target className="w-3.5 h-3.5 shrink-0" />
                 <span>Ubah Posisi Mulai/Sampai</span>
               </Link>
             </div>
@@ -1293,7 +1337,7 @@ export default function MutabaahPage() {
 
               return (
                 <div
-                  className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 ${
+                  className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 ${
                     selectedJuzFilter === 'all' ? 'max-h-72 overflow-y-auto pr-1' : ''
                   }`}
                 >
@@ -1305,18 +1349,18 @@ export default function MutabaahPage() {
                         key={surah.number}
                         type="button"
                         onClick={() => setSelectedSurah(surah.number)}
-                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0 ${
                           isSelected
-                            ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs font-bold'
+                            ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-2xs font-bold'
                             : isActiveTarget
                             ? 'border-emerald-300 bg-emerald-50/30 hover:border-emerald-400'
                             : 'border-slate-200 hover:border-slate-300 bg-white'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                          <span>QS. {surah.number}</span>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono gap-1">
+                          <span className="truncate">QS. {surah.number}</span>
                           {isActiveTarget && (
-                            <span className="text-[9px] font-sans font-bold text-emerald-700">
+                            <span className="text-[9px] font-sans font-bold text-emerald-700 shrink-0">
                               Target
                             </span>
                           )}
@@ -1324,7 +1368,7 @@ export default function MutabaahPage() {
                         <div className="text-xs font-bold text-slate-900 truncate mt-0.5">
                           {surah.name}
                         </div>
-                        <div className="text-[10px] text-slate-500">{surah.ayahs} Ayat</div>
+                        <div className="text-[10px] text-slate-500 truncate">{surah.ayahs} Ayat</div>
                       </button>
                     );
                   })}
@@ -1348,37 +1392,38 @@ export default function MutabaahPage() {
               return (
                 <div className="pt-4 border-t border-slate-100 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-bold text-slate-900">
-                        Rincian Ayat Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber}):
+                    <div className="min-w-0 space-y-0.5 sm:space-y-0">
+                      <span className="text-xs font-bold text-slate-900 block sm:inline">
+                        Rincian Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber})
                       </span>
-                      <span className="text-xs text-slate-500 ml-2">
-                        Total {activeSurahHeatmap.totalAyahs} Ayat • {strongCount} Mutqin • {reviewingCount} Diulang • {learningCount} Lemah
+                      <span className="text-[11px] sm:text-xs text-slate-500 block sm:inline sm:ml-2">
+                        {activeSurahHeatmap.totalAyahs} Ayat • {strongCount} Mutqin • {reviewingCount} Diulang • {learningCount} Lemah
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80 self-start sm:self-auto">
-                      Daya Tahan Memori: {realRetentionPct}%
+                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80 self-start sm:self-auto shrink-0">
+                      Daya Tahan: {realRetentionPct}%
                     </span>
                   </div>
 
                   {isViewingTargetSurah && (
                     <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
-                      <div className="flex items-center space-x-2">
-                        <Compass className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>
-                          Rentang hafalan aktif saat ini: <strong>Mulai Ayat {tStart}</strong> sampai <strong>Ayat {tEnd}</strong> (Tenggat: {commitments.targetDeadline}).
+                      <div className="flex items-start sm:items-center space-x-2 min-w-0">
+                        <Compass className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5 sm:mt-0" />
+                        <span className="leading-relaxed">
+                          Rentang hafalan aktif: <strong>Mulai Ayat {tStart}</strong> s.d. <strong>Ayat {tEnd}</strong> (Tenggat: {commitments.targetDeadline}).
                         </span>
                       </div>
                       <Link
                         to="/app/murojaah"
-                        className="font-bold text-emerald-800 hover:underline shrink-0"
+                        className="font-bold text-emerald-800 hover:underline shrink-0 self-start sm:self-auto"
                       >
-                        Lanjut Setoran →
+                        Lanjut Setoran &rarr;
                       </Link>
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto p-1">
+                  {/* Edge-to-Edge Symmetrical Responsive Ayah Heatmap Grid */}
+                  <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(15,minmax(0,1fr))] gap-1.5 sm:gap-2 max-h-72 overflow-y-auto p-1">
                     {activeSurahHeatmap.ayahs.map((ayah) => {
                       const inActiveTargetRange =
                         isViewingTargetSurah &&
@@ -1407,7 +1452,7 @@ export default function MutabaahPage() {
                       return (
                         <div
                           key={ayah.ayahNumber}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-transform hover:scale-110 cursor-pointer ${colorClass}`}
+                          className={`aspect-square w-full rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-[11px] sm:text-xs transition-transform hover:scale-105 cursor-pointer select-none ${colorClass}`}
                           title={statusTitle}
                         >
                           {ayah.ayahNumber}
@@ -1425,26 +1470,26 @@ export default function MutabaahPage() {
       {/* TAB 2: JURNAL & CATATAN MUSYRIF */}
       {activeMainTab === 'journal' && (
         <div className="space-y-5 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-4 sm:space-y-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
                   Timeline Riwayat Jurnal Mutabaah
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Pusat catatan tilawah dan setoran murojaah santri lengkap dengan umpan balik Ustadz pembimbing.
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Catatan tilawah dan setoran murojaah santri lengkap dengan evaluasi Ustadz pembimbing.
                 </p>
               </div>
 
-              {/* Activity Filters */}
-              <div className="flex items-center space-x-1.5 self-start sm:self-auto overflow-x-auto pb-1 sm:pb-0">
+              {/* Activity Filters (Clean responsive 2x2 grid on mobile, horizontal strip on desktop) */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 w-full lg:w-auto shrink-0">
                 {(['all', 'tilawah', 'murojaah', 'hafalan_baru'] as const).map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setJournalFilter(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer capitalize ${journalFilter === cat
-                        ? 'bg-emerald-600 text-white shadow-xs'
+                    className={`px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center whitespace-nowrap ${journalFilter === cat
+                        ? 'bg-emerald-600 text-white shadow-2xs'
                         : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
                       }`}
                   >
@@ -1461,7 +1506,7 @@ export default function MutabaahPage() {
             </div>
 
             {/* List of Journal Entries */}
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3.5 pt-1">
               {filteredHistory.length > 0 ? (
                 filteredHistory.map((item) => {
                   const isTilawah = item.type === 'tilawah';
@@ -1472,13 +1517,13 @@ export default function MutabaahPage() {
                   return (
                     <div
                       key={item.id}
-                      className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-xs hover:border-emerald-300 transition-all space-y-3"
+                      className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 bg-white shadow-2xs hover:border-emerald-300 transition-all space-y-3"
                     >
                       {/* Entry Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center space-x-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
                           <span
-                            className={`p-2 rounded-xl text-xs font-bold ${isTilawah
+                            className={`p-2 rounded-xl text-xs font-bold shrink-0 ${isTilawah
                                 ? 'bg-teal-50 text-teal-800 border border-teal-200'
                                 : isMurojaah
                                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -1488,23 +1533,23 @@ export default function MutabaahPage() {
                             {isTilawah ? <BookOpen className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                           </span>
 
-                          <div>
-                            <div className="flex items-center space-x-2">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
                               <h4 className="font-bold text-slate-900 text-sm">
-                                QS. {item.surahName} : Ayat {item.ayahStart} – {item.ayahEnd}
+                                QS. {item.surahName} : Ayat {item.ayahStart}–{item.ayahEnd}
                               </h4>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                                 {item.type.replace('_', ' ')}
                               </span>
                             </div>
-                            <span className="text-xs text-slate-500 font-mono">
+                            <span className="text-[11px] sm:text-xs text-slate-500 font-mono block mt-0.5">
                               {item.time}
                             </span>
                           </div>
                         </div>
 
                         {/* Badges / Metrics */}
-                        <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto shrink-0">
                           <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
                             {item.totalAyahs} Ayat
                           </span>
@@ -1525,7 +1570,7 @@ export default function MutabaahPage() {
                       {item.santriNotes && (
                         <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-700 space-y-1">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                            Catatan Kendala / Refleksi Santri:
+                            Catatan Refleksi Santri:
                           </span>
                           <p className="italic leading-relaxed">
                             "{item.santriNotes}"
@@ -1536,27 +1581,27 @@ export default function MutabaahPage() {
                       {/* Ustadz Feedback / Evaluasi Box */}
                       {item.ustadzNotes && (
                         <div
-                          className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${isVerified
+                          className={`p-3.5 rounded-xl border text-xs space-y-2 ${isVerified
                               ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
                               : isNeedsImprovement
                                 ? 'bg-amber-50/60 border-amber-200 text-amber-950'
                                 : 'bg-slate-50 border-slate-200 text-slate-800'
                             }`}
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                             <span className="font-bold flex items-center space-x-1.5">
                               {isVerified ? (
-                                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                               ) : isNeedsImprovement ? (
-                                <AlertCircle className="w-4 h-4 text-amber-600" />
+                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                               ) : (
-                                <UserCheck className="w-4 h-4 text-slate-600" />
+                                <UserCheck className="w-4 h-4 text-slate-600 shrink-0" />
                               )}
-                              <span>Catatan Evaluasi Musyrif / Ustadz Pembimbing:</span>
+                              <span>Evaluasi Musyrif / Ustadz:</span>
                             </span>
 
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isVerified
+                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md self-start sm:self-auto ${isVerified
                                   ? 'bg-emerald-200/80 text-emerald-900'
                                   : isNeedsImprovement
                                     ? 'bg-amber-200/80 text-amber-900'
@@ -1582,7 +1627,7 @@ export default function MutabaahPage() {
                   );
                 })
               ) : (
-                <div className="text-center p-12 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2">
+                <div className="text-center p-10 sm:p-12 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2">
                   <p className="text-xs text-slate-500">
                     Belum ada riwayat aktivitas untuk kategori ini.
                   </p>
@@ -1596,113 +1641,113 @@ export default function MutabaahPage() {
       {/* TAB 3: TARGET & KOMITMEN MANDIRI */}
       {activeMainTab === 'commitments' && (
         <div className="space-y-6 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 sm:p-7 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-              <div>
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-5 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+              <div className="min-w-0">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
                   Target &amp; Komitmen Ibadah Mandiri Santri
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Tetapkan target tilawah lembar dan surat hafalan pilihan untuk menjaga istiqomah hafalan Anda.
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Tetapkan target tilawah lembar dan surat hafalan pilihan untuk menjaga istiqomah Anda.
                 </p>
               </div>
 
               <Link
                 to="/app/target"
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer self-start sm:self-auto flex items-center gap-1.5 shadow-sm active:scale-95"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 shrink-0"
               >
-                <Target className="w-4 h-4" />
+                <Target className="w-4 h-4 shrink-0" />
                 <span>Atur di Halaman Target</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </Link>
             </div>
 
-            {/* Target Cards Overview (Read-Only) */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+            {/* Target Cards Overview (Read-Only - 1 col mobile, 2 col tablet, 4 col wide desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
               {/* Card 1: Target Murojaah Harian */}
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between gap-3 min-w-0">
                 <div className="flex items-center space-x-2 text-emerald-800">
-                  <RotateCcw className="w-4 h-4 text-emerald-600" />
-                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                  <RotateCcw className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider truncate">
                     Target Murojaah
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-xl font-black text-slate-900 font-mono block">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono block">
                     {commitments.dailyTargetMurojaahCount || 1} {commitments.murojaahTargetUnit === 'ayah' ? 'Ayat' : commitments.murojaahTargetUnit === 'page' ? 'Halaman' : 'Surah'} / Hari
                   </span>
-                  <span className="text-[11px] text-slate-500">
-                    Alur: {commitments.progressionOrder === 'juz_1_asc' ? 'Juz 1 Berurutan' : commitments.progressionOrder === 'custom_surah' ? 'Surah Pilihan' : 'Juz 30 (Juz Amma)'}
+                  <span className="text-[11px] text-slate-500 block">
+                    Alur: {commitments.progressionOrder === 'juz_1_asc' ? 'Juz 1 Berurutan' : commitments.progressionOrder === 'custom_surah' ? 'Surah Pilihan' : "Juz 30 (Juz 'Amma)"}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Spaced Repetition System</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Spaced Repetition System</span>
                 </div>
               </div>
 
               {/* Card 2: Target Hafalan Baru */}
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between gap-3 min-w-0">
                 <div className="flex items-center space-x-2 text-emerald-800">
-                  <Mic className="w-4 h-4 text-emerald-600" />
-                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                  <Mic className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider truncate">
                     Hafalan Baru (Ziyadah)
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-xl font-black text-slate-900 font-mono block">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono block">
                     {commitments.dailyTargetAyahsHafalan} Ayat / Hari
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 block">
                     Diulang sampai mutqin
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3" />
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>Streak: {commitments.currentStreak} Hari</span>
                 </div>
               </div>
 
               {/* Card 3: Target Tilawah Harian */}
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between gap-3 min-w-0">
                 <div className="flex items-center space-x-2 text-teal-800">
-                  <BookOpen className="w-4 h-4 text-teal-600" />
-                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                  <BookOpen className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider truncate">
                     Target Tilawah
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-xl font-black text-slate-900 font-mono block">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono block">
                     {commitments.dailyTargetPagesTilawah} Lembar / Hari
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 block">
                     Setara {commitments.dailyTargetAyahsTilawah} ayat tilawah
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200/60 text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3" />
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>Otomatis dari Mushaf</span>
                 </div>
               </div>
 
               {/* Card 4: Target Surah Khusus */}
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2.5">
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between gap-3 min-w-0">
                 <div className="flex items-center space-x-2 text-indigo-800">
-                  <Compass className="w-4 h-4 text-indigo-600" />
-                  <span className="font-bold text-[11px] uppercase tracking-wider">
+                  <Compass className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="font-bold text-[11px] uppercase tracking-wider truncate">
                     Target Surah Khusus
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-xl font-black text-slate-900 font-mono block truncate">
+                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono block truncate">
                     QS. {commitments.targetSurahName}
                   </span>
-                  <span className="text-[11px] text-slate-500">
-                    Ayat {commitments.targetStartAyah} s.d. {commitments.targetEndAyah} • {commitments.targetDeadline}
+                  <span className="text-[11px] text-slate-500 block truncate">
+                    Ayat {commitments.targetStartAyah}–{commitments.targetEndAyah} • {commitments.targetDeadline}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200/60 text-[11px] text-indigo-700 font-semibold flex items-center space-x-1">
-                  <Bookmark className="w-3 h-3" />
+                  <Bookmark className="w-3.5 h-3.5 shrink-0" />
                   <span>Tenggat Target</span>
                 </div>
               </div>
@@ -1713,18 +1758,18 @@ export default function MutabaahPage() {
 
       {/* 4. MODAL DETAIL LAPORAN TANGGAL */}
       {selectedDateKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
-                  <CalendarIcon className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 gap-2">
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
                     Laporan Mutabaah
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">
                     {formattedSelectedDate}
                   </p>
                 </div>
@@ -1733,21 +1778,21 @@ export default function MutabaahPage() {
               <button
                 type="button"
                 onClick={handleCloseDetailModal}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 text-center">
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200/60 text-center">
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Ayat</span>
-                <span className="text-lg font-black text-slate-900 font-mono">
+                <span className="text-base sm:text-lg font-black text-slate-900 font-mono">
                   {selectedDayData ? selectedDayData.ayahsReviewed : 0}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Status Target</span>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Status</span>
                 <span
                   className={`text-xs font-bold block mt-1 ${selectedDayData?.targetAchieved
                       ? 'text-emerald-700'
@@ -1758,8 +1803,8 @@ export default function MutabaahPage() {
                 </span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Rata-rata Skor</span>
-                <span className="text-lg font-black text-slate-900 font-mono">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Rata Skor</span>
+                <span className="text-base sm:text-lg font-black text-slate-900 font-mono">
                   {selectedDayData && selectedDayData.ayahsReviewed > 0
                     ? `${selectedDayData.averageScore}%`
                     : '-'}
@@ -1769,12 +1814,12 @@ export default function MutabaahPage() {
 
             {/* Reports List */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Rincian Sesi Laporan ({selectedDayData?.reports?.length || 0})
+                  Rincian Sesi ({selectedDayData?.reports?.length || 0})
                 </h4>
 
-                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                   Tersinkronisasi Otomatis
                 </span>
               </div>
@@ -1787,12 +1832,12 @@ export default function MutabaahPage() {
                     return (
                       <div
                         key={report.id}
-                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2 hover:border-emerald-300 transition-colors"
+                        className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2 hover:border-emerald-300 transition-colors"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center space-x-2 min-w-0">
                             <span
-                              className={`p-1.5 rounded-lg text-xs ${
+                              className={`p-1.5 rounded-lg text-xs shrink-0 ${
                                 isTilawah
                                   ? 'bg-sky-50 text-sky-700 border border-sky-200'
                                   : isAi
@@ -1808,19 +1853,19 @@ export default function MutabaahPage() {
                                 <FileText className="w-3.5 h-3.5" />
                               )}
                             </span>
-                            <div>
-                              <span className="text-xs font-bold text-slate-900 block">
-                                QS. {report.surahName} : Ayat {report.ayahStart} - {report.ayahEnd}
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-slate-900 block truncate">
+                                QS. {report.surahName} : {report.ayahStart}–{report.ayahEnd}
                               </span>
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-slate-500 block truncate">
                                 {report.totalAyahs} Ayat • {report.time}
                               </span>
                             </div>
                           </div>
 
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             <span className="text-xs font-bold font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                              Skor {report.score}%
+                              {report.score}%
                             </span>
                             <span className="text-[10px] text-slate-400 block mt-0.5">
                               {report.score >= 90 ? 'Mutqin' : 'Jayyid'}
@@ -1834,9 +1879,9 @@ export default function MutabaahPage() {
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-400 pt-1.5 border-t border-slate-100">
                           <span className="flex items-center space-x-1">
-                            <UserCheck className="w-3 h-3 text-emerald-600" />
+                            <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" />
                             <span>Penguji: {report.verifier || 'Mandiri'}</span>
                           </span>
                           <span className="capitalize">{isTilawah ? 'Tilawah Harian' : report.type.replace('_', ' ')}</span>
@@ -1846,9 +1891,9 @@ export default function MutabaahPage() {
                   })}
                 </div>
               ) : (
-                <div className="text-center p-8 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
-                    <BookOpen className="w-6 h-6" />
+                <div className="text-center p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-3">
+                  <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                    <BookOpen className="w-5 h-5" />
                   </div>
                   <div>
                     <h5 className="font-bold text-slate-800 text-sm">
@@ -1858,19 +1903,19 @@ export default function MutabaahPage() {
                       Belum ada ayat yang dilaporkan untuk tanggal ini. Mulai murojaah sekarang atau catat setoran mandiri.
                     </p>
                   </div>
-                  <div className="pt-2 flex items-center justify-center space-x-2">
+                  <div className="pt-2 grid grid-cols-1 sm:flex items-center justify-center gap-2">
                     <Link
                       to="/app/mushaf"
-                      className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center space-x-1.5 transition-colors shadow-2xs"
+                      className="px-4 py-2.5 sm:py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                       <span>Baca di Mushaf</span>
                     </Link>
                     <Link
                       to="/app/murojaah"
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors shadow-xs"
+                      className="px-4 py-2.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-xs"
                     >
-                      <Mic className="w-3.5 h-3.5" />
+                      <Mic className="w-3.5 h-3.5 shrink-0" />
                       <span>Setor Murojaah AI</span>
                     </Link>
                   </div>
@@ -1882,7 +1927,7 @@ export default function MutabaahPage() {
               <button
                 type="button"
                 onClick={handleCloseDetailModal}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -1891,6 +1936,6 @@ export default function MutabaahPage() {
         </div>
       )}
 
-          </div>
+    </div>
   );
 }
