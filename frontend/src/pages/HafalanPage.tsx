@@ -35,6 +35,7 @@ import { TilawaVoiceService } from '../lib/tilawaService';
 import { isNativePlatform, triggerHaptic } from '../lib/capacitorBridge';
 import ExitMutabaahModal, { ExitMutabaahPayload } from '../components/mutabaah/ExitMutabaahModal';
 import MistakesDetailModal, { MistakeItem } from '../components/murojaah/MistakesDetailModal';
+import { useQariAyahPlayer } from '../lib/qariPreferences';
 
 interface QuranWordItem {
   id: number;
@@ -85,9 +86,8 @@ export default function HafalanPage() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Audio Qari Player State
-  const [isPlayingQari, setIsPlayingQari] = useState(false);
-  const qariAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Audio Qari Player State (synchronized with Settings Qari preference)
+  const { qariOption: activeQariOption, isPlayingQari, playAyahAudio, stopQariAudio } = useQariAyahPlayer();
 
   // Synchronized Refs for Web Speech API and Tilawa AI
   const revealedWordsRef = useRef<Set<string>>(new Set());
@@ -609,31 +609,17 @@ export default function HafalanPage() {
     }
   };
 
-  // Dengarkan Tilawah Qari Misyari Rasyid Al-Afasi
+  // Dengarkan Tilawah Qari sesuai preferensi di Pengaturan
   const handleToggleQari = () => {
     if (isPlayingQari) {
-      if (qariAudioRef.current) {
-        qariAudioRef.current.pause();
-      }
-      setIsPlayingQari(false);
+      stopQariAudio();
       return;
     }
 
     const curAyah = pageVerses[activeVerseIndex];
     const surahNum = curAyah?.chapter_id || currentSurahMeta.number;
     const ayahNum = parseInt(curAyah?.verse_key?.split(':')[1] || '1', 10);
-
-    const sPad = String(surahNum).padStart(3, '0');
-    const aPad = String(ayahNum).padStart(3, '0');
-    const audioUrl = `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`;
-
-    const audio = new Audio(audioUrl);
-    qariAudioRef.current = audio;
-    audio.play();
-    setIsPlayingQari(true);
-
-    audio.onended = () => setIsPlayingQari(false);
-    audio.onerror = () => setIsPlayingQari(false);
+    playAyahAudio(surahNum, ayahNum);
   };
 
   // Reset active page state
@@ -1172,14 +1158,14 @@ export default function HafalanPage() {
                   </span>
                 </button>
 
-                {/* Dengarkan Tilawah Qari Misyari */}
+                {/* Dengarkan Tilawah Qari */}
                 <button
                   type="button"
                   onClick={handleToggleQari}
                   className={`flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl transition cursor-pointer active:scale-95 ${
                     isPlayingQari ? 'text-emerald-700 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
-                  title={isPlayingQari ? 'Jeda Audio Qari' : 'Dengarkan Bacaan Qari'}
+                  title={isPlayingQari ? 'Jeda Audio Qari' : `Dengarkan Bacaan Qari (${activeQariOption.name})`}
                 >
                   <div className={`p-1 rounded-full ${isPlayingQari ? 'bg-emerald-600 text-white shadow-xs' : ''}`}>
                     {isPlayingQari ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -1421,20 +1407,8 @@ export default function HafalanPage() {
         isOpen={isMistakesModalOpen}
         onClose={() => setIsMistakesModalOpen(false)}
         mistakes={mistakesList}
-        onPlayAyah={(ayahNum) => {
-          const sNum = currentSurahMeta.number;
-          const sPad = String(sNum).padStart(3, '0');
-          const aPad = String(ayahNum).padStart(3, '0');
-          const audioUrl = `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`;
-          if (qariAudioRef.current) {
-            qariAudioRef.current.pause();
-          }
-          const audio = new Audio(audioUrl);
-          qariAudioRef.current = audio;
-          audio.play();
-          setIsPlayingQari(true);
-          audio.onended = () => setIsPlayingQari(false);
-          audio.onerror = () => setIsPlayingQari(false);
+        onPlayAyah={(ayahNum, surahNum) => {
+          playAyahAudio(surahNum || currentSurahMeta.number, ayahNum);
         }}
         onClearMistakes={() => {
           setMistakesList([]);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Award,
   ChevronRight,
@@ -21,6 +21,7 @@ import {
   GraduationCap,
   FileText,
   Layers,
+  Square,
 } from 'lucide-react';
 import type {
   TajwidModule,
@@ -40,6 +41,12 @@ import {
   playCelebrationChime,
   playDengSound,
 } from '../lib/soundUtils';
+import {
+  useQariPreference,
+  getAyahAudioUrl,
+  playManagedAudio,
+  stopManagedAudio,
+} from '../lib/qariPreferences';
 
 // Local storage key for santri progress
 const TAJWID_USER_PROGRESS_KEY = 'hifzhly_tajwid_user_progress';
@@ -58,6 +65,8 @@ interface TajwidRuleDetail {
   examples: {
     verseArabic: string;
     surahInfo: string;
+    surahNumber: number;
+    ayahNumber: number;
     tajwidType: string;
     caraBaca: string;
   }[];
@@ -78,18 +87,24 @@ const TAJWID_CURATED_DETAILS: Record<string, TajwidRuleDetail> = {
       {
         verseArabic: 'مَن يَقُولُ ءَامَنَّا',
         surahInfo: 'QS. Al-Baqarah: 8',
+        surahNumber: 2,
+        ayahNumber: 8,
         tajwidType: 'Idgham Bighunnah',
         caraBaca: 'Nun sukun melebur ke huruf Ya dengan dengung 2 harakat (Mayyaquulu).',
       },
       {
         verseArabic: 'مِن بَعْدِ مَا جَآءَتْهُمُ',
         surahInfo: 'QS. Al-Baqarah: 213',
+        surahNumber: 2,
+        ayahNumber: 213,
         tajwidType: 'Iqlab',
         caraBaca: 'Nun sukun ditukar menjadi bunyi Mim dengan rongga bibir rapat halus berghunnah (Mimba\'di).',
       },
       {
         verseArabic: 'فَمَنْ خَفَّتْ مَوَازِينُهُ',
         surahInfo: 'QS. Al-Mu\'minun: 103',
+        surahNumber: 23,
+        ayahNumber: 103,
         tajwidType: 'Idzhar Halqi',
         caraBaca: 'Nun sukun dibaca terang dan tegas tanpa ditahan/didengungkan saat bertemu Kha (Man khaffat).',
       },
@@ -107,18 +122,24 @@ const TAJWID_CURATED_DETAILS: Record<string, TajwidRuleDetail> = {
       {
         verseArabic: 'تَرْمِيهِم بِحِجَارَةٍ',
         surahInfo: 'QS. Al-Fil: 4',
+        surahNumber: 105,
+        ayahNumber: 4,
         tajwidType: 'Ikhfa Syafawi',
         caraBaca: 'Mim sukun bertemu Ba dibaca samar di kedua bibir dengan dengung (Tarmiihim bihijaarah).',
       },
       {
         verseArabic: 'لَهُم مَّا يَشَآءُونَ',
         surahInfo: 'QS. Qaf: 35',
+        surahNumber: 50,
+        ayahNumber: 35,
         tajwidType: 'Idgham Mimi',
         caraBaca: 'Mim sukun melebur utuh ke Mim berharakat di depannya dengan ghunnah 2 harakat (Lahumma yasyaa\'uun).',
       },
       {
         verseArabic: 'أَلَمْ تَرَ كَيْفَ فَعَلَ',
         surahInfo: 'QS. Al-Fil: 1',
+        surahNumber: 105,
+        ayahNumber: 1,
         tajwidType: 'Idzhar Syafawi',
         caraBaca: 'Mim sukun bertemu Ta dibaca jelas tanpa jeda maupun dengung (Alam tara).',
       },
@@ -137,18 +158,24 @@ const TAJWID_CURATED_DETAILS: Record<string, TajwidRuleDetail> = {
       {
         verseArabic: 'إِذَا جَآءَ نَصْرُ اللَّهِ',
         surahInfo: 'QS. An-Nasr: 1',
+        surahNumber: 110,
+        ayahNumber: 1,
         tajwidType: 'Mad Wajib Muttashil',
         caraBaca: 'Huruf mad bertemu hamzah dalam kata جَآءَ wajib dipanjangkan 4-5 harakat saat washal.',
       },
       {
         verseArabic: 'إِنَّآ أَنزَلْنَاهُ فِي لَيْلَةِ الْقَدْرِ',
         surahInfo: 'QS. Al-Qadr: 1',
+        surahNumber: 97,
+        ayahNumber: 1,
         tajwidType: 'Mad Jaiz Munfashil',
         caraBaca: 'Kata إِنَّآ terpisah dengan أَنزَلْنَاهُ, dibaca panjang 4-5 harakat riwayat Hafsh.',
       },
       {
         verseArabic: 'وَلَا الضَّآلِّينَ',
         surahInfo: 'QS. Al-Fatihah: 7',
+        surahNumber: 1,
+        ayahNumber: 7,
         tajwidType: 'Mad Lazim Kilmi Mutsaqqal',
         caraBaca: 'Mad bertemu huruf bertasydid (Lam), wajib dipanjangkan 6 harakat dengan tekanan (nabr).',
       },
@@ -167,18 +194,24 @@ const TAJWID_CURATED_DETAILS: Record<string, TajwidRuleDetail> = {
       {
         verseArabic: 'لَقَدْ خَلَقْنَا الْإِنسَانَ',
         surahInfo: 'QS. At-Tin: 4',
+        surahNumber: 95,
+        ayahNumber: 4,
         tajwidType: 'Qalqalah Sughra',
         caraBaca: 'Huruf Dal (دْ) dan Qaf (قْ) sukun di tengah kalimat dipantulkan ringan tanpa memutus nafas.',
       },
       {
         verseArabic: 'قُلْ هُوَ اللَّهُ أَحَدٌ',
         surahInfo: 'QS. Al-Ikhlas: 1',
+        surahNumber: 112,
+        ayahNumber: 1,
         tajwidType: 'Qalqalah Kubra',
         caraBaca: 'Huruf Dal di akhir ayat dihentikan (waqaf) sehingga terpantul secara jelas dan tebal (Ahad).',
       },
       {
         verseArabic: 'تَبَّتْ يَدَآ أَبِي لَهَبٍ وَتَبَّ',
         surahInfo: 'QS. Al-Lahab: 1',
+        surahNumber: 111,
+        ayahNumber: 1,
         tajwidType: 'Qalqalah Akbar',
         caraBaca: 'Huruf Ba bertasydid saat waqaf ditahan sesaat (nabr) lalu dipantulkan dengan getaran mantap.',
       },
@@ -198,6 +231,8 @@ const TAJWID_CURATED_DETAILS: Record<string, TajwidRuleDetail> = {
       {
         verseArabic: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
         surahInfo: 'QS. Al-Fatihah: 2',
+        surahNumber: 1,
+        ayahNumber: 2,
         tajwidType: 'Makhraj Al-Halq (Huruf Ha & \'Ain)',
         caraBaca: 'Huruf Ha (ح) dan \'Ain (ع) keluar tepat dari tengah tenggorokan (wasathul halq) dengan bersih.',
       },
@@ -396,8 +431,29 @@ export default function TajwidPage() {
   const [quizReview, setQuizReview] = useState<QuizSubmitResponse | null>(null);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong' | 'correct'>('all');
 
-  // Interactive Audio playback simulation state for example verses
+  // Interactive Qari Audio playback state for example verses
+  const { qariId: selectedQari, qariOption: activeQariOption } = useQariPreference();
   const [playingExampleIndex, setPlayingExampleIndex] = useState<number | null>(null);
+  const [loadingExampleIndex, setLoadingExampleIndex] = useState<number | null>(null);
+  const [audioExampleError, setAudioExampleError] = useState('');
+  const exampleAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopExampleAudio = () => {
+    stopManagedAudio(exampleAudioRef);
+    setPlayingExampleIndex(null);
+    setLoadingExampleIndex(null);
+  };
+
+  useEffect(() => {
+    stopExampleAudio();
+    setAudioExampleError('');
+  }, [selectedQari, activeTab, activeModule?.id]);
+
+  useEffect(() => {
+    return () => {
+      stopManagedAudio(exampleAudioRef);
+    };
+  }, []);
 
   // Synchronize modules with backend & cross-tab events
   useEffect(() => {
@@ -660,12 +716,39 @@ export default function TajwidPage() {
     handleOpenModule(modules[nextIndex]);
   };
 
-  const playVerseAudioSimulation = (index: number) => {
-    setPlayingExampleIndex(index);
-    playSuccessChime();
-    setTimeout(() => {
-      setPlayingExampleIndex(null);
-    }, 1200);
+  const handleToggleExampleAudio = (
+    index: number,
+    surahNumber: number,
+    ayahNumber: number
+  ) => {
+    setAudioExampleError('');
+
+    if (playingExampleIndex === index || loadingExampleIndex === index) {
+      stopExampleAudio();
+      return;
+    }
+
+    stopExampleAudio();
+
+    const audioUrl = getAyahAudioUrl(surahNumber, ayahNumber, selectedQari);
+    setLoadingExampleIndex(index);
+    playManagedAudio(exampleAudioRef, audioUrl, {
+      onPlaying: () => {
+        setLoadingExampleIndex(null);
+        setPlayingExampleIndex(index);
+      },
+      onEnded: () => {
+        setPlayingExampleIndex(null);
+        setLoadingExampleIndex(null);
+      },
+      onError: () => {
+        setPlayingExampleIndex(null);
+        setLoadingExampleIndex(null);
+        setAudioExampleError(
+          `Gagal memutar audio contoh ayat (${activeQariOption.name}). Periksa koneksi internet Anda.`
+        );
+      },
+    });
   };
 
   // ==========================================
@@ -922,22 +1005,33 @@ export default function TajwidPage() {
 
             {/* Interactive Quranic Verses Practice */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-2">
                     <BookOpen className="w-5 h-5 text-emerald-700" />
                     <span>Contoh Potongan Ayat Al-Qur'an &amp; Kaidah Tartil</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Perhatikan lafadz berwarna pada potongan ayat di bawah untuk melatih ketajaman mata dan makhraj Anda.
+                    Perhatikan lafadz dan dengarkan pelafalan ayat di bawah untuk melatih makhraj Anda.
                   </p>
                 </div>
+                <span className="text-[11px] font-medium text-slate-500 self-start sm:self-auto shrink-0">
+                  Qari: <strong className="text-slate-700">{activeQariOption.name}</strong>
+                </span>
               </div>
+
+              {audioExampleError && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-800">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{audioExampleError}</span>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {ruleDetail.examples.length > 0 ? (
                   ruleDetail.examples.map((ex, idx) => {
                     const isPlaying = playingExampleIndex === idx;
+                    const isLoading = loadingExampleIndex === idx;
                     return (
                       <div
                         key={idx}
@@ -955,11 +1049,29 @@ export default function TajwidPage() {
 
                           <button
                             type="button"
-                            onClick={() => playVerseAudioSimulation(idx)}
-                            className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
+                            onClick={() => handleToggleExampleAudio(idx, ex.surahNumber, ex.ayahNumber)}
+                            className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all self-start sm:self-auto cursor-pointer shadow-2xs ${
+                              isPlaying
+                                ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-white border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300'
+                            }`}
                           >
-                            <Volume2 className={`w-3.5 h-3.5 ${isPlaying ? 'text-emerald-600 animate-pulse' : 'text-slate-500'}`} />
-                            <span>{isPlaying ? 'Mendengarkan...' : 'Dengar Contoh'}</span>
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                                <span>Memuat...</span>
+                              </>
+                            ) : isPlaying ? (
+                              <>
+                                <Square className="w-3 h-3 fill-white" />
+                                <span>Hentikan</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Dengar Contoh</span>
+                              </>
+                            )}
                           </button>
                         </div>
 

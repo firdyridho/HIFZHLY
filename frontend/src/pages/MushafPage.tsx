@@ -23,6 +23,14 @@ import {
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
 import { ExitMutabaahModal, ExitMutabaahSummary } from '../components/mushaf/ExitMutabaahModal';
 import { recordMutabaahReport } from '../lib/mutabaahService';
+import {
+  useQariPreference,
+  getAyahAudioUrl,
+  resolveAyahAudioUrl,
+  resolveSurahAudioUrl,
+  playManagedAudio,
+  stopManagedAudio,
+} from '../lib/qariPreferences';
 
 // 30 Juz Mapping Data
 interface JuzInfo {
@@ -331,7 +339,8 @@ export default function MushafPage() {
   const [loadingTafsirAyah, setLoadingTafsirAyah] = useState<number | null>(null);
 
   // Audio & Modals State
-  const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const { qariId: selectedQari, qariOption: activeQariOption } = useQariPreference();
+  const [playingAyahKey, setPlayingAyahKey] = useState<string | null>(null);
   const [isPlayingFull, setIsPlayingFull] = useState(false);
   const [activeMutashabih, setActiveMutashabih] = useState<MutashabihaItem[] | null>(null);
   const [activeAyahText, setActiveAyahText] = useState<{ number: number; text: string } | null>(null);
@@ -339,6 +348,21 @@ export default function MushafPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fullAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Hentikan audio yang sedang berjalan bila preferensi Qari berubah atau halaman ditutup
+  useEffect(() => {
+    stopManagedAudio(audioRef);
+    stopManagedAudio(fullAudioRef);
+    setPlayingAyahKey(null);
+    setIsPlayingFull(false);
+  }, [selectedQari]);
+
+  useEffect(() => {
+    return () => {
+      stopManagedAudio(audioRef);
+      stopManagedAudio(fullAudioRef);
+    };
+  }, []);
 
   // Terakhir Baca State (loaded from localStorage)
   const [lastRead, setLastRead] = useState<{
@@ -475,10 +499,10 @@ export default function MushafPage() {
   }, [readingMode, selectedSurahNumber, selectedJuzNumber, currentSurah?.ayahs, juzVerses]);
 
   const performDirectExit = () => {
-    if (audioRef.current) audioRef.current.pause();
-    if (fullAudioRef.current) fullAudioRef.current.pause();
+    stopManagedAudio(audioRef);
+    stopManagedAudio(fullAudioRef);
     setIsPlayingFull(false);
-    setPlayingAyah(null);
+    setPlayingAyahKey(null);
     setSelectedSurahNumber(null);
     setSelectedJuzNumber(null);
     setTargetAyahToScroll(null);
@@ -646,9 +670,9 @@ export default function MushafPage() {
       return;
     }
 
-    if (audioRef.current) audioRef.current.pause();
-    if (fullAudioRef.current) fullAudioRef.current.pause();
-    setPlayingAyah(null);
+    stopManagedAudio(audioRef);
+    stopManagedAudio(fullAudioRef);
+    setPlayingAyahKey(null);
     setIsPlayingFull(false);
     setExpandedTafsir({});
     setChapterInfo(null);
@@ -672,13 +696,15 @@ export default function MushafPage() {
             numberOfAyahs: d.jumlahAyat,
             revelationType: d.tempatTurun === 'Mekah' ? 'Makkiyyah' : 'Madaniyyah',
             translation: d.arti,
-            audioFull: d.audioFull?.['05'] || d.audioFull?.['01'] || '',
+            audioFullMap: d.audioFull,
+            audioFull: resolveSurahAudioUrl(d.audioFull, d.nomor, selectedQari),
             ayahs: d.ayat.map((a: any) => ({
               ayahNumber: a.nomorAyat,
               textArabic: a.teksArab,
               textLatin: a.teksLatin,
               translation: a.teksIndonesia,
-              audioUrl: a.audio?.['05'] || a.audio?.['01'] || '',
+              audioMap: a.audio,
+              audioUrl: resolveAyahAudioUrl(a.audio, d.nomor, a.nomorAyat, selectedQari),
             })),
           };
 
@@ -737,8 +763,6 @@ export default function MushafPage() {
             const parts = v.verse_key?.split(':') || [];
             const surahNum = parseInt(parts[0], 10);
             const ayahNum = parseInt(parts[1], 10);
-            const sPad = String(surahNum).padStart(3, '0');
-            const aPad = String(ayahNum).padStart(3, '0');
             const surahName = surahs.find((s) => s.number === surahNum)?.nameLatin || `Surah ${surahNum}`;
 
             return {
@@ -748,7 +772,7 @@ export default function MushafPage() {
               ayahNumber: ayahNum,
               textArabic: v.text_uthmani,
               translation: cleanTranslationText(v.translations?.[0]?.text || ''),
-              audioUrl: `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`,
+              audioUrl: getAyahAudioUrl(surahNum, ayahNum, selectedQari),
             };
           });
           setJuzVerses(mapped);
@@ -795,8 +819,6 @@ export default function MushafPage() {
       const parts = verse.verse_key?.split(':') || [];
       const surahNum = parseInt(parts[0], 10);
       const ayahNum = parseInt(parts[1], 10);
-      const sPad = String(surahNum).padStart(3, '0');
-      const aPad = String(ayahNum).padStart(3, '0');
       const surahName = surahs.find((s) => s.number === surahNum)?.nameLatin || `Surah ${surahNum}`;
 
       const ayahObj = {
@@ -804,7 +826,7 @@ export default function MushafPage() {
         surahNumber: surahNum,
         surahName: surahName,
         ayahNumber: ayahNum,
-        audioUrl: `https://cdn.equran.id/audio-partial/Misyari-Rasyid-Al-Afasi/${sPad}${aPad}.mp3`,
+        audioUrl: getAyahAudioUrl(surahNum, ayahNum, selectedQari),
         translationText: cleanTranslationText(verse.translations?.[0]?.text || ''),
       };
 
@@ -820,7 +842,7 @@ export default function MushafPage() {
       }
     });
     return linesMap;
-  }, [pageVerses, surahs]);
+  }, [pageVerses, surahs, selectedQari]);
 
   // 5. Compute actual Surah Name for current page
   // Map starting line to surah metadata for exact inline placement before each surah
@@ -968,42 +990,45 @@ export default function MushafPage() {
 
   // Handle Play/Pause Full Surah
   const handleToggleFullAudio = () => {
-    if (!currentSurah?.audioFull) return;
+    if (!currentSurah) return;
+    const fullUrl = resolveSurahAudioUrl(
+      currentSurah.audioFullMap,
+      currentSurah.number,
+      selectedQari
+    );
+    if (!fullUrl) return;
+
     if (isPlayingFull) {
-      if (fullAudioRef.current) fullAudioRef.current.pause();
+      stopManagedAudio(fullAudioRef);
       setIsPlayingFull(false);
-    } else {
-      if (audioRef.current) audioRef.current.pause();
-      setPlayingAyah(null);
-
-      const audio = new Audio(currentSurah.audioFull);
-      fullAudioRef.current = audio;
-      audio.play();
-      setIsPlayingFull(true);
-      audio.onended = () => setIsPlayingFull(false);
-      audio.onerror = () => setIsPlayingFull(false);
-    }
-  };
-
-  // Handle Play/Pause Single Ayah
-  const handleToggleAudio = (ayahNumber: number, url: string) => {
-    if (fullAudioRef.current) fullAudioRef.current.pause();
-    setIsPlayingFull(false);
-
-    if (playingAyah === ayahNumber) {
-      if (audioRef.current) audioRef.current.pause();
-      setPlayingAyah(null);
       return;
     }
 
-    if (audioRef.current) audioRef.current.pause();
+    stopManagedAudio(audioRef);
+    setPlayingAyahKey(null);
+    setIsPlayingFull(true);
+    playManagedAudio(fullAudioRef, fullUrl, {
+      onEnded: () => setIsPlayingFull(false),
+      onError: () => setIsPlayingFull(false),
+    });
+  };
 
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    audio.play();
-    setPlayingAyah(ayahNumber);
-    audio.onended = () => setPlayingAyah(null);
-    audio.onerror = () => setPlayingAyah(null);
+  // Handle Play/Pause Single Ayah
+  const handleToggleAudio = (ayahKey: string, url: string) => {
+    stopManagedAudio(fullAudioRef);
+    setIsPlayingFull(false);
+
+    if (playingAyahKey === ayahKey) {
+      stopManagedAudio(audioRef);
+      setPlayingAyahKey(null);
+      return;
+    }
+
+    setPlayingAyahKey(ayahKey);
+    playManagedAudio(audioRef, url, {
+      onEnded: () => setPlayingAyahKey(null),
+      onError: () => setPlayingAyahKey(null),
+    });
   };
 
   // Handle Bookmark "Tandai Terakhir Baca"
@@ -1183,7 +1208,7 @@ export default function MushafPage() {
                       ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300'
                   }`}
-                  title={isPlayingFull ? 'Jeda Audio Murottal Full' : 'Putar Murottal Full Surah'}
+                  title={isPlayingFull ? 'Jeda Audio Murottal Full' : `Putar Murottal Full Surah (${activeQariOption.name})`}
                 >
                   {isPlayingFull ? (
                     <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
@@ -1270,7 +1295,9 @@ export default function MushafPage() {
                   {/* Ayat List khusus Juz tersebut */}
                   <div className="space-y-4" onClick={handleTajweedClick}>
                     {juzVerses.map((ayah) => {
-                      const isCurrentPlaying = playingAyah === ayah.ayahNumber;
+                      const ayahKey = `${ayah.surahNumber}:${ayah.ayahNumber}`;
+                      const ayahAudioUrl = getAyahAudioUrl(ayah.surahNumber, ayah.ayahNumber, selectedQari);
+                      const isCurrentPlaying = playingAyahKey === ayahKey;
                       const isLastReadAyah =
                         lastRead.surahNumber === ayah.surahNumber &&
                         lastRead.ayahNumber === ayah.ayahNumber;
@@ -1310,13 +1337,13 @@ export default function MushafPage() {
                               {/* Audio */}
                               <button
                                 type="button"
-                                onClick={() => handleToggleAudio(ayah.ayahNumber, ayah.audioUrl)}
+                                onClick={() => handleToggleAudio(ayahKey, ayahAudioUrl)}
                                 className={`p-2 rounded-xl transition-all cursor-pointer ${
                                   isCurrentPlaying
                                     ? 'bg-emerald-600 text-white shadow-xs'
                                     : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
-                                title={isCurrentPlaying ? 'Hentikan Audio' : 'Putar Audio Ayat'}
+                                title={isCurrentPlaying ? 'Hentikan Audio' : `Dengarkan Qari (${activeQariOption.name})`}
                               >
                                 {isCurrentPlaying ? (
                                   <Pause className="w-4 h-4 fill-current" />
@@ -1471,7 +1498,14 @@ export default function MushafPage() {
                 {/* Ayat Cards List */}
                 <div className="space-y-4" onClick={handleTajweedClick}>
                   {currentSurah.ayahs.map((ayah) => {
-                    const isCurrentPlaying = playingAyah === ayah.ayahNumber;
+                    const ayahKey = `${currentSurah.number}:${ayah.ayahNumber}`;
+                    const ayahAudioUrl = resolveAyahAudioUrl(
+                      ayah.audioMap,
+                      currentSurah.number,
+                      ayah.ayahNumber,
+                      selectedQari
+                    );
+                    const isCurrentPlaying = playingAyahKey === ayahKey;
                     const isLastReadAyah =
                       lastRead.surahNumber === currentSurah.number &&
                       lastRead.ayahNumber === ayah.ayahNumber;
@@ -1538,16 +1572,16 @@ export default function MushafPage() {
                             </button>
 
                             {/* 3. Audio Play/Pause */}
-                            {ayah.audioUrl && (
+                            {ayahAudioUrl && (
                               <button
                                 type="button"
-                                onClick={() => handleToggleAudio(ayah.ayahNumber, ayah.audioUrl)}
+                                onClick={() => handleToggleAudio(ayahKey, ayahAudioUrl)}
                                 className={`p-2 rounded-xl transition-all flex items-center space-x-1 cursor-pointer ${
                                   isCurrentPlaying
                                     ? 'bg-emerald-600 text-white shadow-xs'
                                     : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
-                                title="Dengarkan Qari (Misyari Rasyid Al-Afasy)"
+                                title={isCurrentPlaying ? 'Hentikan Audio' : `Dengarkan Qari (${activeQariOption.name})`}
                               >
                                 {isCurrentPlaying ? (
                                   <Pause className="w-4 h-4 fill-current" />
@@ -1899,11 +1933,25 @@ export default function MushafPage() {
                     {/* Audio Play */}
                     <button
                       type="button"
-                      onClick={() => handleToggleAudio(selectedMushafAyah.ayahNumber, selectedMushafAyah.audioUrl)}
+                      onClick={() =>
+                        handleToggleAudio(
+                          `${selectedMushafAyah.surahNumber}:${selectedMushafAyah.ayahNumber}`,
+                          getAyahAudioUrl(
+                            selectedMushafAyah.surahNumber,
+                            selectedMushafAyah.ayahNumber,
+                            selectedQari
+                          )
+                        )
+                      }
+                      title={`Dengarkan Qari (${activeQariOption.name})`}
                       className="p-2 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer border border-emerald-200/60"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{playingAyah === selectedMushafAyah.ayahNumber ? 'Memutar...' : 'Audio'}</span>
+                      <span>
+                        {playingAyahKey === `${selectedMushafAyah.surahNumber}:${selectedMushafAyah.ayahNumber}`
+                          ? 'Memutar...'
+                          : 'Audio'}
+                      </span>
                     </button>
 
                     {/* Bookmark */}

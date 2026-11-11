@@ -22,7 +22,7 @@ interface MistakesDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   mistakes: MistakeItem[];
-  onPlayAyah?: (ayahNumber: number) => void;
+  onPlayAyah?: (ayahNumber: number, surahNumber?: number) => void;
   onClearMistakes?: () => void;
 }
 
@@ -127,7 +127,7 @@ export default function MistakesDetailModal({
                   <div className="pt-1 flex items-center justify-end">
                     <button
                       type="button"
-                      onClick={() => onPlayAyah(m.ayahNumber)}
+                      onClick={() => onPlayAyah(m.ayahNumber, m.surahNumber)}
                       className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer"
                     >
                       <Volume2 className="w-3.5 h-3.5 text-emerald-600" />

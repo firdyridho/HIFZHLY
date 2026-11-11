@@ -22,11 +22,13 @@ export interface AyahDetail {
   textLatin: string;
   translation: string;
   audioUrl: string;
+  audioMap?: Record<string, string>;
   mutashabihat?: MutashabihaItem[];
 }
 
 export interface SurahDetail extends SurahSummary {
   audioFull: string;
+  audioFullMap?: Record<string, string>;
   ayahs: AyahDetail[];
 }
 

@@ -25,6 +25,7 @@ import {
   Bell,
   Clock,
   AlarmClock,
+  Loader2,
 } from 'lucide-react';
 import type { UserProfile } from '../types';
 import { APP_VERSION, APP_BUILD, APP_DEVELOPER } from '../version';
@@ -36,6 +37,14 @@ import {
   triggerTestAdzanNotification,
   stopAdzanAudio,
 } from '../lib/adzanNotificationService';
+import {
+  QARI_LIST,
+  getAyahAudioUrl,
+  getQariOption,
+  playManagedAudio,
+  stopManagedAudio,
+  useQariPreference,
+} from '../lib/qariPreferences';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -165,12 +174,24 @@ export default function SettingsPage() {
   const [coords, setCoords] = useState<{ lat: number; lon: number }>({ lat: -6.12, lon: 106.15 });
 
   // Qari Audio Preference State
-  const [selectedQari, setSelectedQari] = useState<string>(() => {
-    return localStorage.getItem('hifzhly_qari_preference') || 'Misyari-Rasyid-Al-Afasi';
-  });
-  const [isPlayingSample, setIsPlayingSample] = useState(false);
+  const { qariId: selectedQari, setQari } = useQariPreference();
+  const [playingQariId, setPlayingQariId] = useState<string | null>(null);
+  const [loadingQariId, setLoadingQariId] = useState<string | null>(null);
   const [qariSavedMsg, setQariSavedMsg] = useState('');
+  const [qariErrorMsg, setQariErrorMsg] = useState('');
   const sampleAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopSampleAudio = () => {
+    stopManagedAudio(sampleAudioRef);
+    setPlayingQariId(null);
+    setLoadingQariId(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopSampleAudio();
+    };
+  }, []);
 
   // Load Provinces from equran.id API
   useEffect(() => {
@@ -322,35 +343,36 @@ export default function SettingsPage() {
     setTimeout(() => setLocationSavedMsg(''), 3000);
   };
 
-  const QARI_LIST = [
-    { id: 'Misyari-Rasyid-Al-Afasi', name: 'Syaikh Misyari Rasyid Al-Afasi', subtitle: 'Imam Masjid Al-Kabir Kuwait (Hafsh)' },
-    { id: 'Abdurrahman-As-Sudais', name: 'Syaikh Abdurrahman As-Sudais', subtitle: 'Imam Besar Masjidil Haram Mekkah' },
-    { id: 'Abdullah-Al-Juhany', name: 'Syaikh Abdullah Al-Juhany', subtitle: 'Imam Masjidil Haram Mekkah' },
-    { id: 'Abdul-Muhsin-Al-Qasim', name: 'Syaikh Abdul Muhsin Al-Qasim', subtitle: 'Imam Masjid Nabawi Madinah' },
-    { id: 'Ibrahim-Al-Dossari', name: 'Syaikh Ibrahim Al-Dossari', subtitle: 'Qari & Dewan Lajnah Mushaf' },
-  ];
-
   const handleTogglePlaySample = (qariId: string) => {
-    if (isPlayingSample) {
-      if (sampleAudioRef.current) sampleAudioRef.current.pause();
-      setIsPlayingSample(false);
+    setQariErrorMsg('');
+
+    if (playingQariId === qariId || loadingQariId === qariId) {
+      stopSampleAudio();
       return;
     }
 
-    const audioUrl = `https://cdn.equran.id/audio-partial/${qariId}/001001.mp3`;
-    const audio = new Audio(audioUrl);
-    sampleAudioRef.current = audio;
-    setIsPlayingSample(true);
-    audio.play().catch(() => setIsPlayingSample(false));
-    audio.onended = () => setIsPlayingSample(false);
-    audio.onerror = () => setIsPlayingSample(false);
+    stopSampleAudio();
+
+    const audioUrl = getAyahAudioUrl(1, 1, qariId);
+    setLoadingQariId(qariId);
+    playManagedAudio(sampleAudioRef, audioUrl, {
+      onPlaying: () => {
+        setLoadingQariId(null);
+        setPlayingQariId(qariId);
+      },
+      onEnded: stopSampleAudio,
+      onError: () => {
+        stopSampleAudio();
+        const qariOpt = getQariOption(qariId);
+        setQariErrorMsg(`Gagal memutar sampel suara ${qariOpt.name}. Periksa koneksi internet Anda.`);
+      },
+    });
   };
 
   const handleSaveQari = (qariId: string) => {
-    setSelectedQari(qariId);
-    localStorage.setItem('hifzhly_qari_preference', qariId);
-    window.dispatchEvent(new Event('hifzhly_qari_updated'));
-    setQariSavedMsg('Preferensi suara Qari berhasil disimpan!');
+    const canonical = setQari(qariId);
+    const qariOpt = getQariOption(canonical);
+    setQariSavedMsg(`Preferensi suara ${qariOpt.name} berhasil disimpan dan diterapkan.`);
     setTimeout(() => setQariSavedMsg(''), 3000);
   };
 
@@ -1260,9 +1282,18 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {qariErrorMsg && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-center gap-2.5 text-xs text-rose-800">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{qariErrorMsg}</span>
+              </div>
+            )}
+
             <div className="space-y-2.5 text-xs">
               {QARI_LIST.map((qari) => {
                 const isSelected = selectedQari === qari.id;
+                const isSamplePlaying = playingQariId === qari.id;
+                const isSampleLoading = loadingQariId === qari.id;
                 return (
                   <div
                     key={qari.id}
@@ -1293,11 +1324,20 @@ export default function SettingsPage() {
                         e.stopPropagation();
                         handleTogglePlaySample(qari.id);
                       }}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 rounded-xl font-semibold transition cursor-pointer text-[11px] flex items-center gap-1.5 shrink-0"
+                      className={`px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer text-[11px] flex items-center gap-1.5 shrink-0 ${
+                        isSamplePlaying
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-900'
+                      }`}
                     >
-                      {isPlayingSample && sampleAudioRef.current?.src.includes(qari.id) ? (
+                      {isSampleLoading ? (
                         <>
-                          <Square className="w-3 h-3 fill-slate-700" />
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Memuat...</span>
+                        </>
+                      ) : isSamplePlaying ? (
+                        <>
+                          <Square className="w-3 h-3 fill-white" />
                           <span>Stop</span>
                         </>
                       ) : (
