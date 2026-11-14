@@ -87,9 +87,8 @@ export default function BentoFeatures() {
                   {[28, 55, 40, 85, 70, 35, 80, 95, 55, 45, 65, 75, 50, 60, 38, 80, 65, 48].map((h, i) => (
                     <span
                       key={i}
-                      className={`w-full rounded-full transition-all duration-300 ${
-                        isHoveredWave ? 'bg-emerald-600' : 'bg-slate-300'
-                      }`}
+                      className={`w-full rounded-full transition-all duration-300 ${isHoveredWave ? 'bg-emerald-600' : 'bg-slate-300'
+                        }`}
                       style={{
                         height: isHoveredWave
                           ? `${Math.min(100, Math.max(25, h + Math.sin(i + 1) * 22))}%`
@@ -226,11 +225,10 @@ export default function BentoFeatures() {
                     <div key={day} className="text-center space-y-1">
                       <span className="block text-[10px] text-slate-400 font-mono">{day}</span>
                       <span
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                          idx <= 5
-                            ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        }`}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${idx <= 5
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          }`}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </span>
@@ -318,13 +316,12 @@ export default function BentoFeatures() {
                       key={opt.id}
                       type="button"
                       onClick={() => setSelectedOption(opt.id)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all border cursor-pointer ${
-                        selectedOption === opt.id
-                          ? opt.correct
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                            : 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                      }`}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all border cursor-pointer ${selectedOption === opt.id
+                        ? opt.correct
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                          : 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
                     >
                       {opt.label}
                     </button>
@@ -333,11 +330,10 @@ export default function BentoFeatures() {
 
                 {selectedOption !== null && (
                   <div
-                    className={`p-3 rounded-xl text-xs leading-relaxed transition-all ${
-                      selectedOption === 0
-                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
-                    }`}
+                    className={`p-3 rounded-xl text-xs leading-relaxed transition-all ${selectedOption === 0
+                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-900 border border-amber-200'
+                      }`}
                   >
                     {selectedOption === 0 ? (
                       <div className="flex items-start space-x-2">
