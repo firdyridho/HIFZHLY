@@ -8,6 +8,7 @@ import {
   HelpCircle,
   CheckCircle2,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import TubelightNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
@@ -17,18 +18,20 @@ import Scroll3DCarousel from '../components/landing/Scroll3DCarousel';
 import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
 import ClosingCtaBanner from '../components/landing/ClosingCtaBanner';
+import EditorialFooter from '../components/landing/EditorialFooter';
 import ElegantCta from '../components/reactbits/ElegantCta';
 import StarBorder from '../components/reactbits/StarBorder';
 import HeroBackground from '../components/reactbits/HeroBackground';
 
 export default function LandingPage() {
-  // Navigation items strictly linking to in-page landing sections
+  // Navigation items linking to in-page landing sections & developer page
   const navItems = [
     { name: 'Simulasi AI', url: '#simulasi', icon: Mic },
     { name: 'Pilar Fitur', url: '#fitur', icon: Layers },
     { name: 'Arsitektur', url: '#arsitektur', icon: Workflow },
     { name: 'Alur', url: '#alur', icon: Route },
     { name: 'FAQ', url: '#faq', icon: HelpCircle },
+    { name: 'Pengembang', url: '/developers', icon: Users },
   ];
 
   const rightActions = (
@@ -180,29 +183,8 @@ export default function LandingPage() {
       {/* Closing Call to Action Banner (Moneta-style split layout with physical cards & zero icons) */}
       <ClosingCtaBanner />
 
-      {/* Academic & Islamic Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-10 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <img src="/hafizhly_panjang.png" alt="Hifzhly" className="h-6 w-auto object-contain" />
-            <span className="text-slate-300">|</span>
-            <Link to="/download" className="hover:text-emerald-700 hover:underline">
-              Download Aplikasi (Desktop &amp; Mobile)
-            </Link>
-            <span className="text-slate-300">|</span>
-            <Link to="/terms" className="hover:text-emerald-700 hover:underline">
-              Ketentuan Layanan &amp; Privasi Suara
-            </Link>
-            <span className="text-slate-300">|</span>
-            <Link to="/login?role=admin" className="hover:text-emerald-700 hover:underline">
-              Portal Admin / Musyrif
-            </Link>
-          </div>
-          <p className="text-center sm:text-right">
-            © 2026 Tim FIFA (Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya).
-          </p>
-        </div>
-      </footer>
+      {/* Masterpiece Editorial Islamic Footer */}
+      <EditorialFooter />
     </div>
   );
 }

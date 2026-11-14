@@ -17,6 +17,7 @@ import SettingsPage from '../pages/SettingsPage';
 import QuizPage from '../pages/QuizPage';
 import DoaPage from '../pages/DoaPage';
 import DownloadPage from '../pages/DownloadPage';
+import DeveloperPage from '../pages/DeveloperPage';
 import AlarmPage from '../pages/AlarmPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -39,16 +40,9 @@ export default function AppRoutes() {
           )
         }
       />
-      <Route
-        path="/download"
-        element={
-          isMobileApp ? (
-            <Navigate to={token ? '/app' : '/login'} replace />
-          ) : (
-            <DownloadPage />
-          )
-        }
-      />
+      <Route path="/download" element={<DownloadPage />} />
+      <Route path="/developers" element={<DeveloperPage />} />
+      <Route path="/tentang-kami" element={<Navigate to="/developers" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/terms" element={<TermsPage />} />
