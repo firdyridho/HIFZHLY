@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import gsap from 'gsap';
 import {
   Flame,
   Target,
@@ -24,6 +25,8 @@ import {
   Bookmark,
   ArrowRight,
   RotateCcw,
+  Search,
+  Activity,
 } from 'lucide-react';
 import type { MutabaahSummary, SurahHeatmap } from '../types';
 import {
@@ -45,6 +48,8 @@ import {
   ALL_QURAN_SURAHS,
   getSurahMeta,
   getSurahsInJuz,
+  toArabicDigits,
+  SURAH_ARABIC_NAMES,
   type SurahMetaInfo,
 } from '../lib/quranMeta';
 
@@ -124,6 +129,19 @@ export default function MutabaahPage() {
   const [selectedJuzFilter, setSelectedJuzFilter] = useState<number | 'all'>(initialFocus.juz);
   const [selectedSurah, setSelectedSurah] = useState<number>(initialFocus.surah);
   const [activeSurahHeatmap, setActiveSurahHeatmap] = useState<SurahHeatmap | null>(null);
+  const [heatmapSurahSearch, setHeatmapSurahSearch] = useState<string>('');
+  const [inspectedAyah, setInspectedAyah] = useState<{
+    surahNumber: number;
+    surahName: string;
+    surahNameArabic?: string;
+    ayahNumber: number;
+    status: 'untested' | 'learning' | 'reviewing' | 'strong';
+    lastScore: number;
+    intervalDays: number;
+  } | null>(null);
+
+  const ayahTilesRef = useRef<HTMLDivElement>(null);
+  const retentionCounterRef = useRef<HTMLSpanElement>(null);
 
   // 1. Refresh stored logs & sync with backend summary
   const refreshData = () => {
@@ -317,6 +335,50 @@ export default function MutabaahPage() {
         // Data lokal sudah diterapkan
       });
   }, [selectedSurah, historyList]);
+
+  // GSAP: Animate ayah tiles whenever selectedSurah or activeSurahHeatmap changes
+  useEffect(() => {
+    if (!ayahTilesRef.current) return;
+    const tiles = ayahTilesRef.current.querySelectorAll('.ayah-retention-tile');
+    if (tiles.length > 0) {
+      gsap.fromTo(
+        tiles,
+        { scale: 0.72, opacity: 0, y: 6 },
+        {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          stagger: {
+            each: 0.007,
+            from: 'start',
+          },
+        }
+      );
+    }
+  }, [selectedSurah, activeSurahHeatmap?.surahNumber]);
+
+  // GSAP: Smooth number count-up for Retention Percentage
+  useEffect(() => {
+    if (!retentionCounterRef.current || !activeSurahHeatmap) return;
+    const strongCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'strong').length;
+    const reviewingCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'reviewing').length;
+    const total = activeSurahHeatmap.totalAyahs || 1;
+    const targetPct = Math.round(((strongCount + reviewingCount * 0.5) / total) * 100);
+
+    const counterObj = { val: 0 };
+    gsap.to(counterObj, {
+      val: targetPct,
+      duration: 0.75,
+      ease: 'power3.out',
+      onUpdate: () => {
+        if (retentionCounterRef.current) {
+          retentionCounterRef.current.textContent = `${Math.round(counterObj.val)}%`;
+        }
+      },
+    });
+  }, [activeSurahHeatmap]);
 
   // Handle Save Quick Target
   const handleSaveTarget = () => {
@@ -1235,140 +1297,227 @@ export default function MutabaahPage() {
           })()}
 
           {/* Heatmap Surah (Data Riil Spaced Repetition - Mendukung Seluruh 30 Juz & 114 Surah) */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-5 sm:space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
-              <div className="min-w-0">
-                <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
+          <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs space-y-6 select-none">
+            {/* Header: Editorial Scholarly Title & FSRS Scientific Indicator */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center space-x-2 text-[11px] font-bold tracking-widest text-emerald-800 uppercase font-sans">
+                  <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Sistem Retensi FSRS-4.5 • Spaced Repetition Engine</span>
+                </div>
+                <h3 className="font-black text-slate-900 text-lg sm:text-xl tracking-tight">
                   Peta Visual Retensi Surah
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  Daya ingat per ayat yang menyesuaikan dengan Juz, Surah, dan rentang hafalan aktif Anda.
+                <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed font-normal">
+                  Visualisasi matematis daya ingat per ayat dari riwayat murojaah &amp; setoran suara Anda, diadaptasi secara real-time dengan kurva peluruhan memori Ebbinghaus.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:text-xs font-medium">
-                <span className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-emerald-500 shrink-0" />
+              {/* Legends: Clean, Restrained & Professional (Zero Emojis) */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-semibold self-start lg:self-auto shrink-0">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200/80">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
                   <span>Mutqin</span>
                 </span>
-                <span className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-amber-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
                   <span>Diulang</span>
                 </span>
-                <span className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-rose-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-900 border border-rose-200/80">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                   <span>Belum Lancar</span>
                 </span>
-                <span className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-slate-100 border border-slate-300 shrink-0" />
-                  <span>Belum Dimurojaah</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
+                  <span>Belum Diuji</span>
                 </span>
               </div>
             </div>
 
-            {/* Bar Kontrol Juz & Sinkronisasi Posisi Hafalan */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/80 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-                <label htmlFor="juz-heatmap-filter" className="text-xs font-bold text-slate-700 shrink-0">
-                  Wilayah Hafalan:
-                </label>
-                <select
-                  id="juz-heatmap-filter"
-                  value={selectedJuzFilter}
-                  onChange={(e) => {
-                    const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
-                    setSelectedJuzFilter(val);
-                    if (val !== 'all') {
-                      const inJuz = getSurahsInJuz(val);
-                      const targetInJuz = inJuz.find((s) => s.number === commitments.targetSurahNumber);
-                      if (targetInJuz) {
-                        setSelectedSurah(targetInJuz.number);
-                      } else if (inJuz.length > 0) {
-                        setSelectedSurah(inJuz[0].number);
+            {/* Bar Kontrol Juz, Pencarian Cepat & Target Posisi */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/90 p-3.5 rounded-2xl border border-slate-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 min-w-0">
+                {/* Selector Wilayah Juz */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <label htmlFor="juz-heatmap-filter" className="text-xs font-bold text-slate-700 shrink-0">
+                    Wilayah:
+                  </label>
+                  <select
+                    id="juz-heatmap-filter"
+                    value={selectedJuzFilter}
+                    onChange={(e) => {
+                      const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                      setSelectedJuzFilter(val);
+                      setInspectedAyah(null);
+                      if (val !== 'all') {
+                        const inJuz = getSurahsInJuz(val);
+                        const targetInJuz = inJuz.find((s) => s.number === commitments.targetSurahNumber);
+                        if (targetInJuz) {
+                          setSelectedSurah(targetInJuz.number);
+                        } else if (inJuz.length > 0) {
+                          setSelectedSurah(inJuz[0].number);
+                        }
                       }
-                    }
-                  }}
-                  className="w-full sm:w-auto max-w-full px-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer truncate"
-                >
-                  {Array.from({ length: 30 }, (_, idx) => idx + 1).map((juzNum) => {
-                    const surahsInThisJuz = getSurahsInJuz(juzNum);
-                    const firstName = surahsInThisJuz[0]?.name || '';
-                    const lastName = surahsInThisJuz[surahsInThisJuz.length - 1]?.name || '';
-                    const rangeLabel =
-                      firstName && lastName && firstName !== lastName
-                        ? `${firstName} – ${lastName}`
-                        : firstName;
-                    return (
-                      <option key={juzNum} value={juzNum}>
-                        Juz {juzNum} ({rangeLabel})
-                      </option>
-                    );
-                  })}
-                  <option value="all">Semua 114 Surah (30 Juz Lengkap)</option>
-                </select>
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs truncate"
+                  >
+                    {Array.from({ length: 30 }, (_, idx) => idx + 1).map((juzNum) => {
+                      const surahsInThisJuz = getSurahsInJuz(juzNum);
+                      const firstName = surahsInThisJuz[0]?.name || '';
+                      const lastName = surahsInThisJuz[surahsInThisJuz.length - 1]?.name || '';
+                      const rangeLabel =
+                        firstName && lastName && firstName !== lastName
+                          ? `${firstName} – ${lastName}`
+                          : firstName;
+                      return (
+                        <option key={juzNum} value={juzNum}>
+                          Juz {juzNum} ({rangeLabel})
+                        </option>
+                      );
+                    })}
+                    <option value="all">Semua 114 Surah (30 Juz Lengkap)</option>
+                  </select>
+                </div>
 
+                {/* Filter Input Pencarian Surah */}
+                <div className="relative flex-1 min-w-[160px] max-w-xs">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={heatmapSurahSearch}
+                    onChange={(e) => setHeatmapSurahSearch(e.target.value)}
+                    placeholder="Cari surah (misal: Yasin, 36)..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                  />
+                  {heatmapSurahSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setHeatmapSurahSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Tombol Pintas: Fokus Target Santri */}
                 <button
                   type="button"
                   onClick={() => {
                     const resolved = resolveInitialTarget(commitments);
                     setSelectedJuzFilter(resolved.juz);
                     setSelectedSurah(resolved.surah);
+                    setInspectedAyah(null);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition cursor-pointer truncate text-center"
+                  className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer truncate text-center shadow-2xs shrink-0"
                 >
                   Fokus Target (QS. {commitments.targetSurahName || "An-Naba'"})
                 </button>
               </div>
 
+              {/* Link Pengaturan Target */}
               <Link
                 to="/app/target"
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline self-start md:self-auto shrink-0"
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-colors self-start lg:self-auto shrink-0"
               >
                 <Target className="w-3.5 h-3.5 shrink-0" />
-                <span>Ubah Posisi Mulai/Sampai</span>
+                <span>Ubah Target Komitmen</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
+            {/* Grid Kartu Surah Berdasarkan Wilayah Terpilih */}
             {(() => {
-              const displayedSurahs: SurahMetaInfo[] =
+              const allInScope: SurahMetaInfo[] =
                 selectedJuzFilter === 'all'
                   ? ALL_QURAN_SURAHS
                   : getSurahsInJuz(selectedJuzFilter);
 
+              const displayedSurahs = allInScope.filter((s) => {
+                if (!heatmapSurahSearch.trim()) return true;
+                const q = heatmapSurahSearch.toLowerCase().trim();
+                return (
+                  s.number.toString().includes(q) ||
+                  s.name.toLowerCase().includes(q) ||
+                  (s.nameArabic && s.nameArabic.includes(q))
+                );
+              });
+
+              if (displayedSurahs.length === 0) {
+                return (
+                  <div className="py-8 text-center text-xs text-slate-400 italic">
+                    Tidak ditemukan surah yang cocok dengan "{heatmapSurahSearch}".
+                  </div>
+                );
+              }
+
               return (
                 <div
-                  className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 ${
-                    selectedJuzFilter === 'all' ? 'max-h-72 overflow-y-auto pr-1' : ''
+                  className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 ${
+                    selectedJuzFilter === 'all' || displayedSurahs.length > 12
+                      ? 'max-h-72 overflow-y-auto pr-1'
+                      : ''
                   }`}
                 >
                   {displayedSurahs.map((surah) => {
                     const isSelected = selectedSurah === surah.number;
                     const isActiveTarget = commitments.targetSurahNumber === surah.number;
+                    const arabicName =
+                      surah.nameArabic
+                        ? surah.nameArabic.replace('سورة ', '')
+                        : (SURAH_ARABIC_NAMES[surah.number] || '');
+
                     return (
                       <button
                         key={surah.number}
                         type="button"
-                        onClick={() => setSelectedSurah(surah.number)}
-                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0 ${
+                        onClick={() => {
+                          setSelectedSurah(surah.number);
+                          setInspectedAyah(null);
+                        }}
+                        className={`relative group p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer min-w-0 overflow-hidden ${
                           isSelected
-                            ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-2xs font-bold'
+                            ? 'border-emerald-700 bg-emerald-50/70 ring-2 ring-emerald-600/20 shadow-xs'
                             : isActiveTarget
-                            ? 'border-emerald-300 bg-emerald-50/30 hover:border-emerald-400'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                            ? 'border-emerald-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/30'
+                            : 'border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/70'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono gap-1">
-                          <span className="truncate">QS. {surah.number}</span>
-                          {isActiveTarget && (
-                            <span className="text-[9px] font-sans font-bold text-emerald-700 shrink-0">
-                              Target
+                        {/* Calligraphic Arabic Watermark */}
+                        <span
+                          aria-hidden="true"
+                          className="font-quran text-3xl sm:text-4xl absolute -right-1 -bottom-2 text-slate-900/5 group-hover:text-emerald-950/10 pointer-events-none select-none transition-colors"
+                        >
+                          {arabicName}
+                        </span>
+
+                        <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 gap-1">
+                            <span className={isSelected ? 'text-emerald-800 font-bold' : ''}>
+                              QS. {surah.number}
                             </span>
-                          )}
+                            {isActiveTarget && (
+                              <span className="text-[9px] font-sans font-bold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded-md shrink-0">
+                                Target
+                              </span>
+                            )}
+                          </div>
+
+                          <div>
+                            <div
+                              className={`text-xs sm:text-sm font-bold truncate leading-tight ${
+                                isSelected
+                                  ? 'text-emerald-950 font-extrabold'
+                                  : 'text-slate-900 group-hover:text-emerald-900'
+                              }`}
+                            >
+                              {surah.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                              {surah.ayahs} Ayat
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs font-bold text-slate-900 truncate mt-0.5">
-                          {surah.name}
-                        </div>
-                        <div className="text-[10px] text-slate-500 truncate">{surah.ayahs} Ayat</div>
                       </button>
                     );
                   })}
@@ -1376,87 +1525,292 @@ export default function MutabaahPage() {
               );
             })()}
 
+            {/* Rincian Ayat & Visualisasi Matrix Retensi Surah Terpilih */}
             {activeSurahHeatmap && (() => {
               const strongCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'strong').length;
               const reviewingCount = activeSurahHeatmap.ayahs.filter((a) => a.status === 'reviewing').length;
               const learningCount = activeSurahHeatmap.ayahs.filter(
                 (a) => a.status === 'learning' || (a.status as string) === 'weak'
               ).length;
+              const untestedCount = activeSurahHeatmap.ayahs.filter(
+                (a) => a.status === 'untested' || !a.status
+              ).length;
               const total = activeSurahHeatmap.totalAyahs || 1;
               const realRetentionPct = Math.round(((strongCount + reviewingCount * 0.5) / total) * 100);
+
+              const strongPct = Math.round((strongCount / total) * 100);
+              const reviewingPct = Math.round((reviewingCount / total) * 100);
+              const learningPct = Math.round((learningCount / total) * 100);
+              const untestedPct = Math.max(0, 100 - strongPct - reviewingPct - learningPct);
+
               const isViewingTargetSurah =
                 activeSurahHeatmap.surahNumber === commitments.targetSurahNumber;
               const tStart = commitments.targetStartAyah || 1;
               const tEnd = commitments.targetEndAyah || activeSurahHeatmap.totalAyahs;
 
+              const arabicName =
+                SURAH_ARABIC_NAMES[activeSurahHeatmap.surahNumber] || '';
+
               return (
-                <div className="pt-4 border-t border-slate-100 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="min-w-0 space-y-0.5 sm:space-y-0">
-                      <span className="text-xs font-bold text-slate-900 block sm:inline">
-                        Rincian Surah {activeSurahHeatmap.surahName} (QS. {activeSurahHeatmap.surahNumber})
+                <div className="pt-5 border-t border-slate-100 space-y-4">
+                  {/* Top Bar Rincian Surah: Nama, Calligraphy, Breakdown Counts & Animated Gauge */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm sm:text-base font-extrabold text-slate-900">
+                          QS. {activeSurahHeatmap.surahNumber} {activeSurahHeatmap.surahName}
+                        </span>
+                        {arabicName && (
+                          <span className="font-quran text-lg sm:text-xl text-emerald-950 font-normal">
+                            سُورَةُ {arabicName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 font-medium">
+                        <span>{activeSurahHeatmap.totalAyahs} Ayat</span>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-bold">{strongCount} Mutqin</span>
+                        <span>•</span>
+                        <span className="text-amber-700 font-bold">{reviewingCount} Diulang</span>
+                        <span>•</span>
+                        <span className="text-rose-700 font-bold">{learningCount} Lemah</span>
+                        <span>•</span>
+                        <span className="text-slate-400">{untestedCount} Belum Diuji</span>
+                      </div>
+                    </div>
+
+                    {/* Daya Tahan Memori Badge with GSAP Animated Counter */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-emerald-50/80 px-3 py-1.5 rounded-xl border border-emerald-200/90 shadow-2xs">
+                      <span className="text-[11px] font-bold text-emerald-900 tracking-wide uppercase">
+                        Daya Tahan:
                       </span>
-                      <span className="text-[11px] sm:text-xs text-slate-500 block sm:inline sm:ml-2">
-                        {activeSurahHeatmap.totalAyahs} Ayat • {strongCount} Mutqin • {reviewingCount} Diulang • {learningCount} Lemah
+                      <span
+                        ref={retentionCounterRef}
+                        className="font-mono text-emerald-800 font-black text-sm sm:text-base"
+                      >
+                        {realRetentionPct}%
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80 self-start sm:self-auto shrink-0">
-                      Daya Tahan: {realRetentionPct}%
-                    </span>
                   </div>
 
+                  {/* 4-Segment Visual Breakdown Bar */}
+                  <div className="space-y-1.5">
+                    <div className="w-full h-2 rounded-full overflow-hidden bg-slate-100 flex items-center shadow-inner">
+                      {strongPct > 0 && (
+                        <div
+                          style={{ width: `${strongPct}%` }}
+                          className="h-full bg-emerald-600 transition-all duration-500"
+                          title={`Mutqin: ${strongPct}%`}
+                        />
+                      )}
+                      {reviewingPct > 0 && (
+                        <div
+                          style={{ width: `${reviewingPct}%` }}
+                          className="h-full bg-amber-400 transition-all duration-500"
+                          title={`Diulang: ${reviewingPct}%`}
+                        />
+                      )}
+                      {learningPct > 0 && (
+                        <div
+                          style={{ width: `${learningPct}%` }}
+                          className="h-full bg-rose-500 transition-all duration-500"
+                          title={`Belum Lancar: ${learningPct}%`}
+                        />
+                      )}
+                      {untestedPct > 0 && (
+                        <div
+                          style={{ width: `${untestedPct}%` }}
+                          className="h-full bg-slate-200 transition-all duration-500"
+                          title={`Belum Dimurojaah: ${untestedPct}%`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Highlight Rentang Hafalan Aktif Santri */}
                   {isViewingTargetSurah && (
-                    <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
-                      <div className="flex items-start sm:items-center space-x-2 min-w-0">
+                    <div className="px-4 py-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-950">
+                      <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
                         <Compass className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5 sm:mt-0" />
                         <span className="leading-relaxed">
-                          Rentang hafalan aktif: <strong>Mulai Ayat {tStart}</strong> s.d. <strong>Ayat {tEnd}</strong> (Tenggat: {commitments.targetDeadline}).
+                          Rentang hafalan aktif Anda: <strong>Mulai Ayat {tStart}</strong> s.d.{' '}
+                          <strong>Ayat {tEnd}</strong> (Tenggat:{' '}
+                          {commitments.targetDeadline || 'Sesuai Rencana'}).
                         </span>
                       </div>
                       <Link
                         to="/app/murojaah"
-                        className="font-bold text-emerald-800 hover:underline shrink-0 self-start sm:self-auto"
+                        className="font-bold text-emerald-800 hover:text-emerald-950 hover:underline shrink-0 inline-flex items-center gap-1"
                       >
-                        Lanjut Setoran &rarr;
+                        <span>Lanjut Setoran Murojaah</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   )}
 
-                  {/* Edge-to-Edge Symmetrical Responsive Ayah Heatmap Grid */}
-                  <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(15,minmax(0,1fr))] gap-1.5 sm:gap-2 max-h-72 overflow-y-auto p-1">
+                  {/* Interactive Ayah Detail Inspector Drawer/Modal */}
+                  {inspectedAyah && (
+                    <div className="relative rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/60 via-white to-slate-50 p-4 sm:p-5 shadow-xs animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex items-start justify-between gap-3 pb-3 border-b border-emerald-900/10">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-md bg-emerald-700 text-white font-mono text-xs font-bold">
+                              Ayat {inspectedAyah.ayahNumber}
+                            </span>
+                            <span className="font-quran text-lg text-emerald-950">
+                              {toArabicDigits(inspectedAyah.ayahNumber)}
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">
+                              QS. {inspectedAyah.surahName} ({inspectedAyah.surahNumber})
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Status memori Spaced Repetition (FSRS-4.5) hasil evaluasi suara tilawah Anda.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setInspectedAyah(null)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                          title="Tutup Rincian"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+                        {/* 1. Status */}
+                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Kategori Retensi
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                inspectedAyah.status === 'strong'
+                                  ? 'bg-emerald-600'
+                                  : inspectedAyah.status === 'reviewing'
+                                  ? 'bg-amber-400'
+                                  : inspectedAyah.status === 'learning' ||
+                                    (inspectedAyah.status as string) === 'weak'
+                                  ? 'bg-rose-500'
+                                  : 'bg-slate-300'
+                              }`}
+                            />
+                            <span className="text-xs font-bold text-slate-900 truncate">
+                              {inspectedAyah.status === 'strong'
+                                ? 'Mutqin (Kuat & Melekat)'
+                                : inspectedAyah.status === 'reviewing'
+                                ? 'Perlu Diulang Segera'
+                                : inspectedAyah.status === 'learning' ||
+                                  (inspectedAyah.status as string) === 'weak'
+                                ? 'Belum Lancar (Tadrib)'
+                                : 'Belum Pernah Diuji'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 2. Skor Akurasi */}
+                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Akurasi Suara Terakhir
+                          </span>
+                          <span className="text-sm font-mono font-extrabold text-slate-900 block">
+                            {inspectedAyah.lastScore ? `${inspectedAyah.lastScore}%` : '—'}
+                          </span>
+                        </div>
+
+                        {/* 3. Interval SRS */}
+                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Interval Pengulangan
+                          </span>
+                          <span className="text-sm font-mono font-extrabold text-slate-900 block">
+                            {inspectedAyah.intervalDays ? `+${inspectedAyah.intervalDays} Hari` : 'Hari Ini'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick Action Links */}
+                      <div className="pt-3 flex flex-wrap items-center justify-end gap-2 border-t border-emerald-900/10 mt-3">
+                        <Link
+                          to="/app/mushaf"
+                          className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Buka Lembar Mushaf</span>
+                        </Link>
+                        <Link
+                          to="/app/murojaah"
+                          className="px-4 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Uji Murojaah Sekarang</span>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Symmetrical Responsive Ayah Heatmap Grid with GSAP Stagger Entrance */}
+                  <div
+                    ref={ayahTilesRef}
+                    className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-[repeat(15,minmax(0,1fr))] gap-1.5 sm:gap-2 max-h-80 overflow-y-auto p-1"
+                  >
                     {activeSurahHeatmap.ayahs.map((ayah) => {
                       const inActiveTargetRange =
                         isViewingTargetSurah &&
                         ayah.ayahNumber >= tStart &&
                         ayah.ayahNumber <= tEnd;
 
+                      const isSelected = inspectedAyah?.ayahNumber === ayah.ayahNumber;
+
                       let colorClass = inActiveTargetRange
-                        ? 'bg-emerald-50/60 text-emerald-900 border border-emerald-300 hover:border-emerald-500'
-                        : 'bg-slate-100 text-slate-600 border border-slate-200 hover:border-slate-400';
+                        ? 'bg-emerald-50/70 text-emerald-900 border border-emerald-300 hover:border-emerald-500'
+                        : 'bg-slate-100/90 text-slate-600 border border-slate-200 hover:border-slate-400 hover:bg-white';
 
                       let statusTitle = inActiveTargetRange
                         ? `Ayat ${ayah.ayahNumber} (Target Aktif ${tStart}–${tEnd}): Belum Pernah Dimurojaah`
                         : `Ayat ${ayah.ayahNumber}: Belum Pernah Dimurojaah`;
 
                       if (ayah.status === 'strong') {
-                        colorClass = 'bg-emerald-500 text-white shadow-2xs';
+                        colorClass = 'bg-emerald-600 text-white shadow-2xs hover:bg-emerald-500';
                         statusTitle = `Ayat ${ayah.ayahNumber} • Mutqin (${ayah.lastScore || 90}%) • Interval +${ayah.intervalDays} Hari`;
                       } else if (ayah.status === 'reviewing') {
-                        colorClass = 'bg-amber-400 text-amber-950 shadow-2xs';
+                        colorClass = 'bg-amber-400 text-amber-950 shadow-2xs hover:bg-amber-300';
                         statusTitle = `Ayat ${ayah.ayahNumber} • Perlu Diulang (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
                       } else if (ayah.status === 'learning' || (ayah.status as string) === 'weak') {
-                        colorClass = 'bg-rose-400 text-white shadow-2xs';
+                        colorClass = 'bg-rose-500 text-white shadow-2xs hover:bg-rose-400';
                         statusTitle = `Ayat ${ayah.ayahNumber} • Belum Lancar (${ayah.lastScore}%) • Interval +${ayah.intervalDays} Hari`;
                       }
 
                       return (
-                        <div
+                        <button
                           key={ayah.ayahNumber}
-                          className={`aspect-square w-full rounded-lg sm:rounded-xl flex items-center justify-center font-bold text-[11px] sm:text-xs transition-transform hover:scale-105 cursor-pointer select-none ${colorClass}`}
+                          type="button"
+                          onClick={() => {
+                            setInspectedAyah({
+                              surahNumber: activeSurahHeatmap.surahNumber,
+                              surahName: activeSurahHeatmap.surahName,
+                              ayahNumber: ayah.ayahNumber,
+                              status: ayah.status || 'untested',
+                              lastScore: ayah.lastScore || 0,
+                              intervalDays: ayah.intervalDays || 0,
+                            });
+                          }}
+                          className={`ayah-retention-tile aspect-square w-full rounded-lg sm:rounded-xl flex items-center justify-center font-mono font-bold text-[11px] sm:text-xs transition-all duration-150 cursor-pointer select-none active:scale-95 ${colorClass} ${
+                            isSelected
+                              ? 'ring-3 ring-emerald-600 ring-offset-2 scale-105 z-10'
+                              : 'hover:scale-105'
+                          } ${
+                            inActiveTargetRange && ayah.status === 'untested'
+                              ? 'ring-2 ring-emerald-400/50'
+                              : ''
+                          }`}
                           title={statusTitle}
                         >
                           {ayah.ayahNumber}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

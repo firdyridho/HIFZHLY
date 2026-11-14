@@ -1,16 +1,10 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Mic,
-  Layers,
-  Workflow,
-  Route,
-  HelpCircle,
   CheckCircle2,
   ShieldCheck,
-  Users,
 } from 'lucide-react';
-import TubelightNavbar from '@/components/lightswind-pro/tubelight-navbar';
+import LandingNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
 import ScholarlyStats from '../components/landing/ScholarlyStats';
 import MushafScrollytelling from '../components/landing/MushafScrollytelling';
@@ -20,52 +14,46 @@ import FaqSection from '../components/landing/FaqSection';
 import ClosingCtaBanner from '../components/landing/ClosingCtaBanner';
 import EditorialFooter from '../components/landing/EditorialFooter';
 import ElegantCta from '../components/reactbits/ElegantCta';
-import StarBorder from '../components/reactbits/StarBorder';
 import HeroBackground from '../components/reactbits/HeroBackground';
 
 export default function LandingPage() {
   // Navigation items linking to in-page landing sections & developer page
   const navItems = [
-    { name: 'Simulasi AI', url: '#simulasi', icon: Mic },
-    { name: 'Pilar Fitur', url: '#fitur', icon: Layers },
-    { name: 'Arsitektur', url: '#arsitektur', icon: Workflow },
-    { name: 'Alur', url: '#alur', icon: Route },
-    { name: 'FAQ', url: '#faq', icon: HelpCircle },
-    { name: 'Pengembang', url: '/developers', icon: Users },
+    { name: 'Simulasi AI', url: '#simulasi' },
+    { name: 'Pilar Fitur', url: '#fitur' },
+    { name: 'Arsitektur', url: '#arsitektur' },
+    { name: 'Alur', url: '#alur' },
+    { name: 'FAQ', url: '#faq' },
+    { name: 'Pengembang', url: '/developers' },
   ];
 
   const rightActions = (
-    <>
+    <div className="flex items-center gap-1.5 sm:gap-2">
       <Link
         to="/download"
-        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-center"
+        className="text-[13px] font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg transition-colors"
       >
-        Download App
+        Unduh
       </Link>
       <Link
         to="/login"
-        className="text-xs font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-center"
+        className="text-[13px] font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg transition-colors"
       >
         Masuk
       </Link>
-      <StarBorder
-        as={Link}
+      <Link
         to="/register"
-        color="#34d399"
-        speed="5s"
-        className="text-xs font-semibold"
+        className="text-[13px] font-bold text-white bg-emerald-700 hover:bg-emerald-800 px-4 py-2 rounded-xl transition-all shadow-xs"
       >
-        <span className="px-3.5 py-1.5 rounded-[14px] bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-colors">
-          Daftar Santri
-        </span>
-      </StarBorder>
-    </>
+        Daftar Santri
+      </Link>
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 scroll-smooth">
-      {/* Tubelight Navbar Header for Landing Page */}
-      <TubelightNavbar items={navItems} rightActions={rightActions} />
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 scroll-smooth pt-16">
+      {/* Editorial Navbar Header for Landing Page */}
+      <LandingNavbar items={navItems} rightActions={rightActions} />
 
       {/* Hero Section & Live Simulation Sandbox with React Bits Symmetrical Blueprint Grid & Interactive Celestial Particles */}
       <section id="simulasi" className="relative scroll-mt-24">
