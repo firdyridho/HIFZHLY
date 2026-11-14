@@ -92,7 +92,7 @@ export default function DashboardPage() {
           name: p.name === 'Shubuh' ? 'Subuh' : p.name,
           time: p.time,
         }))
-      ).catch(() => {});
+      ).catch(() => { });
     }
   }, [prayerTimes]);
 
@@ -155,7 +155,7 @@ export default function DashboardPage() {
           setPrayerTimes(mapped);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           setDoaList(data.doa);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     window.addEventListener('hifzhly_location_updated', loadPrayerSchedule);
     window.addEventListener('hifzhly_notifications_updated', loadNotifications);
@@ -202,7 +202,7 @@ export default function DashboardPage() {
             localStorage.setItem('hifzhly_user_profile', JSON.stringify(data));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // 0. Sync Real Mutabaah Today Log
@@ -359,30 +359,27 @@ export default function DashboardPage() {
             return (
               <div
                 key={prayer.name}
-                className={`py-2 px-1 rounded-2xl transition-all ${
-                  isNext
-                    ? 'bg-white/20 ring-1 ring-white/40 shadow-xs'
-                    : 'hover:bg-white/10'
-                }`}
+                className={`py-2 px-1 rounded-2xl transition-all ${isNext
+                  ? 'bg-white/20 ring-1 ring-white/40 shadow-xs'
+                  : 'hover:bg-white/10'
+                  }`}
               >
                 <span className="text-[10px] sm:text-xs font-medium text-emerald-100/90 block">
                   {prayer.name}
                 </span>
                 <div className="my-1.5 flex justify-center">
                   <div
-                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all ${
-                      isNext
-                        ? 'bg-white text-emerald-800 shadow-sm'
-                        : 'bg-white/10 text-emerald-100 hover:bg-white/15'
-                    }`}
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all ${isNext
+                      ? 'bg-white text-emerald-800 shadow-sm'
+                      : 'bg-white/10 text-emerald-100 hover:bg-white/15'
+                      }`}
                   >
                     <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
                   </div>
                 </div>
                 <span
-                  className={`text-xs sm:text-sm font-mono block ${
-                    isNext ? 'font-black text-white' : 'font-semibold text-emerald-100/90'
-                  }`}
+                  className={`text-xs sm:text-sm font-mono block ${isNext ? 'font-black text-white' : 'font-semibold text-emerald-100/90'
+                    }`}
                 >
                   {prayer.time}
                 </span>
@@ -392,261 +389,195 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. SECTION MENU UTAMA (Editorial Feature Hub — Anti AI-Slop) */}
-      <div className="space-y-4">
+      {/* 2. SECTION MENU UTAMA (Refined 8-Card Micro-Tile Grid) */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-              Pilar Layanan &amp; Menu Utama
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+              Menu Utama
             </h2>
-            <p className="text-xs text-slate-500 font-normal">
-              Ekosistem talaqqi, asistensi tilawah, dan penjaga kemutqinan Al-Qur'an
+            <p className="text-xs text-slate-500">
+              Akses cepat tilawah, talaqqi AI, dan penjaga kemutqinan
             </p>
           </div>
-          <span className="hidden sm:inline-block text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
-            Standar Kemenag RI
+          <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/80">
+            8 Layanan
           </span>
         </div>
 
-        {/* ── Tier 1: Two Prominent Hero Pillars (Mushaf Madinah & Murojaah AI) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Hero Pillar 1: Mushaf Madinah 15 Baris */}
-          <Link
-            to="/app/mushaf"
-            className="group relative overflow-hidden p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between"
-          >
-            {/* Subtle Calligraphic Watermark */}
-            <div
-              aria-hidden="true"
-              className="absolute -right-4 -bottom-4 font-quran text-7xl sm:text-8xl text-emerald-950/[0.03] select-none pointer-events-none group-hover:scale-105 transition-transform duration-500"
+        <div className="bg-white p-3.5 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3">
+          {/* Quick resume strip if lastRead is available */}
+          {lastRead && (
+            <Link
+              to={`/app/mushaf?surah=${lastRead.surahNumber}&ayah=${lastRead.ayahNumber}`}
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50 transition-all text-xs group"
             >
-              اقْرَأْ
-            </div>
-
-            <div className="relative z-10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800 group-hover:scale-105 transition-transform shadow-2xs">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50/90 px-2 py-0.5 rounded-lg border border-emerald-200/60">
-                  Rasm Utsmani
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+                <span className="text-slate-500 font-medium shrink-0">Lanjut Terakhir:</span>
+                <span className="font-bold text-slate-900 truncate">
+                  QS. {lastRead.surahName} [Ayat {lastRead.ayahNumber}]
                 </span>
               </div>
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-800 text-[11px] shrink-0 group-hover:translate-x-0.5 transition-transform">
+                <span>Lanjutkan</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+          )}
 
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-emerald-800 transition-colors">
-                  Mushaf Madinah 15 Baris
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                  Membaca mushaf standar cetakan Madinah &amp; Kemenag RI, dilengkapi tajwid warna interaktif dan tafsir tahlili.
-                </p>
+          {/* 8 Micro-Card Tiles (4 Columns on mobile & desktop) */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3.5">
+            {/* 1. Qur'an */}
+            <Link
+              to="/app/mushaf"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-emerald-50 border border-emerald-100/90 flex items-center justify-center text-emerald-800 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 shadow-2xs">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-            </div>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-800 transition-colors tracking-tight truncate">
+                  Qur'an
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  15 Baris
+                </span>
+              </div>
+            </Link>
 
-            <div className="relative z-10 pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              {lastRead ? (
-                <span className="text-[11px] text-slate-500 truncate max-w-[200px]">
-                  Lanjut: <strong className="text-slate-800 font-semibold">QS. {lastRead.surahName} [{lastRead.ayahNumber}]</strong>
-                </span>
-              ) : (
-                <span className="text-[11px] text-slate-400">
-                  Mulai dari Surah Al-Fatihah
-                </span>
+            {/* 2. Hafalan (SRS) */}
+            <Link
+              to="/app/hafalan"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-teal-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              {srsItems.length > 0 && (
+                <span
+                  title={`${srsItems.length} ayat jatuh tempo`}
+                  className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"
+                />
               )}
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 group-hover:translate-x-0.5 transition-transform text-[11px]">
-                <span>Buka Mushaf</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </Link>
-
-          {/* Hero Pillar 2: Murojaah Mandiri Suara Real-time AI */}
-          <Link
-            to="/app/murojaah"
-            className="group relative overflow-hidden p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between"
-          >
-            {/* Subtle Calligraphic Watermark */}
-            <div
-              aria-hidden="true"
-              className="absolute -right-4 -bottom-4 font-quran text-7xl sm:text-8xl text-emerald-950/[0.03] select-none pointer-events-none group-hover:scale-105 transition-transform duration-500"
-            >
-              وَرَتِّلْ
-            </div>
-
-            <div className="relative z-10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-800 group-hover:scale-105 transition-transform shadow-2xs">
-                  <Mic className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50/90 px-2 py-0.5 rounded-lg border border-teal-200/60">
-                  Memory-Only DSP
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-teal-50 border border-teal-100/90 flex items-center justify-center text-teal-800 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600 transition-all duration-300 shadow-2xs">
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-teal-800 transition-colors tracking-tight truncate">
+                  Hafalan
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Metode SRS
                 </span>
               </div>
+            </Link>
 
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-teal-800 transition-colors">
-                  Murojaah Mandiri Suara
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                  Penyimak lisan cerdas dengan penyejajaran Levenshtein kata-demi-kata. Deteksi keliru harakat instan tanpa kirim audio ke server.
-                </p>
+            {/* 3. Murojaah AI */}
+            <Link
+              to="/app/murojaah"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-emerald-50 border border-emerald-100/90 flex items-center justify-center text-emerald-800 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 shadow-2xs">
+                <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-            </div>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-800 transition-colors tracking-tight truncate">
+                  Murojaah
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Suara AI
+                </span>
+              </div>
+            </Link>
 
-            <div className="relative z-10 pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-500">
-                Latensi Evaluasi &lt; 3 Detik
-              </span>
-              <span className="inline-flex items-center gap-1 font-bold text-teal-700 group-hover:translate-x-0.5 transition-transform text-[11px]">
-                <span>Mulai Murojaah</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </Link>
-        </div>
+            {/* 4. Mutabaah */}
+            <Link
+              to="/app/mutabaah"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-sky-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-sky-50 border border-sky-100/90 flex items-center justify-center text-sky-800 group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white group-hover:border-sky-600 transition-all duration-300 shadow-2xs">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-sky-800 transition-colors tracking-tight truncate">
+                  Mutabaah
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Heatmap
+                </span>
+              </div>
+            </Link>
 
-        {/* ── Tier 2: Two Methodology Pillars (Hafalan FSRS & Mutabaah Heatmap) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Pillar 3: Hafalan & Kurva Lupa FSRS */}
-          <Link
-            to="/app/hafalan"
-            className="group p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center space-x-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors shrink-0">
-                <Brain className="w-5 h-5" />
+            {/* 5. Tajwid */}
+            <Link
+              to="/app/tajwid"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-teal-50 border border-teal-100/90 flex items-center justify-center text-teal-800 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600 transition-all duration-300 shadow-2xs">
+                <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors truncate">
-                    Hafalan Mandiri (SRS)
-                  </h4>
-                  {srsItems.length > 0 && (
-                    <span className="text-[10px] font-mono font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200 shrink-0">
-                      {srsItems.length} Jatuh Tempo
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                  Algoritma repetisi berjarak melawan kurva kelupaan
-                </p>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-teal-800 transition-colors tracking-tight truncate">
+                  Tajwid
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Akademi
+                </span>
               </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </Link>
+            </Link>
 
-          {/* Pillar 4: Mutabaah & Heatmap Retensi */}
-          <Link
-            to="/app/mutabaah"
-            className="group p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center space-x-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-sky-50 group-hover:text-sky-800 transition-colors shrink-0">
-                <TrendingUp className="w-5 h-5" />
+            {/* 6. Doa & Adab */}
+            <Link
+              to="/app/doa"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-amber-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-amber-50 border border-amber-100/90 flex items-center justify-center text-amber-800 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600 transition-all duration-300 shadow-2xs">
+                <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-sky-800 transition-colors truncate">
-                    Mutabaah &amp; Heatmap
-                  </h4>
-                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 shrink-0">
-                    {streak} Hari Streak
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                  Peta retensi surah dan pencatatan dawam harian
-                </p>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-amber-800 transition-colors tracking-tight truncate">
+                  Doa &amp; Adab
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Koleksi
+                </span>
               </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </Link>
-        </div>
+            </Link>
 
-        {/* ── Tier 3: 4 Specialized Disciplines (Compact 4-column cards) ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Item 1: Tajwid Academy */}
-          <Link
-            to="/app/tajwid"
-            className="group p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-800 group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-4 h-4" />
+            {/* 7. Kuis Qur'an */}
+            <Link
+              to="/app/quiz"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-indigo-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-indigo-50 border border-indigo-100/90 flex items-center justify-center text-indigo-700 group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all duration-300 shadow-2xs">
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 group-hover:text-amber-200 transition-colors" />
               </div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">Modul</span>
-            </div>
-            <div>
-              <h5 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-teal-800 transition-colors">
-                Tajwid Academy
-              </h5>
-              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                Kaidah makhraj &amp; shifat
-              </p>
-            </div>
-          </Link>
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-indigo-800 transition-colors tracking-tight truncate">
+                  Kuis
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Uji Retensi
+                </span>
+              </div>
+            </Link>
 
-          {/* Item 2: Doa & Dzikir */}
-          <Link
-            to="/app/doa"
-            className="group p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-800 group-hover:scale-105 transition-transform">
-                <HeartHandshake className="w-4 h-4" />
+            {/* 8. Target */}
+            <Link
+              to="/app/target"
+              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-slate-400 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+            >
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:scale-105 group-hover:bg-slate-800 group-hover:text-white group-hover:border-slate-800 transition-all duration-300 shadow-2xs">
+                <Target className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">Sunnah</span>
-            </div>
-            <div>
-              <h5 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-amber-800 transition-colors">
-                Doa &amp; Adab Penghafal
-              </h5>
-              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                Doa khatam &amp; keteguhan
-              </p>
-            </div>
-          </Link>
-
-          {/* Item 3: Kuis Qur'an */}
-          <Link
-            to="/app/quiz"
-            className="group p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 group-hover:scale-105 transition-transform">
-                <Trophy className="w-4 h-4 text-amber-600" />
+              <div className="w-full mt-2">
+                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-slate-900 transition-colors tracking-tight truncate">
+                  Target
+                </span>
+                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                  Ritme Khatam
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">Uji Cepat</span>
-            </div>
-            <div>
-              <h5 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-indigo-800 transition-colors">
-                Kuis &amp; Retensi
-              </h5>
-              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                Sambung ayat &amp; mutasyabihat
-              </p>
-            </div>
-          </Link>
-
-          {/* Item 4: Target & Ritme */}
-          <Link
-            to="/app/target"
-            className="group p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:scale-105 transition-transform">
-                <Target className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">Ritme</span>
-            </div>
-            <div>
-              <h5 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
-                Target Khatam
-              </h5>
-              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                Jadwal harian {dailyTarget} ayat
-              </p>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -834,16 +765,14 @@ export default function DashboardPage() {
                 doaList.map((d, dIdx) => (
                   <div
                     key={d.id || dIdx}
-                    className={`p-4 rounded-2xl border space-y-2 ${
-                      dIdx % 2 === 0
-                        ? 'bg-amber-50/70 border-amber-200/70'
-                        : 'bg-emerald-50/70 border-emerald-200/70'
-                    }`}
+                    className={`p-4 rounded-2xl border space-y-2 ${dIdx % 2 === 0
+                      ? 'bg-amber-50/70 border-amber-200/70'
+                      : 'bg-emerald-50/70 border-emerald-200/70'
+                      }`}
                   >
                     <span
-                      className={`text-[11px] font-bold uppercase tracking-wider block ${
-                        dIdx % 2 === 0 ? 'text-amber-800' : 'text-emerald-800'
-                      }`}
+                      className={`text-[11px] font-bold uppercase tracking-wider block ${dIdx % 2 === 0 ? 'text-amber-800' : 'text-emerald-800'
+                        }`}
                     >
                       {d.title}
                     </span>
@@ -863,29 +792,29 @@ export default function DashboardPage() {
                 ))
               ) : (
                 <>
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-2">
-                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-                  Doa Menghafal &amp; Murojaah Al-Qur'an (Sunnah)
-                </span>
-                <p className="font-quran text-2xl text-right leading-loose text-slate-900">
-                  اللَّهُمَّ ارْحَمْنِي بِتَرْكِ الْمَعَاصِي أَبَدًا مَا أَبْقَيْتَنِي
-                </p>
-                <p className="text-slate-600 italic">
-                  "Ya Allah, rahmatilah aku untuk meninggalkan kemaksiatan selamanya selama Engkau masih menghidupkanku..."
-                </p>
-              </div>
+                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 space-y-2">
+                    <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
+                      Doa Menghafal &amp; Murojaah Al-Qur'an (Sunnah)
+                    </span>
+                    <p className="font-quran text-2xl text-right leading-loose text-slate-900">
+                      اللَّهُمَّ ارْحَمْنِي بِتَرْكِ الْمَعَاصِي أَبَدًا مَا أَبْقَيْتَنِي
+                    </p>
+                    <p className="text-slate-600 italic">
+                      "Ya Allah, rahmatilah aku untuk meninggalkan kemaksiatan selamanya selama Engkau masih menghidupkanku..."
+                    </p>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 space-y-2">
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
-                  Doa Khatam &amp; Keberkahan Al-Qur'an
-                </span>
-                <p className="font-quran text-2xl text-right leading-loose text-slate-900">
-                  اللَّهُمَّ اجْعَلْهُ لَنَا إِمَامًا وَنُورًا وَهُدًى وَرَحْمَةً
-                </p>
-                <p className="text-slate-600 italic">
-                  "Ya Allah, jadikanlah Al-Qur'an bagi kami sebagai imam, cahaya, petunjuk, dan rahmat..."
-                </p>
-              </div>
+                  <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 space-y-2">
+                    <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                      Doa Khatam &amp; Keberkahan Al-Qur'an
+                    </span>
+                    <p className="font-quran text-2xl text-right leading-loose text-slate-900">
+                      اللَّهُمَّ اجْعَلْهُ لَنَا إِمَامًا وَنُورًا وَهُدًى وَرَحْمَةً
+                    </p>
+                    <p className="text-slate-600 italic">
+                      "Ya Allah, jadikanlah Al-Qur'an bagi kami sebagai imam, cahaya, petunjuk, dan rahmat..."
+                    </p>
+                  </div>
                 </>
               )}
             </div>
