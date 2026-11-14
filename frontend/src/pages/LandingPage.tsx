@@ -12,7 +12,7 @@ import LandingNavbar from '@/components/lightswind-pro/tubelight-navbar';
 import HeroSandbox from '../components/landing/HeroSandbox';
 import ScholarlyStats from '../components/landing/ScholarlyStats';
 import MushafScrollytelling from '../components/landing/MushafScrollytelling';
-import Scroll3DCarousel from '../components/landing/Scroll3DCarousel';
+import BentoFeatures from '../components/landing/BentoFeatures';
 import TimelineWorkflow from '../components/landing/TimelineWorkflow';
 import FaqSection from '../components/landing/FaqSection';
 import ClosingCtaBanner from '../components/landing/ClosingCtaBanner';
@@ -54,6 +54,42 @@ export default function LandingPage() {
     if (!pageRef.current) return;
 
     const ctx = gsap.context(() => {
+      // 0. Hero kinetic word reveal (Masked Split Entrance)
+      const heroWords = pageRef.current?.querySelectorAll('.hero-split-word');
+      if (heroWords && heroWords.length > 0) {
+        gsap.fromTo(
+          heroWords,
+          { yPercent: 125, rotateZ: 2, opacity: 0 },
+          {
+            yPercent: 0,
+            rotateZ: 0,
+            opacity: 1,
+            duration: 1.1,
+            ease: 'power4.out',
+            stagger: 0.07,
+            delay: 0.1,
+          }
+        );
+      }
+
+      gsap.fromTo(
+        '.hero-kinetic-kicker',
+        { opacity: 0, y: -12 },
+        { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.05 }
+      );
+
+      gsap.fromTo(
+        '.hero-kinetic-subtitle',
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.45 }
+      );
+
+      gsap.fromTo(
+        '.hero-kinetic-cta',
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.65 }
+      );
+
       // 1. Hero floating Arabic watermark parallax drift
       gsap.to('.hero-watermark-parallax', {
         yPercent: -45,
@@ -176,7 +212,7 @@ export default function LandingPage() {
   return (
     <div
       ref={pageRef}
-      className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 scroll-smooth pt-16 overflow-x-hidden"
+      className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 scroll-smooth pt-16"
     >
       {/* Editorial Navbar Header for Landing Page */}
       <LandingNavbar items={navItems} rightActions={rightActions} />
@@ -194,34 +230,36 @@ export default function LandingPage() {
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              {/* Left Column: Clean, Balanced, Restrained Scholarly Content */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="lg:col-span-7 flex flex-col justify-center space-y-6 sm:space-y-7 text-left"
-              >
+              {/* Left Column: Clean, Balanced, Restrained Scholarly Content with Kinetic Typography */}
+              <div className="lg:col-span-7 flex flex-col justify-center space-y-6 sm:space-y-7 text-left">
                 {/* Restrained Category Kicker with subtle live dot */}
-                <div className="flex items-center space-x-2.5 text-xs font-bold tracking-widest text-emerald-800 uppercase font-sans">
+                <div className="hero-kinetic-kicker flex items-center space-x-2.5 text-xs font-bold tracking-widest text-emerald-800 uppercase font-sans">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
                   <span>AI Voice &amp; Spaced Repetition • Tim FIFA</span>
                 </div>
 
-                {/* Symmetrical High-Impact Headline (Crisp Sans-Serif) */}
-                <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black text-slate-900 tracking-tight leading-[1.12]">
-                  Hafalan Lebih Kuat.{' '}
-                  <span className="text-emerald-700 block mt-2">
-                    Presisi Kata demi Kata.
+                {/* Symmetrical High-Impact Kinetic Headline (Words reveal with kinetic mask wipe) */}
+                <h1 className="hero-kinetic-title text-4xl sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.12]">
+                  <span className="block overflow-hidden py-0.5">
+                    <span className="hero-split-word inline-block mr-3">Hafalan</span>
+                    <span className="hero-split-word inline-block mr-3">Lebih</span>
+                    <span className="hero-split-word inline-block">Kuat.</span>
+                  </span>
+                  <span className="block overflow-hidden py-0.5 mt-2">
+                    <span className="hero-split-word inline-block text-emerald-800 mr-3">Presisi</span>
+                    <span className="hero-split-word inline-block text-emerald-800 mr-3">Kata</span>
+                    <span className="hero-split-word inline-block text-emerald-800 mr-3">demi</span>
+                    <span className="hero-split-word inline-block text-emerald-800">Kata.</span>
                   </span>
                 </h1>
 
                 {/* Clear, Spacious Subtitle */}
-                <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl font-normal">
+                <p className="hero-kinetic-subtitle text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl font-normal">
                   Asisten AI cerdas yang menyimak tilawah secara real-time, mendeteksi keliru huruf dan harakat, serta menjadwalkan murojaah adaptif berbasis kurva lupa ilmiah.
                 </p>
 
                 {/* Action Buttons: React Bits Ultra-Elegant CTA (Strictly Zero Icons) */}
-                <div className="pt-1 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                <div className="hero-kinetic-cta pt-1 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                   <ElegantCta
                     to="/app"
                     variant="emerald"
@@ -256,7 +294,7 @@ export default function LandingPage() {
                     <span>Privasi Suara Memory-Only</span>
                   </span>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Right Column: Perfectly Balanced Interactive Recitation Sandbox with Parallax Depth */}
               <motion.div
@@ -323,16 +361,9 @@ export default function LandingPage() {
       {/* Scholarly Scientific Metrics Section */}
       <ScholarlyStats />
 
-      {/* 3D Scroll-Driven Carousel Section ("Semua yang Kamu Butuhkan untuk Menjaga Hafalan") */}
-      <div id="fitur" className="scroll-mt-24 relative overflow-hidden">
-        {/* Subtle Background Watermark */}
-        <div
-          aria-hidden="true"
-          className="section-watermark-drift absolute -left-20 top-20 font-quran text-[140px] text-slate-900/[0.02] pointer-events-none whitespace-nowrap select-none"
-        >
-          اقْرَأْ بِاسْمِ رَبِّكَ
-        </div>
-        <Scroll3DCarousel />
+      {/* Asymmetrical Bento Features Section (Live Audio Waveform, Mutasyabihat, Streak, Tajwid Quiz) */}
+      <div id="fitur" className="scroll-mt-24 relative">
+        <BentoFeatures />
       </div>
 
       {/* ── Editorial Scholarly Manifesto Section with Word-by-Word Scroll Scrub ── */}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mic, Award, BarChart3, ShieldCheck, CheckCircle2, AlertTriangle, BookOpen, Check } from 'lucide-react';
+import { Mic, Award, BarChart3, ShieldCheck, CheckCircle2, AlertTriangle, Check, ArrowRight } from 'lucide-react';
 import { InteractiveCard } from '@/components/lightswind/interactive-card';
 
 export default function BentoFeatures() {
@@ -9,75 +9,82 @@ export default function BentoFeatures() {
   const [isHoveredWave, setIsHoveredWave] = useState(false);
 
   return (
-    <section className="py-24 max-w-6xl mx-auto px-4 w-full">
-      {/* Section Header with Scroll Reveal */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="text-center max-w-2xl mx-auto mb-16"
+    <section className="py-20 sm:py-28 max-w-6xl mx-auto px-4 sm:px-6 w-full relative">
+      {/* Subtle Background Calligraphic Watermark */}
+      <div
+        aria-hidden="true"
+        className="absolute -right-16 top-10 font-quran text-9xl sm:text-[160px] text-emerald-950/[0.025] pointer-events-none select-none whitespace-nowrap z-0"
       >
-        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-700 mb-3">
-          <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-          <span>Bento Grid Interaktif</span>
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Semua yang Kamu Butuhkan untuk Menjaga Hafalan
-        </h2>
-        <p className="text-slate-600 text-sm sm:text-base mt-2">
-          Dirancang khusus untuk santri, pelajar, dan penghafal mandiri yang menginginkan standar talaqqi ilmiah tanpa batas waktu.
-        </p>
-      </motion.div>
+        اقْرَأْ بِاسْمِ رَبِّكَ
+      </div>
 
-      {/* Bento Grid Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* CARD 1: 7-col Bento: Smart Murojaah AI with Live Waveform */}
+      {/* Section Header: Editorial Typographic Direction */}
+      <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16 relative z-10 space-y-3">
+        <div className="inline-flex items-center space-x-2 text-xs font-mono font-bold uppercase tracking-[0.2em] text-emerald-800">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+          <span>Pilar Teknologi &amp; Metodologi</span>
+        </div>
+
+        <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black text-slate-900 tracking-tight leading-tight">
+          Semua yang Dibutuhkan untuk Menjaga Kemutqinan
+        </h2>
+
+        <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-normal">
+          Integrasi cerdas antara speech recognition on-device, mushaf standar Kemenag RI, dan kurva memori FSRS dalam satu alur talaqqi mandiri.
+        </p>
+      </div>
+
+      {/* Asymmetrical Bento Grid with Interactive Micro-Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+        {/* CARD 1: 7-col Bento — Smart Murojaah AI with Live Audio Visualizer */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="lg:col-span-7 flex"
         >
           <InteractiveCard
-            InteractiveColor="rgba(16, 185, 129, 0.28)"
+            InteractiveColor="rgba(16, 185, 129, 0.22)"
             borderRadius="28px"
-            rotationFactor={0.25}
-            className="p-7 sm:p-8 flex flex-col justify-between group h-full"
-            containerClassName="h-full"
+            rotationFactor={0.2}
+            className="p-6 sm:p-8 flex flex-col justify-between group h-full bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300"
+            containerClassName="h-full w-full"
           >
             <div
               onMouseEnter={() => setIsHoveredWave(true)}
               onMouseLeave={() => setIsHoveredWave(false)}
+              className="space-y-4"
             >
-              <div className="flex items-center justify-between mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-                  <Mic className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" />
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800">
+                  <Mic className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 </div>
-                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
-                  WER &lt; 10%
+                <span className="text-[11px] font-mono font-bold text-emerald-800 tracking-wider">
+                  [ WER &lt; 5.75% ]
                 </span>
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                Smart Murojaah AI Kata demi Kata
-              </h3>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl mb-6">
-                Mengevaluasi suara pelafalan per ayat dengan penyejajaran Levenshtein. Deteksi kesalahan kata tertukar, terlewat, atau pengulangan berlebih secara seketika (&lt; 3 detik).
-              </p>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Evaluasi Tilawah Suara Kata demi Kata
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mt-2">
+                  Penyejajaran Levenshtein presisi tinggi mendeteksi kesalahan substitusi huruf, harakat tertukar, atau kata terlewat secara instan (&lt; 3 detik).
+                </p>
+              </div>
 
-              {/* Interactive Waveform Bar */}
-              <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200/70 mb-5 transition-colors group-hover:bg-emerald-50/30">
-                <div className="flex items-center justify-between text-xs text-slate-600 mb-3">
+              {/* Interactive Audio Waveform Simulation */}
+              <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200/80 transition-colors group-hover:bg-emerald-50/25 space-y-3">
+                <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-800">Visualizer Gelombang Suara (16 kHz Mono)</span>
-                  <span className="text-[11px] font-mono text-emerald-700">
+                  <span className="text-[11px] font-mono text-emerald-700 font-bold">
                     {isHoveredWave ? 'Mendeteksi Frekuensi...' : 'Arahkan Kursor untuk Menguji'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between h-10 px-2 gap-1.5">
-                  {[30, 60, 45, 90, 75, 40, 85, 95, 60, 50, 70, 80, 55, 65, 40, 85, 70, 50].map((h, i) => (
+                <div className="flex items-center justify-between h-10 px-1 gap-1 sm:gap-1.5">
+                  {[28, 55, 40, 85, 70, 35, 80, 95, 55, 45, 65, 75, 50, 60, 38, 80, 65, 48].map((h, i) => (
                     <span
                       key={i}
                       className={`w-full rounded-full transition-all duration-300 ${
@@ -85,8 +92,8 @@ export default function BentoFeatures() {
                       }`}
                       style={{
                         height: isHoveredWave
-                          ? `${Math.min(100, Math.max(25, h + Math.sin(i + 1) * 20))}%`
-                          : `${h * 0.4}%`,
+                          ? `${Math.min(100, Math.max(25, h + Math.sin(i + 1) * 22))}%`
+                          : `${h * 0.42}%`,
                       }}
                     />
                   ))}
@@ -94,127 +101,134 @@ export default function BentoFeatures() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2">
-              <div className="flex items-center space-x-2 text-xs text-slate-500">
+            <div className="flex items-center justify-between pt-5 border-t border-slate-100 mt-4">
+              <div className="flex items-center space-x-2 text-xs text-slate-500 font-medium">
                 <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                <span>Privasi Suara Memory-Only</span>
+                <span>Zero Audio Server Recording</span>
               </div>
               <Link
                 to="/app"
-                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200/60 transition-all active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-800 text-white font-bold text-xs transition-colors shadow-2xs"
               >
                 <span>Uji Murojaah</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </InteractiveCard>
         </motion.div>
 
-        {/* CARD 2: 5-col Bento: Peringatan Mutasyabihat */}
+        {/* CARD 2: 5-col Bento — Mutasyabihat Early Warning */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="lg:col-span-5 flex"
+        >
+          <InteractiveCard
+            InteractiveColor="rgba(245, 158, 11, 0.2)"
+            borderRadius="28px"
+            rotationFactor={0.2}
+            className="p-6 sm:p-8 flex flex-col justify-between group h-full bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300"
+            containerClassName="h-full w-full"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700">
+                  <AlertTriangle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-amber-800 tracking-wider">
+                  [ TARTEEL QUL ]
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                  Peringatan Ayat Mutasyabihat
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mt-2">
+                  Mencegah tertukarnya ayat serupa berirama kembar dengan penanda visual rujukan sebelum santri terlanjur melompat surah.
+                </p>
+              </div>
+
+              {/* Side-by-Side Verse Inspection Box */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2.5 font-sans">
+                <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 font-mono">
+                  <span>QS. An-Naba' 78:1</span>
+                  <span>vs</span>
+                  <span>QS. Al-Mursalat 77:1</span>
+                </div>
+                <p className="font-quran text-lg text-right text-slate-900 leading-relaxed" dir="rtl">
+                  عَمَّ يَتَسَآءَلُونَ ۝١ <span className="text-slate-400 font-sans text-xs">|</span> وَالْمُرْسَلَٰتِ عُرْفًا ۝١
+                </p>
+                <p className="text-[11px] text-slate-600 border-t border-amber-200/60 pt-2 leading-relaxed">
+                  Pembeda wazan awal juz ditandai otomatis agar lisan tetap teguh pada surah target.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between mt-4">
+              <span className="text-xs text-slate-500 font-medium">Standar Sanad &amp; Rasm</span>
+              <Link
+                to="/app/mushaf"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-colors shadow-2xs"
+              >
+                <span>Buka Mushaf</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </Link>
+            </div>
+          </InteractiveCard>
+        </motion.div>
+
+        {/* CARD 3: 5-col Bento — Mutabaah Yaumi & Streak */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           className="lg:col-span-5 flex"
         >
           <InteractiveCard
-            InteractiveColor="rgba(245, 158, 11, 0.25)"
+            InteractiveColor="rgba(14, 165, 233, 0.2)"
             borderRadius="28px"
-            rotationFactor={0.25}
-            className="p-7 sm:p-8 flex flex-col justify-between group h-full"
-            containerClassName="h-full"
+            rotationFactor={0.2}
+            className="p-6 sm:p-8 flex flex-col justify-between group h-full bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300"
+            containerClassName="h-full w-full"
           >
-            <div>
-              <div className="flex items-center justify-between mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700">
-                  <AlertTriangle className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-700">
+                  <BarChart3 className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 </div>
-                <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                  Tarteel QUL Standard
+                <span className="text-[11px] font-mono font-bold text-sky-800 tracking-wider">
+                  [ STREAK MUTQIN ]
                 </span>
               </div>
 
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Peringatan Dini Ayat Serupa
-              </h3>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-5">
-                Hafalan tidak akan melompat ke surah lain. Sistem memetakan ayat-ayat berirama serupa di Juz 30 dan menandai perbedaannya secara visual.
-              </p>
-
-              {/* Popover Preview Box */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-slate-800 space-y-2 font-sans transition-all group-hover:bg-amber-50">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-amber-900">
-                  <span>Deteksi Mirip:</span>
-                  <span className="font-mono">QS. An-Naba' 78:1</span>
-                </div>
-                <p className="font-quran text-lg text-right text-slate-900" dir="rtl">
-                  عَمَّ يَتَسَآءَلُونَ ۝١
-                </p>
-                <p className="text-[11px] text-slate-600 border-t border-amber-200/60 pt-1.5 leading-snug">
-                  Pembeda dengan ayat pembuka surah lain: diakhiri mad wajib muttashil 4–5 harakat.
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                  Mutabaah Digital Otomatis
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mt-2">
+                  Setiap setoran langsung terekam tanpa manual checklist. Memetakan konsistensi dawam dan status kemutqinan per ayat.
                 </p>
               </div>
-            </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-              <span className="text-xs text-slate-500">Mencegah Tertukar Hafalan</span>
-              <Link
-                to="/app/mushaf"
-                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-200/60 transition-all active:scale-95"
-              >
-                <span>Buka Mushaf</span>
-              </Link>
-            </div>
-          </InteractiveCard>
-        </motion.div>
-
-        {/* CARD 3: 5-col Bento: Mutabaah Yaumi & Streak */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:col-span-5 flex"
-        >
-          <InteractiveCard
-            InteractiveColor="rgba(14, 165, 233, 0.25)"
-            borderRadius="28px"
-            rotationFactor={0.25}
-            className="p-7 sm:p-8 flex flex-col justify-between group h-full"
-            containerClassName="h-full"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-700">
-                  <BarChart3 className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" />
-                </div>
-                <span className="text-[11px] font-semibold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200">
-                  Streak Otomatis
-                </span>
-              </div>
-
-              <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Mutabaah Yaumi & Analitik Hafalan
-              </h3>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-5">
-                Pencatatan mutabaah digital otomatis. Pantau streak konsistensi harian dan status retensi ayat secara transparan.
-              </p>
-
-              {/* Streak Tracker Bar */}
-              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/70 space-y-3">
+              {/* 7-Day Visual Streak Tracker */}
+              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-800">Streak Mingguan Santri</span>
-                  <span className="font-bold text-sky-700 font-mono">7 Hari Beruntun</span>
+                  <span className="font-semibold text-slate-800">Konsistensi Santri</span>
+                  <span className="font-bold text-sky-800 font-mono">7 Hari Beruntun</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ahad'].map((day, idx) => (
+                  {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ahd'].map((day, idx) => (
                     <div key={day} className="text-center space-y-1">
-                      <span className="block text-[10px] text-slate-500">{day}</span>
+                      <span className="block text-[10px] text-slate-400 font-mono">{day}</span>
                       <span
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                           idx <= 5
-                            ? 'bg-emerald-600 text-white shadow-xs'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
                             : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         }`}
                       >
@@ -224,10 +238,10 @@ export default function BentoFeatures() {
                   ))}
                 </div>
 
-                <div className="space-y-1 pt-1">
+                <div className="space-y-1.5 pt-1">
                   <div className="flex justify-between text-[11px] text-slate-600">
-                    <span>Retensi Ayat Mutqin</span>
-                    <span className="font-semibold text-slate-900">88%</span>
+                    <span>Retensi Rata-Rata</span>
+                    <span className="font-mono font-bold text-slate-900">88%</span>
                   </div>
                   <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                     <div className="bg-sky-600 h-full rounded-full transition-all duration-700" style={{ width: '88%' }} />
@@ -236,76 +250,79 @@ export default function BentoFeatures() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-              <span className="text-xs text-slate-500">Analitik Adaptif</span>
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between mt-4">
+              <span className="text-xs text-slate-500 font-medium">Buku Mutabaah Yaumi</span>
               <Link
                 to="/app/mutabaah"
-                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs border border-sky-200/60 transition-all active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-colors shadow-2xs"
               >
                 <span>Lihat Mutabaah</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>
             </div>
           </InteractiveCard>
         </motion.div>
 
-        {/* CARD 4: 7-col Bento: Tajwid Academy Interactive Mini-Quiz */}
+        {/* CARD 4: 7-col Bento — Tajwid Academy Interactive Practice */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="lg:col-span-7 flex"
         >
           <InteractiveCard
-            InteractiveColor="rgba(20, 184, 166, 0.28)"
+            InteractiveColor="rgba(20, 184, 166, 0.22)"
             borderRadius="28px"
-            rotationFactor={0.25}
-            className="p-7 sm:p-8 flex flex-col justify-between group h-full"
-            containerClassName="h-full"
+            rotationFactor={0.2}
+            className="p-6 sm:p-8 flex flex-col justify-between group h-full bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-300"
+            containerClassName="h-full w-full"
           >
-            <div>
-              <div className="flex items-center justify-between mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
-                  <Award className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-800">
+                  <Award className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 </div>
-                <span className="text-[11px] font-semibold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
-                  Tajwid Academy &amp; Kuis
+                <span className="text-[11px] font-mono font-bold text-teal-800 tracking-wider">
+                  [ TAJWID ACADEMY ]
                 </span>
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                Latihan Kuis Tajwid Interaktif &amp; Pembahasan
-              </h3>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl mb-5">
-                Tidak hanya menguji hafalan, santri dibekali pemahaman kaidah makhraj dan hukum bacaan dengan layar review pembahasan ilmiah.
-              </p>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Kuis Kaidah Tajwid &amp; Uji Lisan
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mt-2">
+                  Tidak hanya menguji hafalan, santri dibekali pemahaman hukum makharijul huruf dan shifatul huruf dengan pembahasan ilmiah.
+                </p>
+              </div>
 
               {/* Interactive Mini-Quiz Box */}
               <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/80 space-y-3 font-sans">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-800">Uji Interaktif Cepat:</span>
-                  <span className="text-slate-500 text-[11px]">Hukum Nun Sukun &amp; Tanwin</span>
+                  <span className="font-semibold text-slate-800">Simulasi Kaidah Hukum:</span>
+                  <span className="text-slate-500 text-[11px] font-mono">Nun Sukun &amp; Tanwin</span>
                 </div>
 
-                <p className="text-xs font-medium text-slate-800">
-                  Pada lafal <span className="font-quran text-lg px-1.5 py-0.5 bg-white rounded border border-slate-200 font-normal">مَن يَقُولُ</span>, apa hukum tajwid yang berlaku?
+                <p className="text-xs font-semibold text-slate-800">
+                  Pada lafal <span className="font-quran text-lg px-2 py-0.5 bg-white rounded-lg border border-slate-200 font-normal">مَن يَقُولُ</span>, apa hukum tajwid yang berlaku?
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 0, label: 'A. Idgham Bighunnah', correct: true },
-                    { id: 1, label: 'B. Idzhar Halqi', correct: false },
-                    { id: 2, label: 'C. Ikhfa Haqiqi', correct: false },
+                    { id: 0, label: 'Idgham Bighunnah', correct: true },
+                    { id: 1, label: 'Idzhar Halqi', correct: false },
+                    { id: 2, label: 'Ikhfa Haqiqi', correct: false },
                   ].map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setSelectedOption(opt.id)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all border ${
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all border cursor-pointer ${
                         selectedOption === opt.id
                           ? opt.correct
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                            : 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                            : 'bg-rose-600 text-white border-rose-600 shadow-2xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -326,14 +343,14 @@ export default function BentoFeatures() {
                       <div className="flex items-start space-x-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <div>
-                          <strong>Benar!</strong> Terjadi pertemuan Nun Sukun (نْ) dengan huruf Ya (ي). Dibaca melebur disertai dengung 2 harakat.
+                          <strong>Tepat!</strong> Nun Sukun (نْ) bertemu huruf Ya (ي). Cara bacanya melebur disertai ghunnah (dengung 2 harakat).
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-start space-x-2">
                         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <div>
-                          <strong>Kurang Tepat.</strong> Nun Sukun bertemu huruf Ya (ي) adalah Idgham Bighunnah. Klik opsi A untuk penjelasannya.
+                          <strong>Kurang Tepat.</strong> Nun Sukun bertemu Ya (ي) adalah Idgham Bighunnah.
                         </div>
                       </div>
                     )}
@@ -342,13 +359,14 @@ export default function BentoFeatures() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-              <span className="text-xs text-slate-500">Silabus Tajwid Lengkap</span>
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between mt-4">
+              <span className="text-xs text-slate-500 font-medium">Silabus Tajwid Lengkap</span>
               <Link
                 to="/app/tajwid"
-                className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs border border-teal-200/60 transition-all active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-800 text-white font-bold text-xs transition-colors shadow-2xs"
               >
                 <span>Buka Tajwid Academy</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </InteractiveCard>
