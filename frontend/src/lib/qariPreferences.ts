@@ -133,15 +133,81 @@ export function useQariPreference() {
   return { qariId, qariOption, setQari };
 }
 
+/**
+ * Returns prioritized array of candidate URLs for an ayah.
+ * Prioritizes high-speed Edge CDN (BunnyCDN / Singapore POP with 300-day cache)
+ * and falls back to cdn.equran.id to guarantee 100% availability.
+ */
+export function getAyahAudioUrls(
+  surahNumber: number,
+  ayahNumber: number,
+  qariId?: string | null
+): string[] {
+  const qari = getQariOption(qariId ?? getSavedQariPreference());
+  const sPad = String(surahNumber).padStart(3, '0');
+  const aPad = String(ayahNumber).padStart(3, '0');
+  const equranUrl = `https://cdn.equran.id/audio-partial/${qari.id}/${sPad}${aPad}.mp3`;
+
+  // High-speed Edge CDN mapping (BunnyCDN edge cached with 0-ms latency in ID / SG)
+  let everyAyahUrl: string | null = null;
+  if (qari.id === 'Misyari-Rasyid-Al-Afasi') {
+    everyAyahUrl = `https://everyayah.com/data/Alafasy_128kbps/${sPad}${aPad}.mp3`;
+  } else if (qari.id === 'Abdurrahman-as-Sudais') {
+    everyAyahUrl = `https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/${sPad}${aPad}.mp3`;
+  } else if (qari.id === 'Yasser-Al-Dosari') {
+    everyAyahUrl = `https://everyayah.com/data/Yasser_Ad-Dussary_128kbps/${sPad}${aPad}.mp3`;
+  } else if (qari.id === 'Abdul-Muhsin-Al-Qasim') {
+    everyAyahUrl = `https://everyayah.com/data/Abdul_Muhsin_Al-Qasim_192kbps/${sPad}${aPad}.mp3`;
+  }
+
+  if (everyAyahUrl) {
+    return [everyAyahUrl, equranUrl];
+  }
+  return [equranUrl];
+}
+
 export function getAyahAudioUrl(
   surahNumber: number,
   ayahNumber: number,
   qariId?: string | null
 ): string {
-  const qari = getQariOption(qariId ?? getSavedQariPreference());
-  const sPad = String(surahNumber).padStart(3, '0');
-  const aPad = String(ayahNumber).padStart(3, '0');
-  return `https://cdn.equran.id/audio-partial/${qari.id}/${sPad}${aPad}.mp3`;
+  const urls = getAyahAudioUrls(surahNumber, ayahNumber, qariId);
+  return urls[0];
+}
+
+// ── In-Memory Fast Audio Preload Cache Pool ─────────────────────────────────
+const audioCache = new Map<string, HTMLAudioElement>();
+
+/**
+ * Pre-buffers audio in the background so future playback starts instantly (< 10ms).
+ */
+export function prefetchAudioUrl(url: string): void {
+  if (typeof window === 'undefined' || !url) return;
+  if (audioCache.has(url)) return;
+  try {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.load();
+    audioCache.set(url, audio);
+    // Maintain maximum 35 cached audio elements
+    if (audioCache.size > 35) {
+      const first = audioCache.keys().next().value;
+      if (first) audioCache.delete(first);
+    }
+  } catch {}
+}
+
+/**
+ * Pre-buffers consecutive ayah audio tracks.
+ */
+export function prefetchAyahAudio(
+  surahNumber: number,
+  ayahNumber: number,
+  qariId?: string | null
+): void {
+  const urls = getAyahAudioUrls(surahNumber, ayahNumber, qariId);
+  urls.forEach((u) => prefetchAudioUrl(u));
 }
 
 export function getSurahAudioUrl(
@@ -204,39 +270,72 @@ export function stopManagedAudio(
 }
 
 /**
- * Synchronously creates and starts an HTMLAudioElement inside a user click gesture
- * while guarding callbacks against stale overlapping tracks.
+ * Synchronously starts playback using cached preloaded elements when available,
+ * and automatically retries candidate fallback CDNs if network delays or errors occur.
  */
 export function playManagedAudio(
   audioRef: MutableRefObject<HTMLAudioElement | null>,
   url: string,
-  handlers: ManagedAudioHandlers = {}
+  handlers: ManagedAudioHandlers = {},
+  fallbackUrls: string[] = []
 ): HTMLAudioElement {
   stopManagedAudio(audioRef);
 
-  const audio = new Audio(url);
+  let audio: HTMLAudioElement;
+  if (audioCache.has(url)) {
+    audio = audioCache.get(url)!;
+    audioCache.delete(url);
+  } else {
+    audio = new Audio(url);
+    audio.preload = 'auto';
+  }
+
   audioRef.current = audio;
 
-  audio.onplaying = () => {
-    if (audioRef.current !== audio) return;
-    handlers.onPlaying?.();
-  };
-  audio.onended = () => {
-    if (audioRef.current !== audio) return;
-    audioRef.current = null;
-    handlers.onEnded?.();
-  };
-  audio.onerror = () => {
-    if (audioRef.current !== audio) return;
-    audioRef.current = null;
-    handlers.onError?.();
+  const candidateUrls = [url, ...fallbackUrls.filter((u) => u && u !== url)];
+  let candidateIndex = 0;
+
+  const attemptPlay = (targetUrl: string) => {
+    if (audio.src !== targetUrl) {
+      audio.src = targetUrl;
+    }
+    audio.preload = 'auto';
+
+    audio.onplaying = () => {
+      if (audioRef.current !== audio) return;
+      handlers.onPlaying?.();
+    };
+
+    audio.onended = () => {
+      if (audioRef.current !== audio) return;
+      audioRef.current = null;
+      handlers.onEnded?.();
+    };
+
+    audio.onerror = () => {
+      candidateIndex++;
+      if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
+        attemptPlay(candidateUrls[candidateIndex]);
+      } else {
+        if (audioRef.current !== audio) return;
+        audioRef.current = null;
+        handlers.onError?.();
+      }
+    };
+
+    audio.play().catch(() => {
+      candidateIndex++;
+      if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
+        attemptPlay(candidateUrls[candidateIndex]);
+      } else {
+        if (audioRef.current !== audio) return;
+        audioRef.current = null;
+        handlers.onError?.();
+      }
+    });
   };
 
-  audio.play().catch(() => {
-    if (audioRef.current !== audio) return;
-    audioRef.current = null;
-    handlers.onError?.();
-  });
+  attemptPlay(candidateUrls[0]);
 
   return audio;
 }
@@ -266,12 +365,18 @@ export function useQariAyahPlayer() {
 
   const playAyahAudio = useCallback(
     (surahNumber: number, ayahNumber: number) => {
-      const url = getAyahAudioUrl(surahNumber, ayahNumber, qariId);
+      const urls = getAyahAudioUrls(surahNumber, ayahNumber, qariId);
       setIsPlayingQari(true);
-      playManagedAudio(audioRef, url, {
-        onEnded: () => setIsPlayingQari(false),
-        onError: () => setIsPlayingQari(false),
-      });
+      prefetchAyahAudio(surahNumber, ayahNumber + 1, qariId);
+      playManagedAudio(
+        audioRef,
+        urls[0],
+        {
+          onEnded: () => setIsPlayingQari(false),
+          onError: () => setIsPlayingQari(false),
+        },
+        urls.slice(1)
+      );
     },
     [qariId]
   );

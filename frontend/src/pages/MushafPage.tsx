@@ -19,6 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   BookmarkCheck,
+  SkipBack,
+  SkipForward,
+  Volume2,
 } from 'lucide-react';
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
 import { ExitMutabaahModal, ExitMutabaahSummary } from '../components/mushaf/ExitMutabaahModal';
@@ -26,6 +29,8 @@ import { recordMutabaahReport } from '../lib/mutabaahService';
 import {
   useQariPreference,
   getAyahAudioUrl,
+  getAyahAudioUrls,
+  prefetchAyahAudio,
   resolveAyahAudioUrl,
   resolveSurahAudioUrl,
   playManagedAudio,
@@ -341,6 +346,9 @@ export default function MushafPage() {
   // Audio & Modals State
   const { qariId: selectedQari, qariOption: activeQariOption } = useQariPreference();
   const [playingAyahKey, setPlayingAyahKey] = useState<string | null>(null);
+  const [playingAyahNumber, setPlayingAyahNumber] = useState<number | null>(null);
+  const [isAudioPaused, setIsAudioPaused] = useState(false);
+  const [isAutoScrollAudio, setIsAutoScrollAudio] = useState(true);
   const [isPlayingFull, setIsPlayingFull] = useState(false);
   const [activeMutashabih, setActiveMutashabih] = useState<MutashabihaItem[] | null>(null);
   const [activeAyahText, setActiveAyahText] = useState<{ number: number; text: string } | null>(null);
@@ -988,47 +996,111 @@ export default function MushafPage() {
     );
   }, [searchQuery]);
 
-  // Handle Play/Pause Full Surah
-  const handleToggleFullAudio = () => {
-    if (!currentSurah) return;
-    const fullUrl = resolveSurahAudioUrl(
-      currentSurah.audioFullMap,
-      currentSurah.number,
-      selectedQari
-    );
-    if (!fullUrl) return;
-
-    if (isPlayingFull) {
-      stopManagedAudio(fullAudioRef);
-      setIsPlayingFull(false);
-      return;
-    }
-
+  // ── Continuous Fast Ayah Stream Player (Instant Start & Auto-Advance with Preload) ──
+  const stopStreamAudio = () => {
     stopManagedAudio(audioRef);
-    setPlayingAyahKey(null);
-    setIsPlayingFull(true);
-    playManagedAudio(fullAudioRef, fullUrl, {
-      onEnded: () => setIsPlayingFull(false),
-      onError: () => setIsPlayingFull(false),
-    });
-  };
-
-  // Handle Play/Pause Single Ayah
-  const handleToggleAudio = (ayahKey: string, url: string) => {
     stopManagedAudio(fullAudioRef);
     setIsPlayingFull(false);
+    setIsAudioPaused(false);
+    setPlayingAyahKey(null);
+    setPlayingAyahNumber(null);
+  };
 
+  const togglePauseStreamAudio = () => {
+    if (!audioRef.current) return;
+    if (isAudioPaused) {
+      audioRef.current.play().then(() => setIsAudioPaused(false)).catch(() => {});
+    } else {
+      audioRef.current.pause();
+      setIsAudioPaused(true);
+    }
+  };
+
+  const playAyahStream = (surahNumber: number, ayahNumber: number, autoScroll = true) => {
+    stopManagedAudio(fullAudioRef);
+    stopManagedAudio(audioRef);
+    setIsPlayingFull(true);
+    setIsAudioPaused(false);
+    setPlayingAyahNumber(ayahNumber);
+    const ayahKey = `${surahNumber}:${ayahNumber}`;
+    setPlayingAyahKey(ayahKey);
+
+    if (autoScroll) {
+      const el = document.getElementById(`ayah-${ayahNumber}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    const urls = getAyahAudioUrls(surahNumber, ayahNumber, selectedQari);
+    const totalAyahs = currentSurah?.ayahs?.length || currentSurah?.numberOfAyahs || 286;
+
+    // Immediately pre-buffer next 2 ayahs in background for zero-gap transition
+    if (ayahNumber + 1 <= totalAyahs) {
+      prefetchAyahAudio(surahNumber, ayahNumber + 1, selectedQari);
+    }
+    if (ayahNumber + 2 <= totalAyahs) {
+      prefetchAyahAudio(surahNumber, ayahNumber + 2, selectedQari);
+    }
+
+    playManagedAudio(
+      audioRef,
+      urls[0],
+      {
+        onPlaying: () => {
+          setIsAudioPaused(false);
+        },
+        onEnded: () => {
+          if (ayahNumber + 1 <= totalAyahs) {
+            playAyahStream(surahNumber, ayahNumber + 1, isAutoScrollAudio);
+          } else {
+            stopStreamAudio();
+          }
+        },
+        onError: () => {
+          stopStreamAudio();
+        },
+      },
+      urls.slice(1)
+    );
+  };
+
+  const skipNextAyah = () => {
+    if (!currentSurah || playingAyahNumber === null) return;
+    const totalAyahs = currentSurah.ayahs?.length || currentSurah.numberOfAyahs || 1;
+    if (playingAyahNumber + 1 <= totalAyahs) {
+      playAyahStream(currentSurah.number, playingAyahNumber + 1, isAutoScrollAudio);
+    }
+  };
+
+  const skipPrevAyah = () => {
+    if (!currentSurah || playingAyahNumber === null) return;
+    if (playingAyahNumber - 1 >= 1) {
+      playAyahStream(currentSurah.number, playingAyahNumber - 1, isAutoScrollAudio);
+    }
+  };
+
+  // Handle Play/Pause Full Surah (starts continuous fast stream from visible/first ayah)
+  const handleToggleFullAudio = () => {
+    if (!currentSurah) return;
+    if (isPlayingFull) {
+      togglePauseStreamAudio();
+      return;
+    }
+    const startAyah = readingSessionRef.current?.maxAyah || 1;
+    playAyahStream(currentSurah.number, startAyah, isAutoScrollAudio);
+  };
+
+  // Handle Play/Pause Single Ayah (Instant play with auto-advance and fallback)
+  const handleToggleAudio = (ayahKey: string, surahNum?: number, ayahNum?: number) => {
     if (playingAyahKey === ayahKey) {
-      stopManagedAudio(audioRef);
-      setPlayingAyahKey(null);
+      togglePauseStreamAudio();
       return;
     }
 
-    setPlayingAyahKey(ayahKey);
-    playManagedAudio(audioRef, url, {
-      onEnded: () => setPlayingAyahKey(null),
-      onError: () => setPlayingAyahKey(null),
-    });
+    const sNum = surahNum || currentSurah?.number || 1;
+    const aNum = ayahNum || parseInt(ayahKey.split(':')[1] || '1', 10);
+    playAyahStream(sNum, aNum, isAutoScrollAudio);
   };
 
   // Handle Bookmark "Tandai Terakhir Baca"
@@ -1296,7 +1368,6 @@ export default function MushafPage() {
                   <div className="space-y-4" onClick={handleTajweedClick}>
                     {juzVerses.map((ayah) => {
                       const ayahKey = `${ayah.surahNumber}:${ayah.ayahNumber}`;
-                      const ayahAudioUrl = getAyahAudioUrl(ayah.surahNumber, ayah.ayahNumber, selectedQari);
                       const isCurrentPlaying = playingAyahKey === ayahKey;
                       const isLastReadAyah =
                         lastRead.surahNumber === ayah.surahNumber &&
@@ -1337,13 +1408,13 @@ export default function MushafPage() {
                               {/* Audio */}
                               <button
                                 type="button"
-                                onClick={() => handleToggleAudio(ayahKey, ayahAudioUrl)}
+                                onClick={() => handleToggleAudio(ayahKey, ayah.surahNumber, ayah.ayahNumber)}
                                 className={`p-2 rounded-xl transition-all cursor-pointer ${
                                   isCurrentPlaying
                                     ? 'bg-emerald-600 text-white shadow-xs'
                                     : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
-                                title={isCurrentPlaying ? 'Hentikan Audio' : `Dengarkan Qari (${activeQariOption.name})`}
+                                title={isCurrentPlaying ? 'Jeda Audio' : `Dengarkan Qari (${activeQariOption.name})`}
                               >
                                 {isCurrentPlaying ? (
                                   <Pause className="w-4 h-4 fill-current" />
@@ -1575,13 +1646,13 @@ export default function MushafPage() {
                             {ayahAudioUrl && (
                               <button
                                 type="button"
-                                onClick={() => handleToggleAudio(ayahKey, ayahAudioUrl)}
+                                onClick={() => handleToggleAudio(ayahKey, currentSurah.number, ayah.ayahNumber)}
                                 className={`p-2 rounded-xl transition-all flex items-center space-x-1 cursor-pointer ${
                                   isCurrentPlaying
                                     ? 'bg-emerald-600 text-white shadow-xs'
                                     : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
-                                title={isCurrentPlaying ? 'Hentikan Audio' : `Dengarkan Qari (${activeQariOption.name})`}
+                                title={isCurrentPlaying ? 'Jeda Audio' : `Dengarkan Qari (${activeQariOption.name})`}
                               >
                                 {isCurrentPlaying ? (
                                   <Pause className="w-4 h-4 fill-current" />
@@ -1936,20 +2007,23 @@ export default function MushafPage() {
                       onClick={() =>
                         handleToggleAudio(
                           `${selectedMushafAyah.surahNumber}:${selectedMushafAyah.ayahNumber}`,
-                          getAyahAudioUrl(
-                            selectedMushafAyah.surahNumber,
-                            selectedMushafAyah.ayahNumber,
-                            selectedQari
-                          )
+                          selectedMushafAyah.surahNumber,
+                          selectedMushafAyah.ayahNumber
                         )
                       }
                       title={`Dengarkan Qari (${activeQariOption.name})`}
                       className="p-2 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer border border-emerald-200/60"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" />
+                      {playingAyahKey === `${selectedMushafAyah.surahNumber}:${selectedMushafAyah.ayahNumber}` && !isAudioPaused ? (
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      )}
                       <span>
                         {playingAyahKey === `${selectedMushafAyah.surahNumber}:${selectedMushafAyah.ayahNumber}`
-                          ? 'Memutar...'
+                          ? isAudioPaused
+                            ? 'Jeda'
+                            : 'Memutar...'
                           : 'Audio'}
                       </span>
                     </button>
@@ -2532,6 +2606,93 @@ export default function MushafPage() {
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Continuous Quran Audio Floating Player Bar ── */}
+      {playingAyahNumber !== null && (currentSurah || selectedSurahNumber) && (
+        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-8 z-50 md:w-[420px] bg-white/95 backdrop-blur-md rounded-2xl border border-emerald-200/90 shadow-xl shadow-emerald-950/10 p-3 sm:p-3.5 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Surah & Verse Indicator */}
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                {isAudioPaused ? (
+                  <Pause className="w-4 h-4 fill-current" />
+                ) : (
+                  <Volume2 className="w-4 h-4 animate-pulse" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  QS. {currentSurah?.nameLatin || `Surah ${selectedSurahNumber}`} • Ayat {playingAyahNumber}
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono truncate">
+                  {activeQariOption.name}
+                </p>
+              </div>
+            </div>
+
+            {/* Center: Controls (Prev, Play/Pause, Next) */}
+            <div className="flex items-center space-x-1 shrink-0">
+              <button
+                type="button"
+                onClick={skipPrevAyah}
+                disabled={playingAyahNumber <= 1}
+                className="p-1.5 rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                title="Ayat Sebelumnya"
+              >
+                <SkipBack className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={togglePauseStreamAudio}
+                className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-transform active:scale-95 cursor-pointer"
+                title={isAudioPaused ? 'Lanjutkan Murottal' : 'Jeda Murottal'}
+              >
+                {isAudioPaused ? (
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                ) : (
+                  <Pause className="w-4 h-4 fill-current" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={skipNextAyah}
+                disabled={playingAyahNumber >= (currentSurah?.ayahs?.length || currentSurah?.numberOfAyahs || 1)}
+                className="p-1.5 rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                title="Ayat Selanjutnya"
+              >
+                <SkipForward className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Right: Auto-scroll toggle & Close */}
+            <div className="flex items-center space-x-1 pl-1 border-l border-slate-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsAutoScrollAudio((prev) => !prev)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold font-mono transition-colors cursor-pointer ${
+                  isAutoScrollAudio
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+                title="Auto Scroll ke Ayat yang Sedang Dibaca"
+              >
+                Auto
+              </button>
+
+              <button
+                type="button"
+                onClick={stopStreamAudio}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                title="Tutup & Hentikan Audio"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

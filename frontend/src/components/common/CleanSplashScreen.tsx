@@ -38,9 +38,8 @@ export default function CleanSplashScreen() {
       onClick={() => setIsFading(true)}
       role="dialog"
       aria-label="Hifzhly Splash"
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-between py-12 sm:py-16 px-6 bg-white text-slate-900 select-none cursor-pointer transition-opacity duration-400 ease-out ${
-        isFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}
+      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-between py-12 sm:py-16 px-6 bg-white text-slate-900 select-none cursor-pointer transition-opacity duration-400 ease-out ${isFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
     >
       <div className="w-full" />
 
