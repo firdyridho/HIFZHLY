@@ -76,7 +76,7 @@ const DEVS: Developer[] = [
       'Accessibility Engineering',
       'Quranic Typography Systems',
     ],
-    imageSrc: '/images/developers/faeyza.webp',
+    imageSrc: '/images/developers/faeyza.webp?v=2',
     monogram: 'FAY',
     social: {
       github: 'https://github.com',
