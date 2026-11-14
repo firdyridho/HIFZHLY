@@ -1,102 +1,56 @@
-import React, { useEffect, useRef, useState } from 'react';
+/**
+ * DeveloperPage — editorial typographic experience
+ * Design direction: Cinematic Editorial × Islamic Scholarly
+ * Scroll engine: Lenis inertial + GSAP ScrollTrigger cinematic scenes
+ * No badges. No icon spam. No gradient cards. Pure type + photo + space.
+ */
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
-import {
-  ArrowLeft,
-  BookOpen,
-  Code2,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
-  Award,
-  Terminal,
-  Mail,
-  Zap,
-  HeartHandshake,
-  Compass,
-} from 'lucide-react';
-import EditorialFooter from '../components/landing/EditorialFooter';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ArrowLeft, ArrowUpRight, Mail } from 'lucide-react';
+import Lenis from 'lenis';
 
-function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-      />
-    </svg>
-  );
-}
+gsap.registerPlugin(ScrollTrigger);
 
-function LinkedinIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v7.6h2.8v-7.6h-2.8M7.86 6.5a1.63 1.63 0 0 0-1.63 1.62c0 .9.73 1.63 1.63 1.63.9 0 1.63-.73 1.63-1.63A1.63 1.63 0 0 0 7.86 6.5z" />
-    </svg>
-  );
-}
+// ─── Data ────────────────────────────────────────────────────────────────────
 
-interface DeveloperProfile {
+interface Developer {
   id: string;
   name: string;
+  nameAr: string;
   role: string;
-  subtitle: string;
-  bio: string;
-  quote: string;
+  verse: string;
+  verseSource: string;
+  bio: string[];
+  disciplines: string[];
   imageSrc: string;
   monogram: string;
-  location: string;
-  tags: string[];
-  contributions: {
-    title: string;
-    description: string;
-  }[];
-  social: {
-    github?: string;
-    linkedin?: string;
-    email?: string;
-  };
+  social: { github: string; linkedin: string; email: string };
 }
 
-const DEVELOPERS: DeveloperProfile[] = [
+const DEVS: Developer[] = [
   {
     id: 'firdy',
     name: 'Firdy Ridho Fillah',
-    role: 'Co-Founder & Lead Fullstack AI Architect',
-    subtitle: 'Real-time Audio Processing, ASR Phoneme Alignment & Systems Engineering',
-    bio: 'Insinyur perangkat lunak yang berfokus pada arsitektur kecerdasan buatan, pemrosesan sinyal audio digital, dan rekayasa sistem skala penuh. Merancang pipeline evaluasi suara tilawah kata-demi-kata, integrasi ONNX Runtime Web, dan algoritma retensi memori FSRS adaptif pada Hifzhly.',
-    quote:
-      'Setiap milidetik latensi suara dan setiap fonem tajwid yang dievaluasi adalah ikhtiar saintifik untuk menjaga keaslian bacaan Al-Qur\'an tanpa kompromi privasi pengguna.',
-    imageSrc: '/images/developers/firdy.webp',
-    monogram: 'FRF',
-    location: 'Indonesia',
-    tags: [
-      'Speech Recognition (ASR)',
+    nameAr: 'فردي رضا الله',
+    role: 'Co-Founder · Fullstack AI & Systems Architect',
+    verse: 'وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ',
+    verseSource: 'QS. Hud: 88',
+    bio: [
+      'Membangun pipeline evaluasi suara tilawah kata-demi-kata dengan latensi ultra-rendah — seluruh pemrosesan berlangsung di memori perangkat, tanpa sebutir data suara yang menyentuh server.',
+      'Merumuskan model matematika FSRS Spaced Repetition adaptif agar hafalan santri dijadwalkan tepat sebelum kurva lupa menyentuh ambang kritis.',
+    ],
+    disciplines: [
+      'Real-time Speech Recognition',
       'Web Audio API & DSP',
       'ONNX Runtime Web',
+      'FSRS Retention Modelling',
       'React 19 & TypeScript',
-      'FSRS Spaced Repetition',
-      'Linux VPS & Docker',
-      'Capacitor Native Bridge',
+      'Linux & Docker Orchestration',
     ],
-    contributions: [
-      {
-        title: 'Voice Evaluation & Phoneme Engine',
-        description:
-          'Membangun engine pendeteksi keliru huruf dan harakat secara streaming dengan latensi ultra-rendah dan isolasi memori lokal.',
-      },
-      {
-        title: 'FSRS Mathematical Retention Graph',
-        description:
-          'Merumuskan algoritma spaced repetition adaptif untuk menjadwalkan repetisi ayat sebelum hafalan santri memudar.',
-      },
-      {
-        title: 'End-to-End Multiplatform Architecture',
-        description:
-          'Mengorkestrasi sistem web, desktop, dan mobile Android dengan arsitektur sinkronisasi offline-first yang andal.',
-      },
-    ],
+    imageSrc: '/images/developers/firdy.webp',
+    monogram: 'FRF',
     social: {
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
@@ -106,40 +60,24 @@ const DEVELOPERS: DeveloperProfile[] = [
   {
     id: 'faeyza',
     name: 'Faeyza Ardellein Yaradhitya',
-    role: 'Co-Founder & Lead Product Designer',
-    subtitle: 'Islamic UX Architecture, Sanad & Mushaf Standardization',
-    bio: 'Desainer produk dan perancang interaksi yang mendedikasikan keahliannya pada antarmuka Islami yang khusyu\'. Memimpin standardisasi rasm Usmani Kemenag RI, rancangan sistem tipografi mushaf beresolusi tinggi, serta pengalaman pengguna yang tenang dan bermakna bagi santri dan musyrif.',
-    quote:
-      'Antarmuka terbaik untuk Al-Qur\'an adalah antarmuka yang hening—tidak mendikte dan tidak mengaburkan fokus pembacanya, melainkan menghadirkan kekhusyukan dan kemudahan dalam setiap tilawah.',
-    imageSrc: '/images/developers/faeyza.webp',
-    monogram: 'FAY',
-    location: 'Indonesia',
-    tags: [
+    nameAr: 'فائزة أرديلين يرضيثا',
+    role: 'Co-Founder · Product Designer & Islamic UX Lead',
+    verse: 'إِنَّ اللَّهَ جَمِيلٌ يُحِبُّ الْجَمَالَ',
+    verseSource: 'HR. Muslim',
+    bio: [
+      'Merancang pengalaman antarmuka yang khusyu\' — setiap piksel ditimbang: apakah ia membantu hafalan ataukah mengganggunya.',
+      'Memimpin standardisasi rasm Utsmani dan tanda baca sesuai pedoman Lajnah Pentashihan Mushaf Al-Qur\'an Kemenag RI, agar yang tertulis di layar setara dengan yang tercetak di kertas.',
+    ],
+    disciplines: [
       'Islamic UI/UX Architecture',
       'Mushaf Rasm Standardization',
-      'Quranic Typography',
       'Design Systems & Tokens',
       'Human-Centered Research',
-      'Accessibility (a11y)',
-      'Educational Pedagogics',
+      'Accessibility Engineering',
+      'Quranic Typography Systems',
     ],
-    contributions: [
-      {
-        title: 'Khusyu\' Sacred Interface Design',
-        description:
-          'Merancang antarmuka tanpa distraksi dengan panduan tipografi Arab standar mushaf dan kontras warna yang menyejukkan mata.',
-      },
-      {
-        title: 'LPMQ & Sanad Verification Pipeline',
-        description:
-          'Menyelaraskan struktur surah, ayat, waqaf, dan tanda baca sesuai pedoman resmi Lajnah Pentashihan Mushaf Al-Qur\'an Kemenag RI.',
-      },
-      {
-        title: 'Visual Retention & Mutabaah System',
-        description:
-          'Mengembangkan visualisasi heatmap retensi hafalan yang memberikan kejelasan progres tanpa menimbulkan rasa cemas bagi santri.',
-      },
-    ],
+    imageSrc: '/images/developers/faeyza.webp',
+    monogram: 'FAY',
     social: {
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
@@ -148,574 +86,678 @@ const DEVELOPERS: DeveloperProfile[] = [
   },
 ];
 
+// ─── Helper: Monogram SVG fallback avatar ────────────────────────────────────
+
+function MonogramAvatar({ initials }: { initials: string }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-slate-900 select-none">
+      <span
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="text-3xl font-black tracking-tight text-slate-100 leading-none"
+      >
+        {initials}
+      </span>
+    </div>
+  );
+}
+
+// ─── Helper: GithubSVG (lucide-react lacks this) ─────────────────────────────
+
+function GitHubSVG() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+      />
+    </svg>
+  );
+}
+
+function LinkedInSVG() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v7.6h2.8v-7.6h-2.8M7.86 6.5a1.63 1.63 0 0 0-1.63 1.62c0 .9.73 1.63 1.63 1.63.9 0 1.63-.73 1.63-1.63A1.63 1.63 0 0 0 7.86 6.5z" />
+    </svg>
+  );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function DeveloperPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const heroKickerRef = useRef<HTMLDivElement>(null);
-  const heroTitleRef = useRef<HTMLHeadingElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const heroLineRef = useRef<HTMLDivElement>(null);
   const heroSubRef = useRef<HTMLParagraphElement>(null);
-  const heroBadgesRef = useRef<HTMLDivElement>(null);
-  const cardsContainerRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const manifestoRef = useRef<HTMLDivElement>(null);
+  const heroArabicRef = useRef<HTMLParagraphElement>(null);
+  const scrollLineRef = useRef<HTMLDivElement>(null);
 
-  // Fallback states for images if files are not yet uploaded by user
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({
-    faeyza: false,
-    firdy: false,
-  });
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
-  // Scroll to top on mount
+  // ── Lenis per-page smooth scroll (not global to avoid conflict with App.tsx) ──
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const lenis = new Lenis({
+      duration: 1.4,
+      easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      smoothWheel: true,
+    });
+
+    // Tie Lenis raf to ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+
+    const raf = (time: number) => {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    };
+    const id = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(id);
+      lenis.destroy();
+    };
   }, []);
 
-  // GSAP Entrance & Scroll Animations
+  // ── GSAP Cinematic Scroll Animations ──────────────────────────────────────
   useEffect(() => {
+    if (!wrapRef.current) return;
+
     const ctx = gsap.context(() => {
-      // 1. Hero Entrance Timeline
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-
-      if (heroKickerRef.current) {
-        tl.fromTo(
-          heroKickerRef.current,
-          { opacity: 0, y: -20 },
-          { opacity: 1, y: 0, duration: 0.6 }
-        );
-      }
-
-      if (heroTitleRef.current) {
-        tl.fromTo(
-          heroTitleRef.current,
-          { opacity: 0, y: 30 },
-          { opacity: 1, y: 0, duration: 0.8 },
-          '-=0.3'
-        );
-      }
-
-      if (heroSubRef.current) {
-        tl.fromTo(
-          heroSubRef.current,
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.7 },
-          '-=0.4'
-        );
-      }
-
-      if (heroBadgesRef.current) {
-        tl.fromTo(
-          heroBadgesRef.current.children,
-          { opacity: 0, y: 15, scale: 0.95 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1 },
-          '-=0.4'
-        );
-      }
-
-      // 2. Developer Cards Stagger Reveal
-      if (cardsContainerRef.current) {
-        const cards = cardsContainerRef.current.querySelectorAll('.developer-card');
+      // 1. Hero: words split & stagger in
+      const heroLine = heroLineRef.current;
+      if (heroLine) {
+        const words = heroLine.querySelectorAll('.hero-word');
         gsap.fromTo(
-          cards,
-          { opacity: 0, y: 50 },
+          words,
+          { yPercent: 110, opacity: 0 },
           {
+            yPercent: 0,
             opacity: 1,
-            y: 0,
-            duration: 0.9,
-            stagger: 0.25,
-            ease: 'power3.out',
-            delay: 0.2,
+            duration: 1.0,
+            ease: 'expo.out',
+            stagger: 0.07,
+            delay: 0.1,
           }
         );
       }
 
-      // 3. Ambient Floating Background Elements (Infinite smooth GSAP float)
-      const floaters = document.querySelectorAll('.ambient-floater');
-      if (floaters.length > 0) {
-        gsap.to(floaters, {
-          y: -14,
-          duration: 3.5,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-          stagger: 0.5,
-        });
+      // 2. Hero sub-text: mask reveal
+      if (heroSubRef.current) {
+        gsap.fromTo(
+          heroSubRef.current,
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.6 }
+        );
       }
 
-      // 4. Numbers count-up animation for scholarly stats
-      if (statsRef.current) {
-        const numbers = statsRef.current.querySelectorAll('.stat-number');
-        numbers.forEach((el) => {
-          const target = parseFloat(el.getAttribute('data-target') || '0');
-          const isDec = el.getAttribute('data-decimal') === 'true';
-          const obj = { val: 0 };
-          gsap.to(obj, {
-            val: target,
-            duration: 2,
-            ease: 'power2.out',
+      // 3. Arabic verse: fade from right
+      if (heroArabicRef.current) {
+        gsap.fromTo(
+          heroArabicRef.current,
+          { opacity: 0, x: 30 },
+          { opacity: 1, x: 0, duration: 1.1, ease: 'power3.out', delay: 0.9 }
+        );
+      }
+
+      // 4. Animated scroll indicator line
+      if (scrollLineRef.current) {
+        gsap.fromTo(
+          scrollLineRef.current,
+          { scaleY: 0 },
+          {
+            scaleY: 1,
+            duration: 1.2,
+            ease: 'power2.inOut',
+            delay: 1.5,
+            transformOrigin: 'top center',
+          }
+        );
+      }
+
+      // 5. Developer sections — cinematic clip-path reveal from bottom
+      const devSections = document.querySelectorAll('.dev-section');
+      devSections.forEach((section) => {
+        // Photo: clip-path wipe in from bottom
+        const photo = section.querySelector('.dev-photo-wrap');
+        if (photo) {
+          gsap.fromTo(
+            photo,
+            { clipPath: 'inset(100% 0 0 0)', opacity: 0 },
+            {
+              clipPath: 'inset(0% 0 0 0)',
+              opacity: 1,
+              duration: 1.2,
+              ease: 'expo.out',
+              scrollTrigger: {
+                trigger: photo,
+                start: 'top 80%',
+              },
+            }
+          );
+        }
+
+        // Name: large type scrubs in letter-by-letter
+        const nameEl = section.querySelector('.dev-name');
+        if (nameEl) {
+          gsap.fromTo(
+            nameEl,
+            { yPercent: 60, opacity: 0 },
+            {
+              yPercent: 0,
+              opacity: 1,
+              duration: 1.0,
+              ease: 'expo.out',
+              scrollTrigger: {
+                trigger: nameEl,
+                start: 'top 85%',
+              },
+            }
+          );
+        }
+
+        // Role line: subtle fade up
+        const roleEl = section.querySelector('.dev-role');
+        if (roleEl) {
+          gsap.fromTo(
+            roleEl,
+            { opacity: 0, y: 16 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: roleEl,
+                start: 'top 88%',
+              },
+            }
+          );
+        }
+
+        // Bio paragraphs: stagger line by line
+        const bios = section.querySelectorAll('.dev-bio-p');
+        if (bios.length) {
+          gsap.fromTo(
+            bios,
+            { opacity: 0, y: 20 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              ease: 'power3.out',
+              stagger: 0.15,
+              scrollTrigger: {
+                trigger: bios[0],
+                start: 'top 88%',
+              },
+            }
+          );
+        }
+
+        // Disciplines: horizontal scroll-reveal row
+        const tags = section.querySelectorAll('.dev-tag');
+        if (tags.length) {
+          gsap.fromTo(
+            tags,
+            { opacity: 0, x: -20 },
+            {
+              opacity: 1,
+              x: 0,
+              duration: 0.6,
+              ease: 'power3.out',
+              stagger: 0.07,
+              scrollTrigger: {
+                trigger: tags[0],
+                start: 'top 90%',
+              },
+            }
+          );
+        }
+
+        // Verse: scale + fade
+        const verseEl = section.querySelector('.dev-verse');
+        if (verseEl) {
+          gsap.fromTo(
+            verseEl,
+            { opacity: 0, scale: 0.97 },
+            {
+              opacity: 1,
+              scale: 1,
+              duration: 0.9,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: verseEl,
+                start: 'top 88%',
+              },
+            }
+          );
+        }
+      });
+
+      // 6. Manifesto section — large type parallax
+      const manifestoWords = document.querySelectorAll('.manifesto-word');
+      if (manifestoWords.length) {
+        gsap.fromTo(
+          manifestoWords,
+          { yPercent: 50, opacity: 0 },
+          {
+            yPercent: 0,
+            opacity: 1,
+            duration: 0.9,
+            ease: 'expo.out',
+            stagger: 0.05,
             scrollTrigger: {
-              trigger: el,
+              trigger: manifestoWords[0],
               start: 'top 85%',
             },
-            onUpdate: () => {
-              el.textContent = isDec ? obj.val.toFixed(1) : Math.floor(obj.val).toLocaleString('id-ID');
-            },
-          });
-        });
+          }
+        );
       }
-    }, containerRef);
 
-    return () => ctx.revert();
+      // 7. Divider lines — draw in
+      const dividers = document.querySelectorAll('.anim-divider');
+      dividers.forEach((d) => {
+        gsap.fromTo(
+          d,
+          { scaleX: 0 },
+          {
+            scaleX: 1,
+            duration: 1.2,
+            ease: 'expo.out',
+            transformOrigin: 'left center',
+            scrollTrigger: { trigger: d, start: 'top 90%' },
+          }
+        );
+      });
+
+      // 8. Stats counter
+      const statNums = document.querySelectorAll('.stat-num');
+      statNums.forEach((el) => {
+        const target = parseFloat(el.getAttribute('data-target') || '0');
+        const obj = { v: 0 };
+        gsap.to(obj, {
+          v: target,
+          duration: 1.8,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+          onUpdate: () => {
+            el.textContent = Number.isInteger(target)
+              ? Math.round(obj.v).toLocaleString('id-ID')
+              : obj.v.toFixed(0);
+          },
+        });
+      });
+    }, wrapRef);
+
+    return () => {
+      ctx.revert();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+    };
   }, []);
 
-  // 3D Tilt Card Interaction via GSAP
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, cardId: string) => {
-    const card = document.getElementById(`card-${cardId}`);
-    if (!card) return;
-
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotateX = ((y - centerY) / centerY) * -5;
-    const rotateY = ((x - centerX) / centerX) * 5;
-
-    gsap.to(card, {
-      rotateX,
-      rotateY,
-      transformPerspective: 1000,
-      duration: 0.4,
-      ease: 'power2.out',
-    });
-  };
-
-  const handleMouseLeave = (cardId: string) => {
-    const card = document.getElementById(`card-${cardId}`);
-    if (!card) return;
-
-    gsap.to(card, {
-      rotateX: 0,
-      rotateY: 0,
-      duration: 0.6,
-      ease: 'power2.out',
-    });
-  };
-
   return (
-    <div
-      ref={containerRef}
-      className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900"
-    >
-      {/* 1. Dedicated Minimalist Navigation Bar */}
-      <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-        <div className="h-[2px] w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-amber-500" />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div ref={wrapRef} className="bg-white text-slate-900 min-h-screen flex flex-col overflow-x-hidden selection:bg-emerald-100 selection:text-emerald-900">
+      {/* ── HEADER: ultra-minimal line, nothing more ─────────────────────── */}
+      <header className="fixed top-0 left-0 right-0 z-50 mix-blend-multiply">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <Link
             to="/"
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-600 hover:text-emerald-800 transition-colors group cursor-pointer"
+            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors group"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:-translate-x-1 transition-transform" />
-            <span>Kembali ke Beranda</span>
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            Hifzhly
           </Link>
-
-          <Link to="/" className="flex items-center space-x-2.5">
-            <img
-              src="/logo saja.png"
-              alt="Hifzhly Logo"
-              className="w-8 h-8 object-contain"
-            />
-            <span className="font-extrabold text-base tracking-tight text-slate-900 hidden sm:inline">
-              Hifzhly <span className="text-xs font-semibold text-emerald-700 font-sans">Engineering</span>
-            </span>
+          <Link
+            to="/app"
+            className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors inline-flex items-center gap-1.5"
+          >
+            Buka Aplikasi
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
-
-          <div className="flex items-center space-x-3">
-            <Link
-              to="/app"
-              className="text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 px-3.5 py-1.5 rounded-lg transition-colors shadow-xs"
-            >
-              Buka Aplikasi
-            </Link>
-          </div>
         </div>
       </header>
 
-      {/* 2. Grand Scholarly Editorial Hero */}
-      <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-slate-50">
-        {/* Subtle Decorative Background Ambient Gradients */}
+      {/* ── HERO: full typographic opening spread ────────────────────────── */}
+      <section className="relative min-h-screen flex flex-col justify-end px-5 sm:px-8 lg:px-16 pb-16 pt-32 overflow-hidden bg-white">
+        {/* Scroll progress line, left edge */}
         <div
-          aria-hidden="true"
-          className="ambient-floater absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-br from-emerald-200/30 via-teal-100/20 to-amber-100/20 rounded-full blur-3xl pointer-events-none"
-        />
-        <div
-          aria-hidden="true"
-          className="ambient-floater absolute top-40 right-10 w-72 h-72 bg-emerald-100/25 rounded-full blur-2xl pointer-events-none"
+          ref={scrollLineRef}
+          className="absolute left-5 sm:left-8 top-20 bottom-16 w-px bg-slate-200 origin-top"
         />
 
-        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-6">
-          {/* Scholarly Kicker */}
-          <div
-            ref={heroKickerRef}
-            className="inline-flex items-center space-x-2.5 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-xs font-bold text-emerald-800 uppercase tracking-widest font-sans shadow-2xs"
+        {/* Quranic inscription — right edge, vertical */}
+        <div className="absolute right-5 sm:right-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center gap-4">
+          <div className="w-px h-20 bg-emerald-300" />
+          <p
+            ref={heroArabicRef}
+            className="font-quran text-sm text-emerald-800 opacity-70 leading-loose"
+            style={{ writingMode: 'vertical-rl' }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-            <span>Tim Rekayasa &amp; Desain Produk • Hifzhly</span>
-          </div>
+            وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ
+          </p>
+          <div className="w-px h-20 bg-emerald-300" />
+        </div>
 
-          {/* Grand Headline */}
-          <h1
-            ref={heroTitleRef}
-            className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.15]"
-          >
-            Dua Pemikir, Satu Khidmah:{' '}
-            <span className="text-emerald-700 block mt-2">
-              Sinergi AI &amp; Kemurnian Kalamullah.
+        {/* Main headline — word-by-word split */}
+        <div ref={heroLineRef} className="max-w-5xl overflow-hidden">
+          {['Dua', 'Pemikir.', 'Satu', 'Platform.'].map((word) => (
+            <span
+              key={word}
+              className="hero-word inline-block mr-[0.2em] text-[clamp(3rem,9vw,8rem)] font-black tracking-tight text-slate-900 leading-[0.95]"
+            >
+              {word}
             </span>
-          </h1>
+          ))}
+        </div>
 
-          {/* Spacious Scholarly Lead */}
+        <div className="mt-10 max-w-2xl">
           <p
             ref={heroSubRef}
-            className="text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal"
+            className="text-base sm:text-lg text-slate-500 leading-relaxed font-normal"
           >
-            Mengenal figur di balik rancang bangun <strong>Hifzhly</strong> — perpaduan harmonis antara riset kecerdasan buatan, pemrosesan fonem tilawah real-time, dan desain antarmuka khusyu' yang memuliakan para penghafal Al-Qur'an.
+            Mengenal Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya — dua orang yang membangun Hifzhly dari nol: dari kode ASR phoneme, algoritma FSRS, hingga antarmuka yang sunyi.
           </p>
+        </div>
 
-          {/* Trust Badges Strip */}
-          <div
-            ref={heroBadgesRef}
-            className="pt-4 flex flex-wrap justify-center items-center gap-3 sm:gap-4 text-xs font-semibold text-slate-600"
-          >
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Standar LPMQ Kemenag RI</span>
-            </div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
-              <Zap className="w-4 h-4 text-emerald-600" />
-              <span>Zero-Lag Audio Processing</span>
-            </div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>On-Device Memory Privacy</span>
-            </div>
-          </div>
+        {/* Scroll cue */}
+        <div className="mt-16 flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+          <div className="w-8 h-px bg-slate-300" />
+          Gulir untuk membaca
         </div>
       </section>
 
-      {/* 3. Main Developers Showcase Grid (Faeyza & Firdy) */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
-        <div
-          ref={cardsContainerRef}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch"
-        >
-          {DEVELOPERS.map((dev) => {
-            const hasImageError = imageErrors[dev.id];
+      {/* ── DEVELOPER SECTIONS ───────────────────────────────────────────── */}
+      {DEVS.map((dev, idx) => {
+        const isEven = idx % 2 === 0;
+        return (
+          <section
+            key={dev.id}
+            className={`dev-section relative py-24 sm:py-32 px-5 sm:px-8 lg:px-16 ${
+              isEven ? 'bg-white' : 'bg-slate-50'
+            }`}
+          >
+            {/* Section index number */}
+            <div className="absolute top-10 right-5 sm:right-8 text-[8rem] font-black text-slate-100 leading-none select-none pointer-events-none hidden lg:block">
+              0{idx + 1}
+            </div>
 
-            return (
-              <div
-                key={dev.id}
-                id={`card-${dev.id}`}
-                onMouseMove={(e) => handleMouseMove(e, dev.id)}
-                onMouseLeave={() => handleMouseLeave(dev.id)}
-                className="developer-card group relative bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_16px_40px_rgb(16,185,129,0.08)] transition-all duration-300"
-              >
-                {/* Subtle Card Header Corner Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-100/40 via-transparent to-transparent rounded-tr-3xl pointer-events-none" />
+            <hr className="anim-divider w-full border-0 h-px bg-slate-200 mb-16 sm:mb-24 origin-left" />
 
-                <div className="space-y-6">
-                  {/* Top Bar: Portrait & Identity Info */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                    {/* Portrait Avatar Container */}
-                    <div className="relative shrink-0">
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-emerald-600/30 bg-slate-100 shadow-md relative flex items-center justify-center">
-                        {!hasImageError ? (
-                          <img
-                            src={dev.imageSrc}
-                            alt={dev.name}
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              if (target.src.endsWith('.webp')) {
-                                target.src = target.src.replace('.webp', '.jpg');
-                              } else {
-                                setImageErrors((prev) => ({ ...prev, [dev.id]: true }));
-                              }
-                            }}
-                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          // Bespoke Scholarly Monogram Fallback Avatar with Islamic Geometric Accent
-                          <div className="w-full h-full bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 flex flex-col items-center justify-center text-white relative p-3">
-                            <div className="absolute inset-1 border border-emerald-400/30 rounded-xl pointer-events-none" />
-                            <span className="font-extrabold text-2xl tracking-wider text-emerald-200">
-                              {dev.monogram}
-                            </span>
-                            <span className="text-[9px] uppercase tracking-widest text-emerald-300/80 mt-1 font-mono">
-                              Hifzhly Dev
-                            </span>
-                          </div>
-                        )}
-                      </div>
+            <div className={`grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start`}>
+              {/* Photo — always first on mobile, alternates on desktop */}
+              <div className={`lg:col-span-5 ${isEven ? 'lg:order-1' : 'lg:order-2'}`}>
+                <div className="dev-photo-wrap relative overflow-hidden rounded-2xl bg-slate-100 aspect-[4/5] max-w-sm w-full mx-auto lg:mx-0">
+                  {!imgErrors[dev.id] ? (
+                    <img
+                      src={dev.imageSrc}
+                      alt={dev.name}
+                      className="w-full h-full object-cover object-top"
+                      onError={(e) => {
+                        const t = e.currentTarget;
+                        if (t.src.includes('.webp')) {
+                          t.src = t.src.replace('.webp', '.jpg');
+                        } else {
+                          setImgErrors((p) => ({ ...p, [dev.id]: true }));
+                        }
+                      }}
+                    />
+                  ) : (
+                    <MonogramAvatar initials={dev.monogram} />
+                  )}
 
-                      {/* Active Status Badge */}
-                      <div className="absolute -bottom-2 -right-2 bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-xs flex items-center space-x-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                        <span>Kreator</span>
-                      </div>
-                    </div>
-
-                    {/* Developer Name & Designation */}
-                    <div className="space-y-1.5">
-                      <div className="inline-flex items-center space-x-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/70">
-                        <Code2 className="w-3 h-3 text-emerald-700" />
-                        <span>{dev.role.split('&')[0]}</span>
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                        {dev.name}
-                      </h2>
-                      <p className="text-xs sm:text-sm font-semibold text-emerald-800 leading-snug">
-                        {dev.subtitle}
-                      </p>
-                    </div>
+                  {/* Arabic name watermark over bottom of photo */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+                    <p className="font-quran text-white/90 text-lg leading-loose text-right">
+                      {dev.nameAr}
+                    </p>
                   </div>
+                </div>
+              </div>
 
-                  {/* Biography */}
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    {dev.bio}
+              {/* Text content */}
+              <div className={`lg:col-span-7 flex flex-col gap-8 ${isEven ? 'lg:order-2' : 'lg:order-1'}`}>
+                {/* Role */}
+                <p className="dev-role text-xs font-bold uppercase tracking-widest text-emerald-700">
+                  {dev.role}
+                </p>
+
+                {/* Name — large display type */}
+                <h2 className="dev-name text-[clamp(2rem,5vw,3.75rem)] font-black text-slate-900 tracking-tight leading-[1.0] -mt-2">
+                  {dev.name}
+                </h2>
+
+                {/* Quranic verse as a design element, not a badge */}
+                <div className="dev-verse border-l-2 border-emerald-500 pl-5 space-y-1">
+                  <p className="font-quran text-xl sm:text-2xl text-emerald-900 leading-loose">
+                    {dev.verse}
                   </p>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600">
+                    {dev.verseSource}
+                  </p>
+                </div>
 
-                  {/* Dedicated Scholarly Quote Box */}
-                  <div className="p-4 rounded-2xl bg-emerald-50/60 border-l-3 border-emerald-600 text-xs sm:text-sm text-emerald-950 italic leading-relaxed">
-                    "{dev.quote}"
-                  </div>
+                {/* Bio */}
+                <div className="space-y-4">
+                  {dev.bio.map((para, i) => (
+                    <p
+                      key={i}
+                      className="dev-bio-p text-sm sm:text-base text-slate-600 leading-relaxed"
+                    >
+                      {para}
+                    </p>
+                  ))}
+                </div>
 
-                  {/* Core Contributions List */}
-                  <div className="space-y-3 pt-2">
-                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center space-x-2">
-                      <Award className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Fokus Rekayasa &amp; Kontribusi Inti</span>
-                    </h3>
-                    <div className="space-y-2.5">
-                      {dev.contributions.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1"
-                        >
-                          <span className="font-bold text-slate-900 block">
-                            {item.title}
-                          </span>
-                          <span className="text-slate-600 leading-relaxed block font-normal">
-                            {item.description}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tech Stack & Focus Tags */}
-                  <div className="space-y-2 pt-2">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Keahlian &amp; Perkakas Utama:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {dev.tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/70 transition-colors"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+                {/* Disciplines — plain text list, no pill badges */}
+                <div className="space-y-3 pt-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                    Bidang Keahlian
+                  </p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    {dev.disciplines.map((d) => (
+                      <span
+                        key={d}
+                        className="dev-tag text-sm text-slate-700 font-medium"
+                      >
+                        {d}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                {/* Bottom Social / Contact Bar */}
-                <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-400">
-                    Tim Pengembang Utama &bull; Hifzhly
-                  </span>
-
-                  <div className="flex items-center space-x-2">
-                    {dev.social.github && (
-                      <a
-                        href={dev.social.github}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-900 text-slate-600 transition-colors cursor-pointer"
-                        aria-label={`GitHub ${dev.name}`}
-                      >
-                        <GithubIcon className="w-4 h-4" />
-                      </a>
-                    )}
-                    {dev.social.linkedin && (
-                      <a
-                        href={dev.social.linkedin}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-900 text-slate-600 transition-colors cursor-pointer"
-                        aria-label={`LinkedIn ${dev.name}`}
-                      >
-                        <LinkedinIcon className="w-4 h-4" />
-                      </a>
-                    )}
-                    {dev.social.email && (
-                      <a
-                        href={dev.social.email}
-                        className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-900 text-slate-600 transition-colors cursor-pointer"
-                        aria-label={`Kirim Email ke ${dev.name}`}
-                      >
-                        <Mail className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
+                {/* Social links — text only, no button shapes */}
+                <div className="pt-4 flex items-center gap-6 border-t border-slate-100">
+                  <a
+                    href={dev.social.github}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-wider"
+                  >
+                    <GitHubSVG />
+                    GitHub
+                  </a>
+                  <a
+                    href={dev.social.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-wider"
+                  >
+                    <LinkedInSVG />
+                    LinkedIn
+                  </a>
+                  <a
+                    href={dev.social.email}
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-wider"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </a>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. Scholarly Scientific Stats Strip */}
-      <section ref={statsRef} className="py-12 bg-white border-y border-slate-200/90">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center">
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                <span className="stat-number" data-target="30">30</span> Juz
-              </p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Peta Mushaf Madinah &amp; Kemenag
-              </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-emerald-700 tracking-tight">
-                <span className="stat-number" data-target="114">114</span> Surah
-              </p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Validasi Lafadz &amp; Sanad Rasm
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                <span className="stat-number" data-target="6236">6236</span> Ayat
-              </p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Data Retensi FSRS Terindeks
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-emerald-700 tracking-tight">
-                0 <span className="text-lg font-bold text-slate-700">ms</span>
-              </p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Penyimpanan Suara di Server (Zero Leak)
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })}
 
-      {/* 5. The Origin Story & Manifesto ("Kisah Kolaborasi Firdy & Faeyza") */}
-      <section
-        ref={manifestoRef}
-        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-10"
-      >
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-100/70 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-            <HeartHandshake className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Manifesto &amp; Kisah di Balik Layar</span>
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Menjawab Kegelisahan Penghafal: Mengapa Hifzhly Diciptakan?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 uppercase tracking-widest font-semibold">
-            Ditulis Bersama oleh Firdy Ridho Fillah &amp; Faeyza Ardellein Yaradhitya
-          </p>
-        </div>
+      {/* ── MANIFESTO SECTION — editorial full-bleed type ────────────────── */}
+      <section className="relative py-32 px-5 sm:px-8 lg:px-16 bg-slate-900 text-white overflow-hidden">
+        <hr className="anim-divider w-full border-0 h-px bg-slate-700 mb-16 origin-left" />
 
-        <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed text-sm sm:text-base space-y-5 bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/90 shadow-xs">
-          <p>
-            Menghafal Al-Qur'an adalah salah satu karunia teragung, namun menjaga hafalan tersebut (<em>murojaah</em>) adalah jihad konsistensi seumur hidup. Hampir setiap santri tahfizh menghadapi tantangan yang sama: <strong>"cepat hafal, namun mudah lupa"</strong> karena keterbatasan waktu musyrif untuk menyimak secara privat setiap hari.
-          </p>
-
-          <p>
-            Berangkat dari kenyataan tersebut, <strong>Faeyza Ardellein Yaradhitya</strong> dan <strong>Firdy Ridho Fillah</strong> berkolaborasi memadukan dua disiplin ilmu yang saling melengkapi:
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6 not-prose">
-            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/70 space-y-2">
-              <div className="flex items-center space-x-2 text-emerald-900 font-bold text-xs uppercase tracking-wider">
-                <Compass className="w-4 h-4 text-emerald-700" />
-                <span>Adab &amp; Antarmuka Khusyu'</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Faeyza memastikan setiap elemen tampilan menjaga kesucian tilawah—tidak ada iklan yang mengganggu, tidak ada animasi yang berlebihan, dan rasm mushaf tunduk pada kaidah LPMQ Kementerian Agama RI.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs uppercase tracking-wider">
-                <Terminal className="w-4 h-4 text-emerald-700" />
-                <span>Kecerdasan Buatan &amp; Sains Memori</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Firdy merekayasa pipeline pemrosesan sinyal suara on-device dan model matematika kurva lupa FSRS, sehingga aplikasi mampu mendeteksi fonem keliru dan menyarankan jadwal murojaah secara presisi.
-              </p>
-            </div>
-          </div>
-
-          <p>
-            Hifzhly tidak hadir untuk menggantikan posisi mulia para ustadz dan musyrif bersanad. Sebaliknya, Hifzhly adalah <em>partner latihan mandiri</em> yang setia menemani santri di kala malam, menguatkan hafalan sebelum disetorkan kepada para guru di majelis talaqqi.
-          </p>
-
-          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
-            <span>Didedikasikan untuk para penghafal Al-Qur'an nusantara.</span>
-            <span className="text-emerald-800 font-bold">Semoga bernilai jariyah lillahi ta'ala.</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Closing Call to Action Banner */}
-      <section className="pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">
-        <div className="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-3xl p-8 sm:p-12 text-white text-center space-y-5 shadow-xl relative overflow-hidden">
-          <div
-            aria-hidden="true"
-            className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"
-          />
-
-          <span className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 text-emerald-200 text-xs font-bold uppercase tracking-wider">
-            <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Mulai Perjalanan Murojaah Anda</span>
+        {/* Large background Arabic motif */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.04]"
+        >
+          <span className="font-quran text-[20rem] leading-none text-white">
+            ح
           </span>
+        </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight max-w-xl mx-auto leading-tight">
-            Rasakan Pengalaman Murojaah Modern yang Dibangun Penuh Khidmah.
-          </h2>
-
-          <p className="text-xs sm:text-sm text-emerald-100/90 max-w-md mx-auto leading-relaxed">
-            Akses mushaf interaktif, uji tilawah dengan AI pendengar kata-demi-kata, dan petakan kurva retensi hafalan Anda hari ini.
+        <div className="relative max-w-4xl">
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 mb-10">
+            Manifesto Pembangunan
           </p>
 
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              to="/app"
-              className="w-full sm:w-auto text-xs font-bold text-emerald-950 bg-white hover:bg-emerald-50 px-6 py-3 rounded-xl transition-colors shadow-md"
-            >
-              Buka Murojaah Mandiri
-            </Link>
-            <Link
-              to="/download"
-              className="w-full sm:w-auto text-xs font-bold text-white bg-emerald-700/60 hover:bg-emerald-700 border border-emerald-400/30 px-6 py-3 rounded-xl transition-colors"
-            >
-              Unduh Aplikasi Desktop / Mobile
-            </Link>
+          <div className="overflow-hidden">
+            <p className="text-[clamp(1.5rem,4vw,3rem)] font-black text-white leading-tight tracking-tight">
+              {[
+                'Hifzhly', 'tidak', 'hadir', 'untuk', 'menggantikan',
+                'ustadz', 'dan', 'musyrif', 'bersanad.'
+              ].map((w) => (
+                <span key={w} className="manifesto-word inline-block mr-[0.25em]">{w}</span>
+              ))}
+            </p>
+            <p className="text-[clamp(1.5rem,4vw,3rem)] font-black text-emerald-400 leading-tight tracking-tight mt-2">
+              {[
+                'Ia', 'adalah', 'teman', 'latihan', 'mandiri',
+                'yang', 'menemani', 'santri', 'di', 'kala', 'malam.'
+              ].map((w) => (
+                <span key={w} className="manifesto-word inline-block mr-[0.25em]">{w}</span>
+              ))}
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-10 border-t border-slate-800 pt-14">
+            {[
+              { label: 'Juz', value: '30', note: 'Peta Mushaf Lengkap' },
+              { label: 'Surah', value: '114', note: 'Validasi Rasm & Sanad' },
+              { label: 'Ayat', value: '6236', note: 'Retensi FSRS Terindeks' },
+              { label: 'Detik', value: '0', note: 'Simpan Suara ke Server' },
+            ].map((s) => (
+              <div key={s.label} className="space-y-1">
+                <p className="text-4xl sm:text-5xl font-black text-white leading-none">
+                  <span
+                    className="stat-num"
+                    data-target={s.value}
+                  >
+                    {s.value}
+                  </span>
+                  {s.label === 'Detik' && (
+                    <span className="text-xl font-semibold text-slate-400 ml-1">ms</span>
+                  )}
+                </p>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">
+                  {s.label}
+                </p>
+                <p className="text-xs text-slate-500">{s.note}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 7. Masterpiece Editorial Footer */}
-      <EditorialFooter />
+      {/* ── FOOTER: typographic, no icon spam ───────────────────────────── */}
+      <footer className="bg-white border-t border-slate-100 py-16 px-5 sm:px-8 lg:px-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Quranic verse — the footer's visual anchor */}
+          <div className="mb-14 max-w-2xl">
+            <p className="font-quran text-2xl sm:text-3xl text-emerald-900 leading-loose">
+              وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ
+            </p>
+            <p className="mt-2 text-xs text-slate-500 italic">
+              Dan sungguh, telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran? — QS. Al-Qamar: 17
+            </p>
+          </div>
+
+          <hr className="anim-divider border-0 h-px bg-slate-100 mb-12 origin-left" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 text-sm text-slate-500">
+            {/* Col 1: Brand */}
+            <div className="space-y-3">
+              <Link to="/" className="inline-flex items-center gap-2.5 group">
+                <img src="/logo saja.png" alt="Hifzhly" className="w-8 h-8 object-contain" />
+                <span className="font-black text-slate-900 tracking-tight text-base">Hifzhly</span>
+              </Link>
+              <p className="text-xs leading-relaxed text-slate-500 max-w-xs">
+                Platform asistensi murojaah Al-Qur'an — kecerdasan buatan yang tunduk pada adab ilmiah dan sanad mushaf.
+              </p>
+            </div>
+
+            {/* Col 2: Navigasi */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Navigasi</p>
+              <ul className="space-y-2">
+                {[
+                  { label: 'Beranda', to: '/' },
+                  { label: 'Aplikasi Murojaah', to: '/app' },
+                  { label: 'Mushaf & Tajwid', to: '/app/mushaf' },
+                  { label: 'Unduh Aplikasi', to: '/download' },
+                  { label: 'Portal Musyrif', to: '/login?role=admin' },
+                ].map((l) => (
+                  <li key={l.to}>
+                    <Link to={l.to} className="hover:text-slate-900 transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 3: Legal */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Privasi & Legal</p>
+              <ul className="space-y-2">
+                {[
+                  { label: 'Ketentuan Layanan', to: '/terms' },
+                  { label: 'Privasi Suara (Memory-Only)', to: '/terms' },
+                  { label: 'Halaman Pengembang', to: '/developers' },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <Link to={l.to} className="hover:text-slate-900 transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <hr className="anim-divider border-0 h-px bg-slate-100 my-10 origin-left" />
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
+            <p>
+              &copy; 2026 Hifzhly &mdash; Diciptakan dengan khidmah oleh{' '}
+              <Link to="/developers" className="text-slate-600 hover:text-slate-900 font-semibold transition-colors">
+                Faeyza Ardellein Yaradhitya
+              </Link>{' '}
+              &amp;{' '}
+              <Link to="/developers" className="text-slate-600 hover:text-slate-900 font-semibold transition-colors">
+                Firdy Ridho Fillah
+              </Link>
+              .
+            </p>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors inline-flex items-center gap-2"
+            >
+              Ke atas
+              <span className="inline-block rotate-[-90deg]">
+                <ArrowLeft className="w-3 h-3" />
+              </span>
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
