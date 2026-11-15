@@ -389,193 +389,143 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 2. SECTION MENU UTAMA (Refined 8-Card Micro-Tile Grid) */}
+      {/* 2. SECTION MENU UTAMA (Pure Clean Icon Grid — No Nested Boxes, Single Word Labels) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Menu Utama
-            </h2>
-            <p className="text-xs text-slate-500">
-              Akses cepat tilawah, talaqqi AI, dan penjaga kemutqinan
-            </p>
-          </div>
-          <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/80">
-            8 Layanan
-          </span>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+            Menu Utama
+          </h2>
+          <span className="text-xs text-slate-400">Akses Cepat</span>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3">
+        <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
           {/* Quick resume strip if lastRead is available */}
           {lastRead && (
             <Link
               to={`/app/mushaf?surah=${lastRead.surahNumber}&ayah=${lastRead.ayahNumber}`}
-              className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-teal-50/60 border border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50 transition-all text-xs group"
+              className="mb-4 flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 hover:bg-emerald-100/70 transition-colors text-xs group"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2 truncate">
                 <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
-                <span className="text-slate-500 font-medium shrink-0">Lanjut Terakhir:</span>
-                <span className="font-bold text-slate-900 truncate">
-                  QS. {lastRead.surahName} [Ayat {lastRead.ayahNumber}]
+                <span className="text-slate-500 font-medium">Lanjut Terakhir:</span>
+                <span className="font-bold text-slate-800 truncate">
+                  QS. {lastRead.surahName} [{lastRead.ayahNumber}]
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-800 text-[11px] shrink-0 group-hover:translate-x-0.5 transition-transform">
+              <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 text-[11px] shrink-0 group-hover:translate-x-0.5 transition-transform">
                 <span>Lanjutkan</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </Link>
           )}
 
-          {/* 8 Micro-Card Tiles (4 Columns on mobile & desktop) */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3.5">
+          {/* 8-Icon Grid (Clean & Direct) */}
+          <div className="grid grid-cols-4 gap-y-4 gap-x-2 sm:gap-x-4">
             {/* 1. Qur'an */}
             <Link
               to="/app/mushaf"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-emerald-50 border border-emerald-100/90 flex items-center justify-center text-emerald-800 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 shadow-2xs">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <BookOpen className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-800 transition-colors tracking-tight truncate">
-                  Qur'an
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  15 Baris
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors text-center">
+                Qur'an
+              </span>
             </Link>
 
-            {/* 2. Hafalan (SRS) */}
+            {/* 2. Hafalan */}
             <Link
               to="/app/hafalan"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-teal-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              {srsItems.length > 0 && (
-                <span
-                  title={`${srsItems.length} ayat jatuh tempo`}
-                  className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"
-                />
-              )}
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-teal-50 border border-teal-100/90 flex items-center justify-center text-teal-800 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600 transition-all duration-300 shadow-2xs">
-                <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="relative w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <Brain className="w-6 h-6" strokeWidth={1.8} />
+                {srsItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
+                )}
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-teal-800 transition-colors tracking-tight truncate">
-                  Hafalan
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Metode SRS
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-teal-700 transition-colors text-center">
+                Hafalan
+              </span>
             </Link>
 
-            {/* 3. Murojaah AI */}
+            {/* 3. Murojaah */}
             <Link
               to="/app/murojaah"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-emerald-50 border border-emerald-100/90 flex items-center justify-center text-emerald-800 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 shadow-2xs">
-                <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <Mic className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-800 transition-colors tracking-tight truncate">
-                  Murojaah
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Suara AI
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors text-center">
+                Murojaah
+              </span>
             </Link>
 
             {/* 4. Mutabaah */}
             <Link
               to="/app/mutabaah"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-sky-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-sky-50 border border-sky-100/90 flex items-center justify-center text-sky-800 group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white group-hover:border-sky-600 transition-all duration-300 shadow-2xs">
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <TrendingUp className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-sky-800 transition-colors tracking-tight truncate">
-                  Mutabaah
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Heatmap
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-sky-700 transition-colors text-center">
+                Mutabaah
+              </span>
             </Link>
 
             {/* 5. Tajwid */}
             <Link
               to="/app/tajwid"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-teal-50 border border-teal-100/90 flex items-center justify-center text-teal-800 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:border-teal-600 transition-all duration-300 shadow-2xs">
-                <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-teal-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <GraduationCap className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-teal-800 transition-colors tracking-tight truncate">
-                  Tajwid
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Akademi
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-teal-700 transition-colors text-center">
+                Tajwid
+              </span>
             </Link>
 
-            {/* 6. Doa & Adab */}
+            {/* 6. Doa */}
             <Link
               to="/app/doa"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-amber-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-amber-50 border border-amber-100/90 flex items-center justify-center text-amber-800 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600 transition-all duration-300 shadow-2xs">
-                <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <HeartHandshake className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-amber-800 transition-colors tracking-tight truncate">
-                  Doa &amp; Adab
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Koleksi
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-amber-700 transition-colors text-center">
+                Doa
+              </span>
             </Link>
 
-            {/* 7. Kuis Qur'an */}
+            {/* 7. Kuis */}
             <Link
               to="/app/quiz"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-indigo-300 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-indigo-50 border border-indigo-100/90 flex items-center justify-center text-indigo-700 group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all duration-300 shadow-2xs">
-                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 group-hover:text-amber-200 transition-colors" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <Trophy className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-indigo-800 transition-colors tracking-tight truncate">
-                  Kuis
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Uji Retensi
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors text-center">
+                Kuis
+              </span>
             </Link>
 
             {/* 8. Target */}
             <Link
               to="/app/target"
-              className="group relative flex flex-col items-center justify-between p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-white border border-slate-200/70 hover:border-slate-400 hover:shadow-xs transition-all duration-200 active:scale-95 text-center"
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:scale-105 group-hover:bg-slate-800 group-hover:text-white group-hover:border-slate-800 transition-all duration-300 shadow-2xs">
-                <Target className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-hover:bg-slate-800 group-hover:text-white group-hover:shadow-sm active:scale-95">
+                <Target className="w-6 h-6" strokeWidth={1.8} />
               </div>
-              <div className="w-full mt-2">
-                <span className="block text-xs sm:text-sm font-bold text-slate-800 group-hover:text-slate-900 transition-colors tracking-tight truncate">
-                  Target
-                </span>
-                <span className="block text-[10px] sm:text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                  Ritme Khatam
-                </span>
-              </div>
+              <span className="mt-2 text-xs font-semibold text-slate-800 group-hover:text-slate-900 transition-colors text-center">
+                Target
+              </span>
             </Link>
           </div>
         </div>
