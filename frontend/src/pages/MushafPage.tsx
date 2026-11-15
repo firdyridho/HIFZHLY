@@ -147,17 +147,75 @@ const TAJWEED_RULES: Record<string, { label: string; desc: string; color: string
   slnt: { label: 'Huruf Dilebur (Silent)', desc: 'Tertulis tetapi tidak dibaca', color: 'text-slate-400', example: 'كَفَرُوا۟' },
 };
 
+/**
+ * Repairs raw Tajweed HTML markup from Quran.com to prevent broken Arabic ligatures and glyph fractures.
+ *
+ * Specific fixes:
+ * 1. Pulls trailing combining marks (madda U+0653, dagger alif U+0670, and harakat) immediately
+ *    following closing </tajweed> tags into the tag, so they remain bound to their vowel base.
+ * 2. Fixes Lam-Alif ligatures (لا / لَا / لٓا / لَـٰ / لَّآ / إِلَّا / أُو۟لَـٰٓئِكَ / عَلَىٰٓ).
+ *    When 'ل' (with optional harakat/shaddah) is outside the tag while the tag contains the Alif
+ *    (ا / ٱ / آ / أ / إ / dagger alif ـٰ / alif maqsurah ى), HarfBuzz cannot apply the mandatory
+ *    OpenType 'rlig' ligature across DOM span boundaries, causing 'ل' to fracture into a detached "U" shape.
+ *    Pulling 'ل' inside the tag unites Lam and Alif within the same text run for seamless ligature shaping.
+ * 3. Fixes Lam preceding long vowels with madda (e.g. قَالُوٓا۟), ensuring the consonant is not separated
+ *    from its dammah and long vowel.
+ */
+function repairTajweedHtml(rawHtml: string): string {
+  if (!rawHtml) return '';
+
+  let res = rawHtml;
+
+  // 1. Pull stranded combining marks (madda U+0653, dagger alif U+0670, harakat U+064B-U+0652)
+  // that sit immediately after a closing </tajweed> or </rule> tag into the tag itself.
+  res = res.replace(
+    /(<(?:tajweed|rule) class=[a-z_]+>[^<]*)(<\/(?:tajweed|rule)>)([\u0653\u0670\u064B-\u0652]+)/g,
+    '$1$3$2'
+  );
+
+  // 2. Fix Lam-Alif ligatures across tajweed / rule tags
+  // Matches 'ل' (with optional harakat/shaddah) immediately preceding a tag starting with Alif forms or Dagger Alif
+  res = res.replace(
+    /([ل][\u064B-\u065F\u0670]*)<(tajweed|rule) class=([a-z_]+)>([\u064B-\u065F\u0670]*[اٱآإأـٰىۦ][^<]*)<\/(tajweed|rule)>/g,
+    '<$2 class=$3>$1$4</$5>'
+  );
+
+  // 3. Fix Lam before long vowels with madda (e.g. قَالُوٓا۟ -> قَا<tajweed...>لُوٓ</tajweed>ا۟)
+  res = res.replace(
+    /([ل][\u064B-\u065F\u0670]*)<(tajweed|rule) class=(madda_[a-z_]+)>([\u064B-\u065F\u0670]*[وي][^<]*)<\/(tajweed|rule)>/g,
+    '<$2 class=$3>$1$4</$5>'
+  );
+
+  return res;
+}
+
 function formatTajweedHtml(rawHtml: string, stripEndBadge = false): string {
   if (!rawHtml) return '';
-  let res = rawHtml
+
+  // 1. Repair ligatures before tag conversion
+  let res = repairTajweedHtml(rawHtml);
+
+  // 2. Convert <tajweed> / <rule> tags to standard <span class="tajweed-..." data-rule="...">
+  res = res
     .replace(/<(?:tajweed|rule) class=([a-z_]+)>/g, '<span class="tajweed-$1" data-rule="$1">')
     .replace(/<\/(?:tajweed|rule)>/g, '</span>');
 
+  // 3. Second pass for any pre-formatted <span> tags
+  res = res.replace(
+    /([ل][\u064B-\u065F\u0670]*)<span class="tajweed-([a-z_]+)" data-rule="([a-z_]+)">([\u064B-\u065F\u0670]*[اٱآإأـٰىۦوي][^<]*)<\/span>/g,
+    '<span class="tajweed-$2" data-rule="$3">$1$4</span>'
+  );
+
+  // 4. Handle end-of-verse badges
   if (stripEndBadge) {
     res = res.replace(/<span class=end>(.*?)<\/span>/g, '');
   } else {
-    res = res.replace(/<span class=end>(.*?)<\/span>/g, '<span class="inline-flex items-center justify-center w-7 h-7 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50 text-[11px] font-sans font-bold text-amber-900 shadow-2xs select-none">$1</span>');
+    res = res.replace(
+      /<span class=end>(.*?)<\/span>/g,
+      '<span class="inline-flex items-center justify-center w-7 h-7 mx-0.5 rounded-full border border-amber-600/70 bg-amber-50 text-[11px] font-sans font-bold text-amber-900 shadow-2xs select-none">$1</span>'
+    );
   }
+
   return res;
 }
 
@@ -1122,20 +1180,24 @@ export default function MushafPage() {
 
   return (
     <div className="w-full font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Dynamic CSS for Interactive Tajweed */}
+      {/* Dynamic CSS for Interactive Tajweed (Pure Color Only - Preserves Native Arabic Ligatures) */}
       <style>{`
+        [data-rule] {
+          font-weight: inherit !important;
+          font-style: normal;
+        }
         .tajweed-ham_wasl, .tajweed-laam_shamsiyah, .tajweed-slnt { color: #94A3B8; }
-        .tajweed-ghunnah { color: #D97706; font-weight: 700; }
-        .tajweed-idgham_ghunnah { color: #059669; font-weight: 700; }
+        .tajweed-ghunnah { color: #D97706; }
+        .tajweed-idgham_ghunnah { color: #059669; }
         .tajweed-idgham_wo_ghunnah { color: #64748B; }
-        .tajweed-iqlab { color: #0284C7; font-weight: 700; }
-        .tajweed-ikhafa, .tajweed-ikhafa_shafawi { color: #2563EB; font-weight: 700; }
-        .tajweed-idgham_shafawi { color: #0D9488; font-weight: 700; }
-        .tajweed-qalaqah { color: #06B6D4; font-weight: 700; }
-        .tajweed-madda_normal { color: #DC2626; font-weight: 600; }
-        .tajweed-madda_permissible { color: #E11D48; font-weight: 700; }
-        .tajweed-madda_necessary { color: #7C3AED; font-weight: 700; }
-        .tajweed-madda_obligatory { color: #991B1B; font-weight: 700; }
+        .tajweed-iqlab { color: #0284C7; }
+        .tajweed-ikhafa, .tajweed-ikhafa_shafawi { color: #2563EB; }
+        .tajweed-idgham_shafawi { color: #0D9488; }
+        .tajweed-qalaqah { color: #06B6D4; }
+        .tajweed-madda_normal { color: #DC2626; }
+        .tajweed-madda_permissible { color: #E11D48; }
+        .tajweed-madda_necessary { color: #7C3AED; }
+        .tajweed-madda_obligatory { color: #991B1B; }
       `}</style>
 
       {/* 1. DEDICATED IN-QURAN READING HEADER & TOOLBAR (Ultra Clean on Mobile, Grouped on Desktop) */}
@@ -1177,11 +1239,10 @@ export default function MushafPage() {
                 <button
                   type="button"
                   onClick={() => setReadingMode('ayat')}
-                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    readingMode === 'ayat'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${readingMode === 'ayat'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tampilan Per Ayat"
                 >
                   <AlignJustify className="w-3.5 h-3.5" />
@@ -1199,11 +1260,10 @@ export default function MushafPage() {
                       setCurrentPage(startPg);
                     }
                   }}
-                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    readingMode === 'mushaf'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${readingMode === 'mushaf'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tampilan Mushaf Per Halaman"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
@@ -1324,11 +1384,10 @@ export default function MushafPage() {
                 <button
                   type="button"
                   onClick={() => setReadingMode('ayat')}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    readingMode === 'ayat'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${readingMode === 'ayat'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tampilan Per Ayat"
                 >
                   Ayat
@@ -1345,11 +1404,10 @@ export default function MushafPage() {
                       setCurrentPage(startPg);
                     }
                   }}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                    readingMode === 'mushaf'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${readingMode === 'mushaf'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   title="Tampilan Mushaf Madinah"
                 >
                   Mushaf
@@ -1361,11 +1419,10 @@ export default function MushafPage() {
                 <button
                   type="button"
                   onClick={handleToggleFullAudio}
-                  className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
-                    isPlayingFull
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                      : 'bg-white border-slate-200 text-slate-700 hover:text-emerald-700'
-                  }`}
+                  className={`p-1.5 rounded-xl border transition-all cursor-pointer ${isPlayingFull
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-700 hover:text-emerald-700'
+                    }`}
                   title={isPlayingFull ? 'Jeda Audio' : `Putar Audio (${activeQariOption.name})`}
                 >
                   {isPlayingFull ? (
@@ -1380,11 +1437,10 @@ export default function MushafPage() {
               <button
                 type="button"
                 onClick={() => setMobileSettingsOpen(true)}
-                className={`p-1.5 rounded-xl border transition-all cursor-pointer relative ${
-                  mobileSettingsOpen
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:text-emerald-800'
-                }`}
+                className={`p-1.5 rounded-xl border transition-all cursor-pointer relative ${mobileSettingsOpen
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:text-emerald-800'
+                  }`}
                 title="Pengaturan Tampilan & Alat Tilawah"
               >
                 <SlidersHorizontal className="w-4 h-4" />
@@ -2882,14 +2938,12 @@ export default function MushafPage() {
                   <button
                     type="button"
                     onClick={() => setShowTranslation((prev) => !prev)}
-                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      showTranslation ? 'bg-emerald-600' : 'bg-slate-300'
-                    }`}
+                    className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${showTranslation ? 'bg-emerald-600' : 'bg-slate-300'
+                      }`}
                   >
                     <span
-                      className={`block w-5 h-5 rounded-full bg-white shadow-xs transition-transform transform ${
-                        showTranslation ? 'translate-x-5.5' : 'translate-x-0.5'
-                      }`}
+                      className={`block w-5 h-5 rounded-full bg-white shadow-xs transition-transform transform ${showTranslation ? 'translate-x-5.5' : 'translate-x-0.5'
+                        }`}
                     />
                   </button>
                 </div>
@@ -2913,14 +2967,12 @@ export default function MushafPage() {
                 <button
                   type="button"
                   onClick={() => setShowTajwid((prev) => !prev)}
-                  className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    showTajwid ? 'bg-emerald-600' : 'bg-slate-300'
-                  }`}
+                  className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${showTajwid ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
                 >
                   <span
-                    className={`block w-5 h-5 rounded-full bg-white shadow-xs transition-transform transform ${
-                      showTajwid ? 'translate-x-5.5' : 'translate-x-0.5'
-                    }`}
+                    className={`block w-5 h-5 rounded-full bg-white shadow-xs transition-transform transform ${showTajwid ? 'translate-x-5.5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
