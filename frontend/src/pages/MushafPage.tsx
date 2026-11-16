@@ -23,6 +23,9 @@ import {
   SkipForward,
   Volume2,
   SlidersHorizontal,
+  CheckCircle2,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import type { SurahSummary, SurahDetail, MutashabihaItem } from '../types';
 import { ExitMutabaahModal, ExitMutabaahSummary } from '../components/mushaf/ExitMutabaahModal';
@@ -39,6 +42,18 @@ import {
   playManagedAudio,
   stopManagedAudio,
 } from '../lib/qariPreferences';
+import {
+  getAllOfflineSurahs,
+  isSurahOffline,
+  isSurahDownloading,
+  downloadSurahAudio,
+  cancelSurahDownload,
+  deleteOfflineSurahAudio,
+  formatBytes,
+  getOfflineSurahRecord,
+  OFFLINE_AUDIO_UPDATED_EVENT,
+  type OfflineSurahRecord,
+} from '../lib/offlineAudioService';
 
 // 30 Juz Mapping Data
 interface JuzInfo {
@@ -238,7 +253,7 @@ export default function MushafPage() {
   const modeParam = searchParams.get('mode');
 
   const [activeTab, setActiveTab] = useState<'surah' | 'juz'>('surah');
-  const [revelationFilter, setRevelationFilter] = useState<'all' | 'makiyyah' | 'madaniyyah'>('all');
+  const [revelationFilter, setRevelationFilter] = useState<'all' | 'makiyyah' | 'madaniyyah' | 'offline'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [surahs, setSurahs] = useState<SurahSummary[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -416,6 +431,34 @@ export default function MushafPage() {
   const [activeAyahText, setActiveAyahText] = useState<{ number: number; text: string } | null>(null);
   const [bookmarkedFeedback, setBookmarkedFeedback] = useState<string | null>(null);
 
+  // Track open sheets and active reading to notify MainLayout to hide mobile bottom nav
+  const isAnySheetOpen = Boolean(
+    selectedSurahNumber !== null ||
+    selectedJuzNumber !== null ||
+    bottomSheetTajweed !== null ||
+    selectedMushafAyah !== null ||
+    mobileSettingsOpen ||
+    showInfoModal ||
+    showTajwidGuide ||
+    exitModalOpen ||
+    activeMutashabih !== null
+  );
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('hifzhly_hide_bottom_nav', {
+        detail: { hide: isAnySheetOpen },
+      })
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent('hifzhly_hide_bottom_nav', {
+          detail: { hide: false },
+        })
+      );
+    };
+  }, [isAnySheetOpen]);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fullAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -433,6 +476,82 @@ export default function MushafPage() {
       stopManagedAudio(fullAudioRef);
     };
   }, []);
+
+  // Offline Audio Engine State & Operations
+  const [offlineSurahs, setOfflineSurahs] = useState<OfflineSurahRecord[]>(() => getAllOfflineSurahs());
+  const [activeDownloadState, setActiveDownloadState] = useState<{
+    surahNumber: number;
+    percent: number;
+    currentAyah: number;
+    totalAyahs: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleOfflineUpdate = () => {
+      setOfflineSurahs(getAllOfflineSurahs());
+    };
+    window.addEventListener(OFFLINE_AUDIO_UPDATED_EVENT, handleOfflineUpdate);
+    return () => {
+      window.removeEventListener(OFFLINE_AUDIO_UPDATED_EVENT, handleOfflineUpdate);
+    };
+  }, []);
+
+  const isCurrentSurahOffline = currentSurah
+    ? isSurahOffline(currentSurah.number, selectedQari)
+    : false;
+  const isCurrentSurahDownloading = currentSurah
+    ? isSurahDownloading(currentSurah.number, selectedQari) || (activeDownloadState?.surahNumber === currentSurah.number)
+    : false;
+  const currentSurahOfflineRecord = currentSurah
+    ? getOfflineSurahRecord(currentSurah.number, selectedQari)
+    : null;
+
+  const handleStartDownloadSurah = async (surahNum: number, surahNameLatin: string, totalAyat: number) => {
+    try {
+      setActiveDownloadState({
+        surahNumber: surahNum,
+        percent: 0,
+        currentAyah: 0,
+        totalAyahs: totalAyat,
+      });
+
+      const success = await downloadSurahAudio(
+        surahNum,
+        surahNameLatin,
+        totalAyat,
+        selectedQari,
+        activeQariOption.name,
+        (percent, currentAyah, totalAyahs) => {
+          setActiveDownloadState({
+            surahNumber: surahNum,
+            percent,
+            currentAyah,
+            totalAyahs,
+          });
+        }
+      );
+
+      setActiveDownloadState(null);
+      if (success) {
+        setToastSuccessMessage(`Audio QS. ${surahNameLatin} berhasil diunduh untuk diputar offline!`);
+        setTimeout(() => setToastSuccessMessage(null), 4000);
+      }
+    } catch (err: any) {
+      setActiveDownloadState(null);
+      console.error('Download audio error:', err);
+    }
+  };
+
+  const handleCancelDownloadSurah = (surahNum: number) => {
+    cancelSurahDownload(surahNum, selectedQari);
+    setActiveDownloadState(null);
+  };
+
+  const handleDeleteOfflineSurah = async (surahNum: number, totalAyat: number) => {
+    await deleteOfflineSurahAudio(surahNum, totalAyat, selectedQari);
+    setToastSuccessMessage(`Audio offline QS. ${currentSurah?.nameLatin || surahNum} telah dihapus.`);
+    setTimeout(() => setToastSuccessMessage(null), 3000);
+  };
 
   // Terakhir Baca State (loaded from localStorage)
   const [lastRead, setLastRead] = useState<{
@@ -1039,11 +1158,13 @@ export default function MushafPage() {
         matchRev = normRev === 'Makkiyyah';
       } else if (revelationFilter === 'madaniyyah') {
         matchRev = normRev === 'Madaniyyah';
+      } else if (revelationFilter === 'offline') {
+        matchRev = isSurahOffline(surah.number, selectedQari);
       }
 
       return matchSearch && matchRev;
     });
-  }, [surahs, searchQuery, revelationFilter]);
+  }, [surahs, searchQuery, revelationFilter, offlineSurahs, selectedQari]);
 
   // Filtered Juz
   const filteredJuz = useMemo(() => {
@@ -1336,7 +1457,7 @@ export default function MushafPage() {
 
               <span className="w-px h-5 bg-slate-200 mx-0.5" />
 
-              {/* Group 4: Audio Murottal Full Surah (Ayat view only) */}
+              {/* Group 4: Audio Murottal Full Surah (Ayat view only) & Offline Download */}
               {readingMode === 'ayat' && (
                 <button
                   type="button"
@@ -1351,6 +1472,45 @@ export default function MushafPage() {
                     <Pause className="w-4 h-4 fill-current" />
                   ) : (
                     <Play className="w-4 h-4 fill-current" />
+                  )}
+                </button>
+              )}
+
+              {currentSurah && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isCurrentSurahOffline) {
+                      handleDeleteOfflineSurah(currentSurah.number, currentSurah.numberOfAyahs);
+                    } else if (isCurrentSurahDownloading) {
+                      handleCancelDownloadSurah(currentSurah.number);
+                    } else {
+                      handleStartDownloadSurah(currentSurah.number, currentSurah.nameLatin, currentSurah.numberOfAyahs);
+                    }
+                  }}
+                  className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer relative ${isCurrentSurahOffline
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                    : isCurrentSurahDownloading
+                      ? 'bg-amber-50 border-amber-300 text-amber-800'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300'
+                    }`}
+                  title={
+                    isCurrentSurahOffline
+                      ? `Audio Offline Tersimpan (${formatBytes(currentSurahOfflineRecord?.totalBytes || 0)}) • Klik untuk hapus`
+                      : isCurrentSurahDownloading
+                        ? `Sedang Mengunduh (${activeDownloadState?.percent || 0}%) • Klik untuk batalkan`
+                        : `Download Audio Surah (Offline) • ${activeQariOption.name}`
+                  }
+                >
+                  {isCurrentSurahOffline ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  ) : isCurrentSurahDownloading ? (
+                    <div className="flex items-center space-x-1">
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-700" />
+                      <span className="text-[10px] font-bold text-amber-800">{activeDownloadState?.percent || 0}%</span>
+                    </div>
+                  ) : (
+                    <Download className="w-4 h-4" />
                   )}
                 </button>
               )}
@@ -2100,7 +2260,7 @@ export default function MushafPage() {
 
               {/* Quick Action Popup / Bottom Sheet for Selected Verse in Mushaf View */}
               {selectedMushafAyah && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in" onClick={() => setSelectedMushafAyah(null)}>
+                <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in" onClick={() => setSelectedMushafAyah(null)}>
                   <div
                     className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 sm:zoom-in-95"
                     onClick={(e) => e.stopPropagation()}
@@ -2309,7 +2469,7 @@ export default function MushafPage() {
               )}
             </div>
 
-            {/* Category Filter Pills: [ Semua ] [ Makiyyah ] [ Madaniyyah ] */}
+            {/* Category Filter Pills: [ Semua ] [ Makiyyah ] [ Madaniyyah ] [ Audio Offline ] */}
             {activeTab === 'surah' && (
               <div className="flex items-center space-x-2 pt-0.5 overflow-x-auto pb-1">
                 <button
@@ -2342,6 +2502,17 @@ export default function MushafPage() {
                 >
                   Madaniyyah
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setRevelationFilter('offline')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${revelationFilter === 'offline'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Audio Offline ({offlineSurahs.filter((s) => s.qariId === selectedQari).length})</span>
+                </button>
               </div>
             )}
 
@@ -2355,12 +2526,23 @@ export default function MushafPage() {
               /* SURAH LIST */
               <div className="space-y-2.5">
                 {filteredSurahs.length === 0 ? (
-                  <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-500 text-xs">
-                    Surah tidak ditemukan untuk kata kunci "{searchQuery}".
+                  <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-500 text-xs space-y-2">
+                    {revelationFilter === 'offline' ? (
+                      <>
+                        <Download className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="font-semibold text-slate-700">Belum Ada Audio Surah Tersimpan</p>
+                        <p className="text-slate-400 max-w-sm mx-auto">
+                          Buka surah yang ingin didengarkan, lalu tekan ikon unduh untuk menyimpan audio ke memori perangkat agar bisa diputar offline.
+                        </p>
+                      </>
+                    ) : (
+                      `Surah tidak ditemukan untuk kata kunci "${searchQuery}".`
+                    )}
                   </div>
                 ) : (
                   filteredSurahs.map((surah) => {
                     const normRev = getNormRevelation(surah.revelationType);
+                    const isOffline = isSurahOffline(surah.number, selectedQari);
                     return (
                       <div
                         key={surah.number}
@@ -2375,9 +2557,18 @@ export default function MushafPage() {
                             {surah.number}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-emerald-800 transition-colors">
-                              {surah.nameLatin}
-                            </h3>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-emerald-800 transition-colors">
+                                {surah.nameLatin}
+                              </h3>
+                              {isOffline && (
+                                <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10px] font-bold">
+                                  <CheckC
+                                  ircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Offline</span>
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[11px] text-slate-500 font-medium">
                               <span className="text-emerald-700 font-semibold">{normRev}</span> • {surah.numberOfAyahs} Ayat • {surah.translation}
                             </p>
@@ -2438,7 +2629,7 @@ export default function MushafPage() {
         {/* 4. MODALS: PANDUAN WARNA TAJWID                          */}
         {/* ======================================================== */}
         {showTajwidGuide && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center space-x-2 text-emerald-900">
@@ -2503,7 +2694,7 @@ export default function MushafPage() {
 
       {/* Tajweed Rule Modal & Bottom Sheet (Shown on Click) */}
       {bottomSheetTajweed && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
           {/* Backdrop */}
           <div
             onClick={() => setBottomSheetTajweed(null)}
@@ -2568,7 +2759,7 @@ export default function MushafPage() {
       {/* 5. MODALS: INFO SURAH & ASBABUN NUZUL                     */}
       {/* ======================================================== */}
       {showInfoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2 text-emerald-900">
@@ -2644,7 +2835,7 @@ export default function MushafPage() {
       {/* 6. MODALS: MUTASYABIHAT (Ayat Serupa)                    */}
       {/* ======================================================== */}
       {activeMutashabih && activeAyahText && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2 text-amber-900">
@@ -2736,7 +2927,7 @@ export default function MushafPage() {
 
       {/* ── Continuous Quran Audio Floating Player Bar ── */}
       {playingAyahNumber !== null && (currentSurah || selectedSurahNumber) && (
-        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-8 z-50 md:w-[420px] bg-white/95 backdrop-blur-md rounded-2xl border border-emerald-200/90 shadow-xl shadow-emerald-950/10 p-3 sm:p-3.5 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-4 md:bottom-6 left-4 right-4 md:left-auto md:right-8 z-50 md:w-[420px] bg-white/95 backdrop-blur-md rounded-2xl border border-emerald-200/90 shadow-xl shadow-emerald-950/10 p-3 sm:p-3.5 animate-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between gap-3">
             {/* Left: Surah & Verse Indicator */}
             <div className="flex items-center space-x-2.5 min-w-0">
@@ -2824,7 +3015,7 @@ export default function MushafPage() {
       {/* MOBILE READING PREFERENCES & TOOLS BOTTOM SHEET          */}
       {/* ======================================================== */}
       {mobileSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center md:hidden animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center md:hidden animate-in fade-in duration-200">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
@@ -3075,6 +3266,104 @@ export default function MushafPage() {
                 </div>
               </div>
             </div>
+
+            {/* 4. Download Audio Offline (Per-Surah) */}
+            {currentSurah && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                  Audio Murottal Offline
+                </span>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isCurrentSurahOffline
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : isCurrentSurahDownloading
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-white text-slate-600 border-slate-200'
+                        }`}>
+                        {isCurrentSurahOffline ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+                        ) : isCurrentSurahDownloading ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-amber-700" />
+                        ) : (
+                          <Download className="w-5 h-5 text-slate-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 truncate">
+                          QS. {currentSurah.nameLatin} ({currentSurah.numberOfAyahs} Ayat)
+                        </h4>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          Qari: {activeQariOption.name}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isCurrentSurahOffline && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full shrink-0">
+                        {formatBytes(currentSurahOfflineRecord?.totalBytes || 0)}
+                      </span>
+                    )}
+                  </div>
+
+                  {isCurrentSurahDownloading ? (
+                    <div className="space-y-2">
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-emerald-600 h-2 rounded-full transition-all duration-200"
+                          style={{ width: `${activeDownloadState?.percent || 0}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">
+                          Mengunduh ayat {activeDownloadState?.currentAyah || 0} / {activeDownloadState?.totalAyahs || currentSurah.numberOfAyahs}
+                        </span>
+                        <span className="font-bold text-emerald-700">
+                          {activeDownloadState?.percent || 0}%
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelDownloadSurah(currentSurah.number)}
+                        className="w-full py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Batalkan Unduhan
+                      </button>
+                    </div>
+                  ) : isCurrentSurahOffline ? (
+                    <div className="space-y-2.5">
+                      <p className="text-[11px] text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-100">
+                        Tersimpan di perangkat. Audio dapat diputar kapan saja tanpa koneksi internet atau kuota.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteOfflineSurah(currentSurah.number, currentSurah.numberOfAyahs)}
+                        className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100/80 text-rose-700 text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Audio Offline</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <p className="text-[11px] text-slate-500">
+                        Unduh seluruh audio ayat surah ini agar bisa dimurojaah lancar tanpa koneksi internet.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleStartDownloadSurah(currentSurah.number, currentSurah.nameLatin, currentSurah.numberOfAyahs)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center space-x-1.5 shadow-xs transition-colors cursor-pointer"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Download Audio Surah ({currentSurah.numberOfAyahs} Ayat)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Done Button */}
             <button

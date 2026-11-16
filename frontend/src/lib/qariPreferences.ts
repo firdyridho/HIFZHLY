@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, type MutableRefObject } from 'react';
+import { resolvePlayableAudioUrl } from './offlineAudioService';
 
 export const QARI_STORAGE_KEY = 'hifzhly_qari_preference';
 export const QARI_UPDATED_EVENT = 'hifzhly_qari_updated';
@@ -296,43 +297,55 @@ export function playManagedAudio(
   let candidateIndex = 0;
 
   const attemptPlay = (targetUrl: string) => {
-    if (audio.src !== targetUrl) {
-      audio.src = targetUrl;
-    }
-    audio.preload = 'auto';
-
-    audio.onplaying = () => {
-      if (audioRef.current !== audio) return;
-      handlers.onPlaying?.();
-    };
-
-    audio.onended = () => {
-      if (audioRef.current !== audio) return;
-      audioRef.current = null;
-      handlers.onEnded?.();
-    };
-
-    audio.onerror = () => {
-      candidateIndex++;
-      if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
-        attemptPlay(candidateUrls[candidateIndex]);
-      } else {
+    resolvePlayableAudioUrl(targetUrl)
+      .then((resolvedUrl) => {
         if (audioRef.current !== audio) return;
-        audioRef.current = null;
-        handlers.onError?.();
-      }
-    };
+        if (audio.src !== resolvedUrl) {
+          audio.src = resolvedUrl;
+        }
+        audio.preload = 'auto';
 
-    audio.play().catch(() => {
-      candidateIndex++;
-      if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
-        attemptPlay(candidateUrls[candidateIndex]);
-      } else {
+        audio.onplaying = () => {
+          if (audioRef.current !== audio) return;
+          handlers.onPlaying?.();
+        };
+
+        audio.onended = () => {
+          if (audioRef.current !== audio) return;
+          audioRef.current = null;
+          handlers.onEnded?.();
+        };
+
+        audio.onerror = () => {
+          candidateIndex++;
+          if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
+            attemptPlay(candidateUrls[candidateIndex]);
+          } else {
+            if (audioRef.current !== audio) return;
+            audioRef.current = null;
+            handlers.onError?.();
+          }
+        };
+
+        audio.play().catch(() => {
+          candidateIndex++;
+          if (candidateIndex < candidateUrls.length && audioRef.current === audio) {
+            attemptPlay(candidateUrls[candidateIndex]);
+          } else {
+            if (audioRef.current !== audio) return;
+            audioRef.current = null;
+            handlers.onError?.();
+          }
+        });
+      })
+      .catch(() => {
         if (audioRef.current !== audio) return;
-        audioRef.current = null;
-        handlers.onError?.();
-      }
-    });
+        if (audio.src !== targetUrl) {
+          audio.src = targetUrl;
+        }
+        audio.preload = 'auto';
+        audio.play().catch(() => {});
+      });
   };
 
   attemptPlay(candidateUrls[0]);

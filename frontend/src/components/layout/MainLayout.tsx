@@ -24,13 +24,26 @@ export default function MainLayout() {
   });
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [eventHideBottomNav, setEventHideBottomNav] = useState(false);
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
+  // Listen for programmatic hide requests (e.g. bottom sheet open, full-screen reading mode)
+  useEffect(() => {
+    const handleNavToggle = (e: any) => {
+      setEventHideBottomNav(!!e.detail?.hide);
+    };
+    window.addEventListener('hifzhly_hide_bottom_nav', handleNavToggle as EventListener);
+    return () => {
+      window.removeEventListener('hifzhly_hide_bottom_nav', handleNavToggle as EventListener);
+    };
+  }, []);
+
   // Active reading & recitation check to replace double header and adapt mobile navigation
-  const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz'));
+  const isQuranReading = location.pathname.startsWith('/app/mushaf') && (searchParams.has('surah') || searchParams.has('juz') || searchParams.has('page'));
   const isRecitationSession = location.pathname.startsWith('/app/hafalan') || location.pathname.startsWith('/app/murojaah');
   const hideHeader = isQuranReading || isRecitationSession;
+  const hideBottomNav = isRecitationSession || isQuranReading || eventHideBottomNav;
 
   // Auth Guard: Jika tidak ada token (misal setelah logout), dilarang masuk dan wajib login
   const token = localStorage.getItem('hifzhly_auth_token') || localStorage.getItem('token');
@@ -175,13 +188,13 @@ export default function MainLayout() {
       )}
 
       {/* Main Content Container */}
-      <main className={hideHeader ? "flex-1 w-full mx-auto p-0 pb-20 md:pb-6" : "flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8"}>
+      <main className={hideHeader ? "flex-1 w-full mx-auto p-0 pb-6" : "flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8"}>
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Hidden when on active recitation session where dedicated bar is rendered) */}
-      {!isRecitationSession && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
+      {/* Mobile Bottom Navigation Bar (Hidden when reading Quran, in recitation session, or when bottom sheets are open) */}
+      {!hideBottomNav && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg px-2 py-1">
           <div className="max-w-md mx-auto grid grid-cols-5 items-center justify-items-center">
             {/* 1. Qur'an */}
             <NavLink
